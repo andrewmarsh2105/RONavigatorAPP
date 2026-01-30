@@ -1,0 +1,100 @@
+import { ReactNode, useEffect } from 'react';
+import { motion, AnimatePresence, PanInfo, useDragControls } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
+interface BottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  title?: string;
+  fullScreen?: boolean;
+  className?: string;
+}
+
+export function BottomSheet({ 
+  isOpen, 
+  onClose, 
+  children, 
+  title,
+  fullScreen = false,
+  className 
+}: BottomSheetProps) {
+  const dragControls = useDragControls();
+
+  // Prevent body scroll when sheet is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.velocity.y > 500 || info.offset.y > 100) {
+      onClose();
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/50"
+            onClick={onClose}
+          />
+
+          {/* Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            className={cn(
+              'bottom-sheet',
+              fullScreen ? 'h-[95vh]' : 'max-h-[85vh]',
+              className
+            )}
+          >
+            {/* Handle */}
+            <div 
+              className="cursor-grab active:cursor-grabbing touch-none"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <div className="bottom-sheet-handle" />
+            </div>
+
+            {/* Header */}
+            {title && (
+              <div className="px-4 pb-3 border-b border-border">
+                <h2 className="text-lg font-semibold text-center">{title}</h2>
+              </div>
+            )}
+
+            {/* Content */}
+            <div className={cn(
+              'overflow-y-auto',
+              fullScreen ? 'flex-1' : 'max-h-[calc(85vh-4rem)]'
+            )}>
+              {children}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
