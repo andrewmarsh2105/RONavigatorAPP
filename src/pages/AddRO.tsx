@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ChevronDown, ChevronUp, Mic, X, ArrowLeft } from 'lucide-react';
+import { Camera, ChevronDown, ChevronUp, X, ArrowLeft, Upload, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { Chip } from '@/components/mobile/Chip';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
+import { ScanROSheet } from '@/components/sheets/ScanROSheet';
 import { useRO } from '@/contexts/ROContext';
 import type { LaborType, ROLine } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function AddRO() {
   const navigate = useNavigate();
@@ -21,6 +23,10 @@ export default function AddRO() {
 
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showAdvisorList, setShowAdvisorList] = useState(false);
+  const [showScanSheet, setShowScanSheet] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string>('');
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
@@ -58,6 +64,65 @@ export default function AddRO() {
 
   // Calculate total hours from lines
   const totalHours = lines.reduce((sum, line) => sum + line.hoursPaid, 0);
+
+  // Handle scan button click - trigger file input
+  const handleScanClick = () => {
+    setScanStatus('Opening camera...');
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle file selection from camera/gallery
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setScanStatus('No file selected');
+      return;
+    }
+    
+    setScanStatus(`File selected: ${file.name}`);
+    setIsProcessingPhoto(true);
+    
+    // Simulate upload delay
+    setTimeout(() => {
+      setScanStatus('Uploading photo...');
+    }, 100);
+    
+    // Read file and show review sheet
+    const reader = new FileReader();
+    reader.onload = () => {
+      setScanStatus('Photo loaded, opening review...');
+      setIsProcessingPhoto(false);
+      setShowScanSheet(true);
+    };
+    reader.onerror = () => {
+      setScanStatus('Error reading file');
+      setIsProcessingPhoto(false);
+      toast.error('Failed to read photo');
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  // Handle scanned data from review sheet
+  const handleScanApply = (data: { roNumber?: string; advisor?: string; paidHours?: number; workPerformed?: string }) => {
+    setScanStatus('Applying scanned data...');
+    
+    if (data.roNumber) setRoNumber(data.roNumber);
+    if (data.advisor) setAdvisor(data.advisor);
+    if (data.paidHours || data.workPerformed) {
+      const newLine = createEmptyLine(1);
+      newLine.description = data.workPerformed || 'Scanned work';
+      newLine.hoursPaid = data.paidHours || 0;
+      setLines(prev => [newLine, ...prev.filter(l => l.description || l.hoursPaid > 0)].map((l, i) => ({ ...l, lineNo: i + 1 })));
+    }
+    
+    toast.success('Scanned data applied!');
+    setScanStatus('Done');
+  };
 
   const handleSave = (addAnother: boolean = false) => {
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
@@ -116,16 +181,59 @@ export default function AddRO() {
       {/* Scrollable Content - Single scroll container */}
       <main className="flex-1 overflow-y-auto overscroll-contain">
         <div className="p-4 space-y-6 pb-48">
+          {/* Hidden file input for camera/gallery */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
+            aria-hidden="true"
+          />
+
           {/* Scan RO Photo Button */}
-          <button
-            onClick={() => {
-              // TODO: Navigate to scan
-            }}
-            className="w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback"
-          >
-            <Camera className="h-6 w-6" />
-            Scan RO Photo
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={handleScanClick}
+              disabled={isProcessingPhoto}
+              className={cn(
+                "w-full py-4 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center gap-3 text-primary font-semibold tap-target touch-feedback relative",
+                isProcessingPhoto && "opacity-70"
+              )}
+            >
+              {isProcessingPhoto ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Camera className="h-6 w-6" />
+                  Scan RO Photo
+                </>
+              )}
+            </button>
+            
+            {/* Fallback upload button */}
+            <label className="w-full py-3 bg-secondary rounded-xl flex items-center justify-center gap-2 text-muted-foreground font-medium tap-target touch-feedback cursor-pointer">
+              <Upload className="h-5 w-5" />
+              Upload from Gallery
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
+
+            {/* Debug status (dev mode) */}
+            {import.meta.env.DEV && scanStatus && (
+              <div className="p-2 bg-muted rounded-lg text-xs font-mono text-muted-foreground">
+                Status: {scanStatus}
+              </div>
+            )}
+          </div>
 
           {/* RO Number */}
           <div>
@@ -325,6 +433,13 @@ export default function AddRO() {
           </div>
         </div>
       </BottomSheet>
+
+      {/* Scan RO Review Sheet */}
+      <ScanROSheet
+        isOpen={showScanSheet}
+        onClose={() => setShowScanSheet(false)}
+        onApply={handleScanApply}
+      />
     </div>
   );
 }
