@@ -1,24 +1,35 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
+import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Chip, ChipGroup } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
 import { ROActionMenu } from '@/components/shared/ROActionMenu';
+import { FlagBadge } from '@/components/flags/FlagBadge';
+import { FlagInbox } from '@/components/flags/FlagInbox';
+import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
+import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
+import type { ReviewIssue, FlagType } from '@/types/flags';
 
 interface ROCardProps {
   ro: RepairOrder;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onFlag: () => void;
   onViewDetails: () => void;
+  flags: import('@/types/flags').ROFlag[];
+  onClearFlag: (flagId: string) => void;
+  reviewIssues: ReviewIssue[];
+  onConvertToFlag: (issue: ReviewIssue, flagType: FlagType, note?: string) => void;
 }
 
-function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProps) {
+function ROCard({ ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails, flags, onClearFlag, reviewIssues, onConvertToFlag }: ROCardProps) {
   const formattedDate = new Date(ro.date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -41,6 +52,13 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
                 {ro.lines.length} lines
               </span>
             )}
+            <FlagBadge flags={flags} onClear={onClearFlag} />
+            {reviewIssues.length > 0 && (
+              <ReviewIndicator
+                issues={reviewIssues}
+                onConvertToFlag={onConvertToFlag}
+              />
+            )}
           </div>
           <div className="text-sm text-muted-foreground mb-1">
             {formattedDate} • {ro.advisor}
@@ -62,6 +80,7 @@ function ROCard({ ro, onEdit, onDuplicate, onDelete, onViewDetails }: ROCardProp
               onEdit={onEdit}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
+              onFlag={onFlag}
             />
           </div>
           <StatusPill type={ro.laborType} />
@@ -83,10 +102,12 @@ interface ROsTabProps {
 
 export function ROsTab({ onEditRO }: ROsTabProps) {
   const { ros, settings, deleteRO, duplicateRO } = useRO();
+  const { getFlagsForRO, clearFlag, addFlag } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
     laborTypes: [],
@@ -133,6 +154,38 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
 
     return result;
   }, [ros, searchQuery, filters]);
+
+  // Compute review issues for all ROs
+  const getReviewIssues = useCallback((ro: RepairOrder): ReviewIssue[] => {
+    const issues: ReviewIssue[] = [];
+    // Missing hours on lines
+    if (ro.lines?.length > 0) {
+      ro.lines.forEach(line => {
+        if (line.hoursPaid === 0 && line.description) {
+          issues.push({
+            type: 'missing_hours',
+            roId: ro.id,
+            lineId: line.id,
+            message: `L${line.lineNo}: "${line.description}" has 0 hours`,
+          });
+        }
+      });
+    }
+    // Duplicate RO number
+    const dupes = ros.filter(r => r.id !== ro.id && r.roNumber === ro.roNumber && ro.roNumber !== '');
+    if (dupes.length > 0) {
+      issues.push({
+        type: 'duplicate_ro',
+        roId: ro.id,
+        message: `RO #${ro.roNumber} appears ${dupes.length + 1} times`,
+      });
+    }
+    return issues;
+  }, [ros]);
+
+  const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
+    addFlag(issue.roId, flagType, note || issue.message, issue.lineId);
+  }, [addFlag]);
 
   const uniqueAdvisors = useMemo(() => {
     return [...new Set(ros.map((ro) => ro.advisor))];
@@ -184,6 +237,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               className="w-full h-11 pl-10 pr-4 bg-secondary rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+          <FlagInbox />
           <button
             onClick={() => setShowFilters(true)}
             className="h-11 px-4 bg-secondary rounded-xl flex items-center gap-2 tap-target touch-feedback relative"
@@ -210,7 +264,12 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
             <ROCard
               key={ro.id}
               ro={ro}
+              flags={getFlagsForRO(ro.id)}
+              onClearFlag={clearFlag}
+              reviewIssues={getReviewIssues(ro)}
+              onConvertToFlag={handleConvertToFlag}
               onEdit={() => onEditRO(ro)}
+              onFlag={() => setFlaggingRO(ro)}
               onDuplicate={() => {
                 duplicateRO(ro.id);
                 toast.success(`Duplicated RO #${ro.roNumber}`);
@@ -322,6 +381,16 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
           </div>
         </div>
       </BottomSheet>
+
+      {/* Add Flag Dialog */}
+      <AddFlagDialog
+        open={!!flaggingRO}
+        onClose={() => setFlaggingRO(null)}
+        onSubmit={(flagType, note) => {
+          if (flaggingRO) addFlag(flaggingRO.id, flagType, note);
+        }}
+        title={flaggingRO ? `Flag RO #${flaggingRO.roNumber}` : 'Add Flag'}
+      />
     </div>
   );
 }

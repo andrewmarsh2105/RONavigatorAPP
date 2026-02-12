@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ROProvider } from "@/contexts/ROContext";
+import { FlagProvider } from "@/contexts/FlagContext";
 import { DevDebugPanel } from "@/components/debug/DevDebugPanel";
 import Index from "./pages/Index";
 import AddRO from "./pages/AddRO";
@@ -54,19 +55,21 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ROProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <DevDebugPanel />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <FlagProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <DevDebugPanel />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/add-ro" element={<ProtectedRoute><AddRO /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </FlagProvider>
       </ROProvider>
     </AuthProvider>
   </QueryClientProvider>

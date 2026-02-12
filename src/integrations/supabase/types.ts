@@ -86,6 +86,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ro_flags: {
+        Row: {
+          cleared_at: string | null
+          created_at: string
+          flag_type: Database["public"]["Enums"]["flag_type"]
+          id: string
+          note: string | null
+          ro_id: string
+          ro_line_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cleared_at?: string | null
+          created_at?: string
+          flag_type?: Database["public"]["Enums"]["flag_type"]
+          id?: string
+          note?: string | null
+          ro_id: string
+          ro_line_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cleared_at?: string | null
+          created_at?: string
+          flag_type?: Database["public"]["Enums"]["flag_type"]
+          id?: string
+          note?: string | null
+          ro_id?: string
+          ro_line_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ro_flags_ro_id_fkey"
+            columns: ["ro_id"]
+            isOneToOne: false
+            referencedRelation: "ros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ro_flags_ro_line_id_fkey"
+            columns: ["ro_line_id"]
+            isOneToOne: false
+            referencedRelation: "ro_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ro_lines: {
         Row: {
           created_at: string
@@ -240,6 +288,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          flag_inbox_date_range: string | null
+          flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
+          id: string
+          show_scan_confidence: boolean | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flag_inbox_date_range?: string | null
+          flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
+          id?: string
+          show_scan_confidence?: boolean | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flag_inbox_date_range?: string | null
+          flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
+          id?: string
+          show_scan_confidence?: boolean | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -248,6 +329,12 @@ export type Database = {
       owns_ro: { Args: { _ro_id: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
+      flag_type:
+        | "needs_time"
+        | "questionable"
+        | "waiting"
+        | "advisor_question"
+        | "other"
       labor_type: "warranty" | "customer-pay" | "internal"
       ro_status: "draft" | "complete"
     }
@@ -377,6 +464,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      flag_type: [
+        "needs_time",
+        "questionable",
+        "waiting",
+        "advisor_question",
+        "other",
+      ],
       labor_type: ["warranty", "customer-pay", "internal"],
       ro_status: ["draft", "complete"],
     },

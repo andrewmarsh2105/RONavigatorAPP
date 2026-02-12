@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreVertical, Pencil, Copy, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Copy, Trash2, Flag } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import {
@@ -23,10 +23,11 @@ interface ROActionMenuProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onFlag?: () => void;
   className?: string;
 }
 
-export function ROActionMenu({ roNumber, onEdit, onDuplicate, onDelete, className }: ROActionMenuProps) {
+export function ROActionMenu({ roNumber, onEdit, onDuplicate, onDelete, onFlag, className }: ROActionMenuProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -82,6 +83,17 @@ export function ROActionMenu({ roNumber, onEdit, onDuplicate, onDelete, classNam
         <Copy className="h-4 w-4 text-muted-foreground" />
         Duplicate
       </button>
+
+      {/* Flag */}
+      {onFlag && (
+        <button
+          onClick={() => handleAction(onFlag)}
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors rounded-lg"
+        >
+          <Flag className="h-4 w-4 text-orange-500" />
+          Flag
+        </button>
+      )}
 
       {/* Separator */}
       <div className="my-1 h-px bg-border" />
