@@ -56,10 +56,16 @@ serve(async (req) => {
       });
     }
 
-    // Download image and convert to base64
+    // Download image and convert to base64 (chunk to avoid stack overflow)
     const imageResponse = await fetch(signedUrlData.signedUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const bytes = new Uint8Array(imageBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64Image = btoa(binary);
     const mimeType = imageResponse.headers.get("content-type") || "image/jpeg";
 
     // Call Lovable AI Gateway with vision model
