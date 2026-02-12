@@ -145,7 +145,7 @@ export function SettingsTab() {
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
   const [editingAdvisor, setEditingAdvisor] = useState<Advisor | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [showFinalConfirm, setShowFinalConfirm] = useState(false);
@@ -239,6 +239,7 @@ export function SettingsTab() {
 
   const toggleDarkMode = (enabled: boolean) => {
     setDarkMode(enabled);
+    localStorage.setItem('ro-tracker-theme', enabled ? 'dark' : 'light');
     if (enabled) {
       document.documentElement.classList.add('dark');
     } else {
@@ -452,7 +453,8 @@ export function SettingsTab() {
               inputMode="decimal"
               value={presetHours}
               onChange={(e) => {
-                const val = e.target.value.replace(/[^0-9.]/g, '');
+                let val = e.target.value.replace(',', '.');
+                val = val.replace(/[^0-9.]/g, '');
                 const parts = val.split('.');
                 setPresetHours(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : val);
               }}

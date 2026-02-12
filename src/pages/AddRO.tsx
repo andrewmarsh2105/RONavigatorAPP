@@ -186,7 +186,9 @@ export default function AddRO() {
     });
   };
 
-  const handleSave = (addAnother: boolean = false) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (addAnother: boolean = false) => {
     const computedWorkPerformed = lines.map(l => l.description).filter(Boolean).join('\n');
     
     const roData = {
@@ -202,20 +204,27 @@ export default function AddRO() {
       isSimpleMode: false,
     };
 
-    if (editingRO) {
-      updateRO(editingRO.id, roData);
-      toast.success('RO updated');
-    } else {
-      addRO(roData);
-      toast.success('RO created');
-    }
+    setIsSaving(true);
+    try {
+      if (editingRO) {
+        await updateRO(editingRO.id, roData);
+        toast.success('RO updated');
+      } else {
+        await addRO(roData);
+        toast.success('RO created');
+      }
 
-    if (addAnother) {
-      setRoNumber('');
-      setNotes('');
-      setLines([createEmptyLine(1)]);
-    } else {
-      navigate(-1);
+      if (addAnother) {
+        setRoNumber('');
+        setNotes('');
+        setLines([createEmptyLine(1)]);
+      } else {
+        navigate(-1);
+      }
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}. Your data is still here — try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -438,23 +447,23 @@ export default function AddRO() {
         <div className="p-3 flex gap-2">
           <button
             onClick={() => handleSave(false)}
-            disabled={!isValid}
+            disabled={!isValid || isSaving}
             className={cn(
               'flex-1 py-3 rounded-xl font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
-              isValid
+              isValid && !isSaving
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            Save
+            {isSaving ? 'Saving…' : 'Save'}
           </button>
           {!editingRO && (
             <button
               onClick={() => handleSave(true)}
-              disabled={!isValid}
+              disabled={!isValid || isSaving}
               className={cn(
                 'py-3 px-4 rounded-xl font-medium text-sm border-2 min-h-[44px] transition-colors active:scale-[0.98]',
-                isValid
+                isValid && !isSaving
                   ? 'border-primary text-primary'
                   : 'border-muted text-muted-foreground'
               )}
