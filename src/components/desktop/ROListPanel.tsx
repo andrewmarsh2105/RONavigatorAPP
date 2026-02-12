@@ -34,12 +34,21 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (ro) =>
+      result = result.filter((ro) => {
+        const vehicleStr = [
+          ro.vehicle?.year?.toString(),
+          ro.vehicle?.make,
+          ro.vehicle?.model,
+          ro.vehicle?.trim,
+        ].filter(Boolean).join(' ').toLowerCase();
+        return (
           ro.roNumber.toLowerCase().includes(query) ||
           ro.advisor.toLowerCase().includes(query) ||
-          ro.workPerformed.toLowerCase().includes(query)
-      );
+          ro.workPerformed.toLowerCase().includes(query) ||
+          (ro.customerName || '').toLowerCase().includes(query) ||
+          vehicleStr.includes(query)
+        );
+      });
     }
 
     // Date range filter
