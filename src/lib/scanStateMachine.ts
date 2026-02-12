@@ -41,7 +41,6 @@ export interface ExtractedData {
 export interface ScanSession {
   state: ScanState;
   debug: ScanDebugInfo;
-  imageFile: File | null;
   imagePreviewUrl: string | null;
   storagePath: string | null;
   extractedData: ExtractedData | null;
@@ -60,7 +59,6 @@ export function createScanSession(): ScanSession {
       ocrDone: false,
       lastError: null,
     },
-    imageFile: null,
     imagePreviewUrl: null,
     storagePath: null,
     extractedData: null,

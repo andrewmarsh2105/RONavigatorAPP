@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -11,9 +11,20 @@ import {
   type ExtractedLine,
 } from '@/lib/scanStateMachine';
 
+const MAX_RETRIES = 2;
+
 export function useScanFlow() {
   const { user } = useAuth();
   const [session, setSession] = useState<ScanSession>(createScanSession());
+
+  // Reentrancy guard — prevents concurrent upload/OCR runs
+  const busyRef = useRef(false);
+  // Current scan ID — used to discard stale results
+  const scanIdRef = useRef<string | null>(null);
+  // Retry counter per scan
+  const retryCountRef = useRef(0);
+  // Keep File in a ref so it never gets serialized
+  const fileRef = useRef<File | null>(null);
 
   const updateState = useCallback((state: ScanState, partial?: Partial<ScanSession>) => {
     setSession(prev => ({ ...prev, ...partial, state }));
@@ -27,17 +38,31 @@ export function useScanFlow() {
   }, []);
 
   const reset = useCallback(() => {
+    busyRef.current = false;
+    scanIdRef.current = null;
+    retryCountRef.current = 0;
+    fileRef.current = null;
     setSession(createScanSession());
   }, []);
 
-  const handleFileSelected = useCallback(async (file: File, roId?: string, templateFieldMap?: Record<string, any>) => {
+  const runUploadAndOCR = useCallback(async (
+    file: File,
+    currentScanId: string,
+    roId?: string,
+    templateFieldMap?: Record<string, any>,
+  ) => {
     if (!user) return;
 
-    // Create preview URL
+    // Reentrancy guard
+    if (busyRef.current) {
+      console.warn('[ScanFlow] Ignoring — already busy');
+      return;
+    }
+    busyRef.current = true;
+
     const previewUrl = URL.createObjectURL(file);
 
     updateState('uploading', {
-      imageFile: file,
       imagePreviewUrl: previewUrl,
       errorMessage: null,
     });
@@ -54,9 +79,11 @@ export function useScanFlow() {
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
+      // Staleness check
+      if (scanIdRef.current !== currentScanId) return;
+
       updateDebug({ uploadDone: true });
 
-      // Create ro_photos record if we have an roId
       if (roId) {
         await supabase.from('ro_photos').insert({
           ro_id: roId,
@@ -65,7 +92,7 @@ export function useScanFlow() {
         });
       }
 
-      // Now extract via OCR
+      // OCR
       updateState('extracting', { storagePath: path });
       updateDebug({ ocrStarted: true });
 
@@ -87,6 +114,9 @@ export function useScanFlow() {
         }
       );
 
+      // Staleness check
+      if (scanIdRef.current !== currentScanId) return;
+
       if (!ocrResponse.ok) {
         const errBody = await ocrResponse.json().catch(() => ({}));
         throw new Error(errBody.error || 'OCR extraction failed');
@@ -94,7 +124,6 @@ export function useScanFlow() {
 
       const ocrResult = await ocrResponse.json();
 
-      // Map OCR result to our ExtractedData format
       const extractedLines: ExtractedLine[] = (ocrResult.lines || []).map((line: any) => ({
         id: generateLineId(),
         description: line.description || '',
@@ -116,24 +145,49 @@ export function useScanFlow() {
         },
       };
 
+      // Final staleness check
+      if (scanIdRef.current !== currentScanId) return;
+
       updateDebug({ ocrDone: true });
       updateState('review', { extractedData });
-
     } catch (err: any) {
+      // Only apply error if this scan is still current
+      if (scanIdRef.current !== currentScanId) return;
       const errorMsg = err?.message || 'Unknown error';
       updateDebug({ lastError: errorMsg });
       updateState('error', { errorMessage: errorMsg });
       toast.error(errorMsg);
+    } finally {
+      busyRef.current = false;
     }
   }, [user, updateState, updateDebug]);
 
+  const handleFileSelected = useCallback((file: File, roId?: string, templateFieldMap?: Record<string, any>) => {
+    // New file = new scan, reset retry counter
+    const newScanId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    scanIdRef.current = newScanId;
+    retryCountRef.current = 0;
+    fileRef.current = file;
+    runUploadAndOCR(file, newScanId, roId, templateFieldMap);
+  }, [runUploadAndOCR]);
+
   const retry = useCallback(() => {
-    if (session.imageFile) {
-      handleFileSelected(session.imageFile);
+    if (busyRef.current) return;
+
+    retryCountRef.current += 1;
+    if (retryCountRef.current > MAX_RETRIES) {
+      updateState('error', { errorMessage: 'Too many attempts. Please try another photo.' });
+      toast.error('Too many attempts. Please try another photo.');
+      return;
+    }
+
+    const file = fileRef.current;
+    if (file && scanIdRef.current) {
+      runUploadAndOCR(file, scanIdRef.current);
     } else {
       reset();
     }
-  }, [session.imageFile, handleFileSelected, reset]);
+  }, [runUploadAndOCR, reset, updateState]);
 
   const goToReview = useCallback(() => {
     updateState('review');
