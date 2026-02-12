@@ -110,6 +110,12 @@ export function RODetailSheet({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="pt-2 space-y-2 border-t border-border/50 mt-2">
+                  {ro.customerName && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-20">Customer</span>
+                      <span className="text-sm">{ro.customerName}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground w-20">Labor Type</span>
                     <StatusPill type={ro.laborType} size="sm" />

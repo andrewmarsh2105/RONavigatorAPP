@@ -254,6 +254,7 @@ export type Database = {
           advisor_id: string | null
           advisor_name: string
           created_at: string
+          customer_name: string | null
           date: string
           id: string
           notes: string | null
@@ -266,6 +267,7 @@ export type Database = {
           advisor_id?: string | null
           advisor_name?: string
           created_at?: string
+          customer_name?: string | null
           date?: string
           id?: string
           notes?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           advisor_id?: string | null
           advisor_name?: string
           created_at?: string
+          customer_name?: string | null
           date?: string
           id?: string
           notes?: string | null

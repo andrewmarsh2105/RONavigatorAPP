@@ -4,7 +4,7 @@ import type { RepairOrder, ROLine } from '@/types/ro';
 
 export function generateLineCSV(report: PayPeriodReport): string {
   const headers = [
-    'RO Number', 'Date', 'Advisor', 'Line #', 'Description',
+    'RO Number', 'Date', 'Advisor', 'Customer', 'Line #', 'Description',
     'Labor Type', 'Hours Paid', 'Matched Reference',
   ];
 
@@ -14,6 +14,7 @@ export function generateLineCSV(report: PayPeriodReport): string {
       ro.roNumber,
       ro.date,
       ro.advisor || '—',
+      `"${(ro.customerName || '').replace(/"/g, '""')}"`,
       line.lineNo.toString(),
       `"${(line.description || '').replace(/"/g, '""')}"`,
       line.laborType || 'customer-pay',
