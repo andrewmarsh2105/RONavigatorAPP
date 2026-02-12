@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ROListPanel } from './ROListPanel';
 import { ROEditor } from './ROEditor';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
+import { FlagInbox } from '@/components/flags/FlagInbox';
 import { FileText, Settings, X } from 'lucide-react';
 import type { RepairOrder } from '@/types/ro';
 
@@ -39,7 +40,8 @@ export function DesktopWorkspace() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Top Bar with Settings gear */}
-      <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 border-b border-border bg-card">
+      <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 gap-2 border-b border-border bg-card">
+        <FlagInbox />
         <button
           onClick={() => setShowSettings(!showSettings)}
           className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFlagContext } from '@/contexts/FlagContext';
 import { GripVertical, Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut } from 'lucide-react';
 import { motion, Reorder } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
@@ -141,6 +142,7 @@ function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
+  const { userSettings, updateUserSetting } = useFlagContext();
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
@@ -281,6 +283,12 @@ export function SettingsTab() {
             toggle
             toggleValue={darkMode}
             onToggle={toggleDarkMode}
+          />
+          <SettingsRow
+            label="Show Scan Confidence"
+            toggle
+            toggleValue={userSettings.showScanConfidence}
+            onToggle={(v) => updateUserSetting('showScanConfidence', v)}
           />
         </SettingsGroup>
 

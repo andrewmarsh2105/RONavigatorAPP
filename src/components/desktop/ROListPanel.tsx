@@ -1,10 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Search, SlidersHorizontal, Plus } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
+import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { ROActionMenu } from '@/components/shared/ROActionMenu';
+import { FlagBadge } from '@/components/flags/FlagBadge';
+import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
+import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
 import { toast } from 'sonner';
 import type { RepairOrder, LaborType } from '@/types/ro';
+import type { ReviewIssue, FlagType } from '@/types/flags';
 import { cn } from '@/lib/utils';
 
 interface ROListPanelProps {
@@ -15,8 +20,26 @@ interface ROListPanelProps {
 
 export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO } = useRO();
+  const { getFlagsForRO, clearFlag, addFlag } = useFlagContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
+
+  const getReviewIssues = useCallback((ro: RepairOrder): ReviewIssue[] => {
+    const issues: ReviewIssue[] = [];
+    if (ro.lines?.length > 0) {
+      ro.lines.forEach(line => {
+        if (line.hoursPaid === 0 && line.description) {
+          issues.push({ type: 'missing_hours', roId: ro.id, lineId: line.id, message: `L${line.lineNo}: "${line.description}" has 0 hours` });
+        }
+      });
+    }
+    const dupes = ros.filter(r => r.id !== ro.id && r.roNumber === ro.roNumber && ro.roNumber !== '');
+    if (dupes.length > 0) {
+      issues.push({ type: 'duplicate_ro', roId: ro.id, message: `RO #${ro.roNumber} appears ${dupes.length + 1} times` });
+    }
+    return issues;
+  }, [ros]);
 
   const filteredROs = useMemo(() => {
     let result = ros;
@@ -76,6 +99,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
   };
 
   return (
+    <>
     <div className="flex flex-col h-full border-r border-border bg-card">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-border">
@@ -158,6 +182,16 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="font-semibold text-sm">#{ro.roNumber}</span>
                         <StatusPill type={ro.laborType} size="sm" />
+                        <FlagBadge flags={getFlagsForRO(ro.id)} onClear={clearFlag} />
+                        {(() => {
+                          const issues = getReviewIssues(ro);
+                          return issues.length > 0 ? (
+                            <ReviewIndicator
+                              issues={issues}
+                              onConvertToFlag={(issue, flagType, note) => addFlag(issue.roId, flagType, note || issue.message, issue.lineId)}
+                            />
+                          ) : null;
+                        })()}
                         {hasLines && (
                           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                             {ro.lines.length} lines
@@ -184,6 +218,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
                           deleteRO(ro.id);
                           toast.success(`Deleted RO #${ro.roNumber}`);
                         }}
+                        onFlag={() => setFlaggingRO(ro)}
                         className="-mr-2"
                       />
                     </div>
@@ -210,5 +245,16 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
         </div>
       </div>
     </div>
+
+    {/* Add Flag Dialog */}
+    <AddFlagDialog
+      open={!!flaggingRO}
+      onClose={() => setFlaggingRO(null)}
+      onSubmit={(flagType, note) => {
+        if (flaggingRO) addFlag(flaggingRO.id, flagType, note);
+      }}
+      title={flaggingRO ? `Flag RO #${flaggingRO.roNumber}` : 'Add Flag'}
+    />
+    </>
   );
 }
