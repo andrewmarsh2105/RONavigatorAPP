@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Filter } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -112,11 +112,25 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
+  const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
+  const [showScopes, setShowScopes] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     advisors: [],
     laborTypes: [],
     dateRange: 'all',
   });
+
+  const toggleScope = useCallback((scope: string) => {
+    setSearchScopes(prev => {
+      const next = new Set(prev);
+      if (next.has(scope)) {
+        if (next.size > 1) next.delete(scope);
+      } else {
+        next.add(scope);
+      }
+      return next;
+    });
+  }, []);
 
   const filteredROs = useMemo(() => {
     let result = ros;
@@ -132,11 +146,11 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
           ro.vehicle?.trim,
         ].filter(Boolean).join(' ').toLowerCase();
         return (
-          ro.roNumber.toLowerCase().includes(query) ||
-          ro.advisor.toLowerCase().includes(query) ||
-          ro.workPerformed.toLowerCase().includes(query) ||
-          (ro.customerName || '').toLowerCase().includes(query) ||
-          vehicleStr.includes(query)
+          (searchScopes.has('ro') && ro.roNumber.toLowerCase().includes(query)) ||
+          (searchScopes.has('advisor') && ro.advisor.toLowerCase().includes(query)) ||
+          (searchScopes.has('work') && ro.workPerformed.toLowerCase().includes(query)) ||
+          (searchScopes.has('work') && (ro.customerName || '').toLowerCase().includes(query)) ||
+          (searchScopes.has('vehicle') && vehicleStr.includes(query))
         );
       });
     }
@@ -169,7 +183,7 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
     }
 
     return result;
-  }, [ros, searchQuery, filters]);
+  }, [ros, searchQuery, filters, searchScopes]);
 
   const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
     addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
@@ -225,6 +239,16 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
               className="w-full h-11 pl-10 pr-4 bg-secondary rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+          <button
+            onClick={() => setShowScopes(s => !s)}
+            className={`h-11 w-11 flex items-center justify-center rounded-xl transition-colors ${
+              showScopes || searchScopes.size < 4
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground'
+            }`}
+          >
+            <Filter className="h-5 w-5" />
+          </button>
           <FlagInbox />
           <button
             onClick={() => setShowFilters(true)}
@@ -238,6 +262,29 @@ export function ROsTab({ onEditRO }: ROsTabProps) {
             )}
           </button>
         </div>
+        {/* Search Scope Chips */}
+        {showScopes && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {([
+              { key: 'ro', label: 'RO #' },
+              { key: 'vehicle', label: 'Vehicle' },
+              { key: 'advisor', label: 'Advisor' },
+              { key: 'work', label: 'Work Lines' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => toggleScope(key)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  searchScopes.has(key)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* RO List */}

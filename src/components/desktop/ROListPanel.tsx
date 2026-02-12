@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, SlidersHorizontal, Plus } from 'lucide-react';
+import { Search, SlidersHorizontal, Plus, Filter } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { StatusPill } from '@/components/mobile/StatusPill';
@@ -26,6 +26,20 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
+  const [searchScopes, setSearchScopes] = useState<Set<string>>(new Set(['ro', 'vehicle', 'advisor', 'work']));
+  const [showScopes, setShowScopes] = useState(false);
+
+  const toggleScope = useCallback((scope: string) => {
+    setSearchScopes(prev => {
+      const next = new Set(prev);
+      if (next.has(scope)) {
+        if (next.size > 1) next.delete(scope);
+      } else {
+        next.add(scope);
+      }
+      return next;
+    });
+  }, []);
 
 
   const filteredROs = useMemo(() => {
@@ -42,11 +56,11 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
           ro.vehicle?.trim,
         ].filter(Boolean).join(' ').toLowerCase();
         return (
-          ro.roNumber.toLowerCase().includes(query) ||
-          ro.advisor.toLowerCase().includes(query) ||
-          ro.workPerformed.toLowerCase().includes(query) ||
-          (ro.customerName || '').toLowerCase().includes(query) ||
-          vehicleStr.includes(query)
+          (searchScopes.has('ro') && ro.roNumber.toLowerCase().includes(query)) ||
+          (searchScopes.has('advisor') && ro.advisor.toLowerCase().includes(query)) ||
+          (searchScopes.has('work') && ro.workPerformed.toLowerCase().includes(query)) ||
+          (searchScopes.has('work') && (ro.customerName || '').toLowerCase().includes(query)) ||
+          (searchScopes.has('vehicle') && vehicleStr.includes(query))
         );
       });
     }
@@ -69,7 +83,7 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
     }
 
     return result;
-  }, [ros, searchQuery, dateFilter]);
+  }, [ros, searchQuery, dateFilter, searchScopes]);
 
   // Group ROs by date
   const groupedROs = useMemo(() => {
@@ -118,16 +132,55 @@ export function ROListPanel({ selectedROId, onSelectRO, onAddNew }: ROListPanelP
         </div>
         
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search ROs..."
-            className="w-full h-9 pl-9 pr-4 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+        <div className="relative flex gap-1.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ROs..."
+              className="w-full h-9 pl-9 pr-4 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <button
+            onClick={() => setShowScopes(s => !s)}
+            className={cn(
+              'h-9 w-9 flex items-center justify-center rounded-lg transition-colors',
+              showScopes || searchScopes.size < 4
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+            title="Search filters"
+          >
+            <Filter className="h-4 w-4" />
+          </button>
         </div>
+
+        {/* Search Scope Chips */}
+        {showScopes && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {([
+              { key: 'ro', label: 'RO #' },
+              { key: 'vehicle', label: 'Vehicle' },
+              { key: 'advisor', label: 'Advisor' },
+              { key: 'work', label: 'Work Lines' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => toggleScope(key)}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-medium rounded-md transition-colors',
+                  searchScopes.has(key)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Date Filter Tabs */}
         <div className="flex gap-1 mt-3">
