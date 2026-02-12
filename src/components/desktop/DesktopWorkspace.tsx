@@ -2,25 +2,29 @@ import { useState } from 'react';
 import { ROListPanel } from './ROListPanel';
 import { ROEditor } from './ROEditor';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
+import { SummaryTab } from '@/components/tabs/SummaryTab';
 import { FlagInbox } from '@/components/flags/FlagInbox';
-import { FileText, Settings, X } from 'lucide-react';
+import { FileText, Settings, BarChart3, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { RepairOrder } from '@/types/ro';
+
+type RightPanel = 'editor' | 'settings' | 'summary' | 'none';
 
 export function DesktopWorkspace() {
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [rightPanel, setRightPanel] = useState<RightPanel>('none');
 
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
     setIsAddingNew(false);
-    setShowSettings(false);
+    setRightPanel('editor');
   };
 
   const handleAddNew = () => {
     setSelectedRO(null);
     setIsAddingNew(true);
-    setShowSettings(false);
+    setRightPanel('editor');
   };
 
   const handleSave = () => {
@@ -31,23 +35,51 @@ export function DesktopWorkspace() {
   const handleCancel = () => {
     setSelectedRO(null);
     setIsAddingNew(false);
+    setRightPanel('none');
   };
 
-  const handleSaveAndAddAnother = () => {
-    // Keep isAddingNew true, just reset the form (handled in ROEditor)
+  const handleSaveAndAddAnother = () => {};
+
+  const togglePanel = (panel: 'settings' | 'summary') => {
+    if (rightPanel === panel) {
+      setRightPanel('none');
+    } else {
+      setRightPanel(panel);
+      setSelectedRO(null);
+      setIsAddingNew(false);
+    }
   };
+
+  const showEditor = rightPanel === 'editor' && (selectedRO || isAddingNew);
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Bar with Settings gear */}
-      <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 gap-2 border-b border-border bg-card">
+      {/* Top Bar */}
+      <div className="flex-shrink-0 h-10 flex items-center justify-end px-4 gap-1 border-b border-border bg-card">
         <FlagInbox />
         <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          onClick={() => togglePanel('summary')}
+          className={cn(
+            'p-1.5 rounded-md transition-colors',
+            rightPanel === 'summary'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+          )}
+          title="Summary & Reports"
+        >
+          <BarChart3 className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => togglePanel('settings')}
+          className={cn(
+            'p-1.5 rounded-md transition-colors',
+            rightPanel === 'settings'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+          )}
           title="Settings"
         >
-          {showSettings ? <X className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
+          {rightPanel === 'settings' ? <X className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
         </button>
       </div>
 
@@ -61,13 +93,17 @@ export function DesktopWorkspace() {
           />
         </div>
 
-        {/* Right Panel - Editor or Settings */}
+        {/* Right Panel */}
         <div className="flex-1 min-w-0">
-          {showSettings ? (
+          {rightPanel === 'settings' ? (
             <div className="h-full overflow-y-auto">
               <SettingsTab />
             </div>
-          ) : selectedRO || isAddingNew ? (
+          ) : rightPanel === 'summary' ? (
+            <div className="h-full overflow-y-auto">
+              <SummaryTab />
+            </div>
+          ) : showEditor ? (
             <ROEditor
               ro={selectedRO}
               isNew={isAddingNew}

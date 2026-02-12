@@ -1,0 +1,220 @@
+import { useState } from 'react';
+import { FileText, Download, Copy, Share2, Flag, AlertTriangle, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { BottomSheet } from '@/components/mobile/BottomSheet';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
+import { generateLineCSV, generateSummaryText, downloadCSV, shareSummary } from '@/lib/exportUtils';
+
+interface ProofPackProps {
+  open: boolean;
+  onClose: () => void;
+  report: PayPeriodReport;
+}
+
+function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClose: () => void }) {
+  const [showROs, setShowROs] = useState(false);
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
+
+  const handleExportCSV = () => {
+    const csv = generateLineCSV(report);
+    downloadCSV(csv, `proof-pack-${report.startDate}-to-${report.endDate}.csv`);
+    toast.success('CSV downloaded');
+  };
+
+  const handleCopy = async () => {
+    const text = generateSummaryText(report);
+    await navigator.clipboard.writeText(text);
+    toast.success('Summary copied');
+  };
+
+  const handleShare = async () => {
+    const text = generateSummaryText(report);
+    await shareSummary(text);
+    toast.success('Shared');
+  };
+
+  const displayROs = flaggedOnly
+    ? report.rosInRange.filter(ro => report.linesInRange.some(l => l.ro.id === ro.id))
+    : report.rosInRange;
+
+  return (
+    <div className="space-y-4 p-4">
+      {/* Period Header */}
+      <div className="bg-primary text-primary-foreground rounded-2xl p-5">
+        <p className="text-primary-foreground/80 text-sm font-medium mb-1">Pay Period</p>
+        <p className="text-sm text-primary-foreground/70 mb-3">
+          {new Date(report.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(report.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </p>
+        <div className="text-4xl font-bold mb-2">{report.totalHours.toFixed(1)}h</div>
+        <p className="text-primary-foreground/70 text-sm">{report.totalROs} ROs · {report.totalLines} lines</p>
+      </div>
+
+      {/* Warnings */}
+      {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
+        <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
+          {report.missingHoursCount > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+              <span>{report.missingHoursCount} lines missing hours</span>
+            </div>
+          )}
+          {report.flaggedCount > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
+              <span>{report.flaggedCount} flagged items</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* By Labor Type */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Labor Type</h3>
+        <div className="space-y-1">
+          {report.byLaborType.map(lt => (
+            <div key={lt.laborType} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
+              <span className="text-sm font-medium">{lt.label}</span>
+              <span className="text-sm font-bold">{lt.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({lt.lineCount})</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* By Day */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Day by Day</h3>
+        <div className="space-y-1">
+          {report.byDay.filter(d => d.totalHours > 0 || d.roCount > 0).map(d => {
+            const date = new Date(d.date);
+            return (
+              <div key={d.date} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
+                <span className="text-sm">{date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span className="text-sm font-bold">{d.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({d.roCount} ROs)</span></span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* By Advisor */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Advisor</h3>
+        <div className="space-y-1">
+          {report.byAdvisor.map(a => (
+            <div key={a.advisor} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
+              <div>
+                <span className="text-sm font-medium">{a.advisor}</span>
+                <span className="text-xs text-muted-foreground ml-2">{a.roCount} ROs</span>
+              </div>
+              <span className="text-sm font-bold">{a.totalHours.toFixed(1)}h</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* By Labor Reference */}
+      {report.byLaborRef.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Labor Reference</h3>
+          <div className="space-y-1">
+            {report.byLaborRef.map(r => (
+              <div key={r.referenceId} className="flex justify-between items-center py-1.5 px-3 bg-card rounded-lg">
+                <span className="text-sm font-medium">{r.referenceName}</span>
+                <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* RO List (collapsible) */}
+      <div>
+        <button
+          onClick={() => setShowROs(!showROs)}
+          className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2"
+        >
+          {showROs ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          RO List ({displayROs.length})
+        </button>
+        {showROs && (
+          <div className="space-y-1">
+            {displayROs.map(ro => {
+              const roLines = (ro.lines || []).filter(l => l.description.trim() !== '');
+              const roTotal = roLines.reduce((s, l) => s + l.hoursPaid, 0);
+              return (
+                <div key={ro.id} className="py-2 px-3 bg-card rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold">#{ro.roNumber}</span>
+                    <span className="text-sm font-bold">{roTotal.toFixed(1)}h</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{ro.advisor || '—'} · {ro.date}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Export Actions */}
+      <div className="grid grid-cols-2 gap-3 pt-2 pb-4">
+        <button
+          onClick={handleCopy}
+          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+        >
+          <Copy className="h-4 w-4" />
+          Copy
+        </button>
+        <button
+          onClick={handleExportCSV}
+          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+        >
+          <Download className="h-4 w-4" />
+          CSV
+        </button>
+        <button
+          onClick={handleShare}
+          className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm col-span-2"
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function ProofPack({ open, onClose, report }: ProofPackProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <BottomSheet isOpen={open} onClose={onClose} title="Proof Pack" fullHeight>
+        <ProofPackContent report={report} onClose={onClose} />
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col rounded-2xl p-0 overflow-hidden">
+        <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Proof Pack
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <ProofPackContent report={report} onClose={onClose} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,12 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Download, Copy, Filter, ChevronRight } from 'lucide-react';
+import { Download, Copy, Filter, ChevronRight, FileText, AlertTriangle, Flag } from 'lucide-react';
 import { useRO } from '@/contexts/ROContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { Chip } from '@/components/mobile/Chip';
-import type { DaySummary, AdvisorSummary } from '@/types/ro';
+import { ProofPack } from '@/components/reports/ProofPack';
+import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
+import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -14,64 +19,39 @@ const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function getWeekRange(date: Date): { start: string; end: string } {
   const start = new Date(date);
-  start.setDate(start.getDate() - start.getDay() + 1); // Monday
+  start.setDate(start.getDate() - start.getDay() + 1);
   const end = new Date(start);
-  end.setDate(end.getDate() + 6); // Sunday
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  end.setDate(end.getDate() + 6);
+  return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
 }
 
 function getMonthRange(date: Date): { start: string; end: string } {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
   const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
 }
 
-interface DaySummaryCardProps {
-  summary: DaySummary;
-  isToday?: boolean;
-}
-
-function DaySummaryCard({ summary, isToday }: DaySummaryCardProps) {
+function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?: boolean }) {
   const date = new Date(summary.date);
   const dayName = dayNames[date.getDay()];
   const dayNum = date.getDate();
 
   return (
-    <div className={cn(
-      'card-mobile p-4 flex items-center gap-4',
-      isToday && 'ring-2 ring-primary'
-    )}>
-      {/* Date column */}
+    <div className={cn('card-mobile p-4 flex items-center gap-4', isToday && 'ring-2 ring-primary')}>
       <div className="text-center w-12 flex-shrink-0">
         <div className="text-xs text-muted-foreground uppercase">{dayName}</div>
         <div className="text-2xl font-bold">{dayNum}</div>
       </div>
-
-      {/* Stats */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
           <span className="text-2xl font-bold">{summary.totalHours.toFixed(1)}h</span>
           <span className="text-sm text-muted-foreground">{summary.roCount} ROs</span>
         </div>
-        
-        {/* Breakdown pills */}
         {summary.totalHours > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {summary.warrantyHours > 0 && (
-              <StatusPill type="warranty" hours={summary.warrantyHours} size="sm" />
-            )}
-            {summary.customerPayHours > 0 && (
-              <StatusPill type="customer-pay" hours={summary.customerPayHours} size="sm" />
-            )}
-            {summary.internalHours > 0 && (
-              <StatusPill type="internal" hours={summary.internalHours} size="sm" />
-            )}
+            {summary.warrantyHours > 0 && <StatusPill type="warranty" hours={summary.warrantyHours} size="sm" />}
+            {summary.customerPayHours > 0 && <StatusPill type="customer-pay" hours={summary.customerPayHours} size="sm" />}
+            {summary.internalHours > 0 && <StatusPill type="internal" hours={summary.internalHours} size="sm" />}
           </div>
         )}
       </div>
@@ -79,132 +59,59 @@ function DaySummaryCard({ summary, isToday }: DaySummaryCardProps) {
   );
 }
 
-interface TotalCardProps {
-  label: string;
-  totalHours: number;
-  roCount: number;
-  warrantyHours: number;
-  customerPayHours: number;
-  internalHours: number;
-}
-
-function TotalCard({ label, totalHours, roCount, warrantyHours, customerPayHours, internalHours }: TotalCardProps) {
+function AdvisorCard({ summary }: { summary: AdvisorBreakdown }) {
   return (
-    <div className="bg-primary text-primary-foreground rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-primary-foreground/80 font-medium">{label}</span>
-        <span className="text-sm text-primary-foreground/70">{roCount} ROs</span>
+    <div className="card-mobile p-4 flex items-center justify-between w-full">
+      <div>
+        <div className="font-semibold text-lg">{summary.advisor}</div>
+        <div className="text-sm text-muted-foreground">{summary.roCount} ROs</div>
+        <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+          {summary.warrantyHours > 0 && <span>W:{summary.warrantyHours.toFixed(1)}</span>}
+          {summary.customerPayHours > 0 && <span>CP:{summary.customerPayHours.toFixed(1)}</span>}
+          {summary.internalHours > 0 && <span>Int:{summary.internalHours.toFixed(1)}</span>}
+        </div>
       </div>
-      <div className="text-4xl font-bold mb-3">
-        {totalHours.toFixed(1)}h
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
-          W: {warrantyHours.toFixed(1)}h
-        </span>
-        <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
-          CP: {customerPayHours.toFixed(1)}h
-        </span>
-        <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
-          Int: {internalHours.toFixed(1)}h
-        </span>
-      </div>
+      <span className="text-xl font-bold text-primary">{summary.totalHours.toFixed(1)}h</span>
     </div>
   );
 }
 
-interface AdvisorCardProps {
-  summary: AdvisorSummary;
-  onSelect: () => void;
-}
-
-function AdvisorCard({ summary, onSelect }: AdvisorCardProps) {
-  return (
-    <button
-      onClick={onSelect}
-      className="card-mobile p-4 flex items-center justify-between w-full tap-target touch-feedback"
-    >
-      <div>
-        <div className="font-semibold text-lg">{summary.advisor}</div>
-        <div className="text-sm text-muted-foreground">{summary.roCount} ROs</div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xl font-bold text-primary">{summary.totalHours.toFixed(1)}h</span>
-        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-      </div>
-    </button>
-  );
-}
-
 export function SummaryTab() {
-  const { getDaySummaries, getAdvisorSummaries, getWeekTotal } = useRO();
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [showFilters, setShowFilters] = useState(false);
-  const [advisorFilter, setAdvisorFilter] = useState<string | null>(null);
+  const [showProofPack, setShowProofPack] = useState(false);
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
   const dateRange = useMemo(() => {
-    if (viewMode === 'day') {
-      return { start: todayStr, end: todayStr };
-    } else if (viewMode === 'week') {
-      return getWeekRange(today);
-    } else {
-      return getMonthRange(today);
-    }
+    if (viewMode === 'day') return { start: todayStr, end: todayStr };
+    if (viewMode === 'week') return getWeekRange(today);
+    return getMonthRange(today);
   }, [viewMode, todayStr]);
 
-  const daySummaries = useMemo(() => {
-    return getDaySummaries(dateRange.start, dateRange.end);
-  }, [getDaySummaries, dateRange]);
-
-  const weekTotal = useMemo(() => {
-    return getWeekTotal(dateRange.start, dateRange.end);
-  }, [getWeekTotal, dateRange]);
-
-  const advisorSummaries = useMemo(() => {
-    return getAdvisorSummaries(dateRange.start, dateRange.end);
-  }, [getAdvisorSummaries, dateRange]);
+  const report = usePayPeriodReport(dateRange.start, dateRange.end);
 
   const viewModeLabel = useMemo(() => {
     if (viewMode === 'day') return 'Today';
     if (viewMode === 'week') {
       const start = new Date(dateRange.start);
       const end = new Date(dateRange.end);
-      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
     return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }, [viewMode, dateRange, today]);
 
-  const handleCopySummary = () => {
-    let text = `${viewModeLabel}\n`;
-    text += `Total: ${weekTotal.totalHours.toFixed(1)}h (${weekTotal.roCount} ROs)\n`;
-    text += `Warranty: ${weekTotal.warrantyHours.toFixed(1)}h\n`;
-    text += `Customer Pay: ${weekTotal.customerPayHours.toFixed(1)}h\n`;
-    text += `Internal: ${weekTotal.internalHours.toFixed(1)}h`;
-    navigator.clipboard.writeText(text);
+  const handleCopySummary = async () => {
+    const text = generateSummaryText(report);
+    await navigator.clipboard.writeText(text);
+    toast.success('Summary copied');
   };
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Total Hours', 'RO Count', 'Warranty', 'Customer Pay', 'Internal'];
-    const rows = daySummaries.map(s => [
-      s.date,
-      s.totalHours.toFixed(1),
-      s.roCount.toString(),
-      s.warrantyHours.toFixed(1),
-      s.customerPayHours.toFixed(1),
-      s.internalHours.toFixed(1),
-    ]);
-    
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ro-summary-${dateRange.start}-to-${dateRange.end}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const csv = generateLineCSV(report);
+    downloadCSV(csv, `ro-lines-${dateRange.start}-to-${dateRange.end}.csv`);
+    toast.success('CSV downloaded');
   };
 
   return (
@@ -222,107 +129,112 @@ export function SummaryTab() {
         />
         <div className="flex items-center justify-between">
           <span className="font-semibold text-lg">{viewModeLabel}</span>
-          <button
-            onClick={() => setShowFilters(true)}
-            className="p-2 tap-target touch-feedback"
-          >
-            <Filter className="h-5 w-5 text-muted-foreground" />
-          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+      <div className={cn('flex-1 overflow-y-auto p-4 space-y-4', isMobile && 'pb-32')}>
         {/* Total Card */}
-        <TotalCard
-          label={viewMode === 'day' ? "Today's Total" : viewMode === 'week' ? 'Week Total' : 'Month Total'}
-          totalHours={weekTotal.totalHours}
-          roCount={weekTotal.roCount}
-          warrantyHours={weekTotal.warrantyHours}
-          customerPayHours={weekTotal.customerPayHours}
-          internalHours={weekTotal.internalHours}
-        />
+        <div className="bg-primary text-primary-foreground rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-primary-foreground/80 font-medium">
+              {viewMode === 'day' ? "Today's Total" : viewMode === 'week' ? 'Week Total' : 'Month Total'}
+            </span>
+            <span className="text-sm text-primary-foreground/70">{report.totalROs} ROs · {report.totalLines} lines</span>
+          </div>
+          <div className="text-4xl font-bold mb-3">{report.totalHours.toFixed(1)}h</div>
+          <div className="flex flex-wrap gap-2">
+            {report.byLaborType.map(lt => (
+              <span key={lt.laborType} className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
+                {lt.label}: {lt.totalHours.toFixed(1)}h
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Warnings */}
+        {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
+          <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
+            {report.missingHoursCount > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                <span>{report.missingHoursCount} lines with missing hours</span>
+              </div>
+            )}
+            {report.flaggedCount > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                <span>{report.flaggedCount} flagged items</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Day summaries */}
         {viewMode !== 'day' && (
           <div className="space-y-2">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">
-              Daily Breakdown
-            </h3>
-            {daySummaries.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
-              <DaySummaryCard
-                key={summary.date}
-                summary={summary}
-                isToday={summary.date === todayStr}
-              />
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
+            {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
+              <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
             ))}
           </div>
         )}
 
         {/* Advisor Summary */}
         <div className="space-y-2">
-          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">
-            By Advisor
-          </h3>
-          {advisorSummaries.map((summary) => (
-            <AdvisorCard
-              key={summary.advisor}
-              summary={summary}
-              onSelect={() => setAdvisorFilter(summary.advisor)}
-            />
-          ))}
+          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Advisor</h3>
+          {report.byAdvisor.length === 0 ? (
+            <p className="text-sm text-muted-foreground px-1">No data</p>
+          ) : (
+            report.byAdvisor.map((summary) => (
+              <AdvisorCard key={summary.advisor} summary={summary} />
+            ))
+          )}
         </div>
 
-        {/* Export Buttons */}
-        <div className="grid grid-cols-2 gap-3 pt-4">
+        {/* By Labor Reference */}
+        {report.byLaborRef.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Labor Reference</h3>
+            {report.byLaborRef.map(r => (
+              <div key={r.referenceId} className="card-mobile p-3 flex justify-between items-center">
+                <span className="text-sm font-medium">{r.referenceName}</span>
+                <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Export + Proof Pack Buttons */}
+        <div className="space-y-3 pt-4">
           <button
-            onClick={handleCopySummary}
-            className="py-4 bg-secondary rounded-xl font-semibold tap-target touch-feedback flex items-center justify-center gap-2"
+            onClick={() => setShowProofPack(true)}
+            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2"
           >
-            <Copy className="h-5 w-5" />
-            Copy Summary
+            <FileText className="h-5 w-5" />
+            Proof Pack
           </button>
-          <button
-            onClick={handleExportCSV}
-            className="py-4 bg-secondary rounded-xl font-semibold tap-target touch-feedback flex items-center justify-center gap-2"
-          >
-            <Download className="h-5 w-5" />
-            Export CSV
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleCopySummary}
+              className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Summary
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Filter Sheet */}
-      <BottomSheet
-        isOpen={showFilters}
-        onClose={() => setShowFilters(false)}
-        title="Filters"
-      >
-        <div className="p-4 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-3">
-              Advisor
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {advisorSummaries.map((s) => (
-                <Chip
-                  key={s.advisor}
-                  label={s.advisor}
-                  selected={advisorFilter === s.advisor}
-                  onSelect={() => setAdvisorFilter(advisorFilter === s.advisor ? null : s.advisor)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowFilters(false)}
-            className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold tap-target touch-feedback"
-          >
-            Apply
-          </button>
-        </div>
-      </BottomSheet>
+      {/* Proof Pack */}
+      <ProofPack open={showProofPack} onClose={() => setShowProofPack(false)} report={report} />
     </div>
   );
 }
