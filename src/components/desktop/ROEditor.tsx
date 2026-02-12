@@ -29,6 +29,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
   const [advisor, setAdvisor] = useState(ro?.advisor || '');
+  const [customerName, setCustomerName] = useState(ro?.customerName || '');
   const [date, setDate] = useState(ro?.date || new Date().toISOString().split('T')[0]);
   const [laborType, setLaborType] = useState<LaborType>(ro?.laborType || 'customer-pay');
   const [notes, setNotes] = useState(ro?.notes || '');
@@ -54,6 +55,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     if (ro) {
       setRoNumber(ro.roNumber);
       setAdvisor(ro.advisor);
+      setCustomerName(ro.customerName || '');
       setDate(ro.date);
       setLaborType(ro.laborType);
       setNotes(ro.notes || '');
@@ -74,6 +76,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
       // Reset for new RO
       setRoNumber('');
       setAdvisor('');
+      setCustomerName('');
       setDate(new Date().toISOString().split('T')[0]);
       setLaborType('customer-pay');
       setNotes('');
@@ -91,6 +94,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     const roData = {
       roNumber,
       advisor,
+      customerName: customerName.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -112,6 +116,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
     if (addAnother) {
       // Reset for another entry
       setRoNumber('');
+      setCustomerName('');
       setNotes('');
       setLines([createEmptyLine(1)]);
       setShowNotes(false);
@@ -171,6 +176,15 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
+
+            {/* Customer Name */}
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Customer (optional)"
+              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary w-36"
+            />
           </div>
 
           {/* Total Hours - Always visible */}

@@ -55,6 +55,7 @@ export default function AddRO() {
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
   const [date, setDate] = useState(editingRO?.date || new Date().toISOString().split('T')[0]);
   const [laborType, setLaborType] = useState<LaborType>(editingRO?.laborType || 'customer-pay');
+  const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
   const [notes, setNotes] = useState(editingRO?.notes || '');
   
   const [lines, setLines] = useState<ROLine[]>(() => {
@@ -194,6 +195,7 @@ export default function AddRO() {
     const roData = {
       roNumber,
       advisor,
+      customerName: customerName.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -216,6 +218,7 @@ export default function AddRO() {
 
       if (addAnother) {
         setRoNumber('');
+        setCustomerName('');
         setNotes('');
         setLines([createEmptyLine(1)]);
       } else {
@@ -329,6 +332,17 @@ export default function AddRO() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-3 py-2 space-y-2 border-t border-border/50 bg-muted/20">
+              {/* Customer Name */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-20">Customer</span>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer Name (optional)"
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
               {/* Labor Type */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-20">Labor Type</span>

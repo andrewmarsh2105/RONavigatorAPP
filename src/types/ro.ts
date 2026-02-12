@@ -16,6 +16,7 @@ export interface RepairOrder {
   roNumber: string;
   date: string;
   advisor: string;
+  customerName?: string;
   paidHours: number; // Computed from lines or direct entry in simple mode
   laborType: LaborType; // Default labor type for simple mode
   workPerformed: string;

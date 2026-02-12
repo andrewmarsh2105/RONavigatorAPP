@@ -12,6 +12,7 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
     roNumber: row.ro_number,
     date: row.date,
     advisor: row.advisor_name,
+    customerName: row.customer_name || undefined,
     paidHours: lines.reduce((s: number, l: any) => s + Number(l.hours_paid), 0),
     laborType: row.status === 'draft' ? 'customer-pay' : 'customer-pay', // default
     workPerformed: lines.map((l: any) => l.description).filter(Boolean).join('\n'),
@@ -146,6 +147,7 @@ export function useROStore() {
         ro_number: ro.roNumber,
         date: ro.date,
         advisor_name: ro.advisor,
+        customer_name: ro.customerName || null,
         notes: ro.notes || null,
         status: 'draft',
       })
@@ -193,6 +195,7 @@ export function useROStore() {
     if (updates.advisor !== undefined) dbUpdates.advisor_name = updates.advisor;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
