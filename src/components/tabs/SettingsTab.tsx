@@ -464,14 +464,6 @@ export function SettingsTab() {
           </div>
         </div>
 
-        {/* Default Values */}
-        <SettingsGroup title="Defaults">
-          <SettingsRow
-            label="Default Advisor"
-            value={settings.defaultAdvisor || 'None'}
-            onClick={() => {}}
-          />
-        </SettingsGroup>
 
         {/* Presets */}
         <div className="space-y-3">

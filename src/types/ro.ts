@@ -68,7 +68,6 @@ export interface Advisor {
 }
 
 export interface Settings {
-  defaultAdvisor?: string;
   recentAdvisors: string[];
   advisors: Advisor[];
   presets: Preset[];

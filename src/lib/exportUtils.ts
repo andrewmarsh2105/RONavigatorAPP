@@ -1,26 +1,30 @@
-import { useRO } from '@/contexts/ROContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { RepairOrder, ROLine } from '@/types/ro';
+import { formatVehicleChip } from '@/types/ro';
 
 export function generateLineCSV(report: PayPeriodReport): string {
   const headers = [
-    'RO Number', 'Date', 'Advisor', 'Customer', 'Line #', 'Description',
+    'RO Number', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line #', 'Description',
     'Labor Type', 'Hours Paid', 'Matched Reference',
   ];
 
   const rows = report.linesInRange
     .filter(({ line }) => line.description.trim() !== '')
-    .map(({ ro, line }) => [
-      ro.roNumber,
-      ro.date,
-      ro.advisor || '—',
-      `"${(ro.customerName || '').replace(/"/g, '""')}"`,
-      line.lineNo.toString(),
-      `"${(line.description || '').replace(/"/g, '""')}"`,
-      line.laborType || 'customer-pay',
-      line.hoursPaid.toFixed(2),
-      line.matchedReferenceId || '',
-    ]);
+    .map(({ ro, line }) => {
+      const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
+      return [
+        ro.roNumber,
+        ro.date,
+        ro.advisor || '—',
+        `"${(ro.customerName || '').replace(/"/g, '""')}"`,
+        `"${vehicleLabel.replace(/"/g, '""')}"`,
+        line.lineNo.toString(),
+        `"${(line.description || '').replace(/"/g, '""')}"`,
+        line.laborType || 'customer-pay',
+        line.hoursPaid.toFixed(2),
+        line.matchedReferenceId || '',
+      ];
+    });
 
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 }
@@ -51,7 +55,8 @@ export function generateSummaryText(report: PayPeriodReport): string {
   // By day
   lines.push('BY DAY:');
   report.byDay.filter(d => d.totalHours > 0 || d.roCount > 0).forEach(d => {
-    const date = new Date(d.date);
+    const [y, m, day] = d.date.split('-').map(Number);
+    const date = new Date(y, m - 1, day);
     const label = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     lines.push(`  ${label}: ${d.totalHours.toFixed(1)}h (${d.roCount} ROs)`);
   });
