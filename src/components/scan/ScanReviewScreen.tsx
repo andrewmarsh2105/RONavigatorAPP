@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, Check, ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -22,10 +22,15 @@ interface ScanReviewScreenProps {
   imagePreviewUrl: string | null;
   showConfidence: boolean;
   hasExistingLines: boolean;
+  existingLineDescriptions: string[];
   onUpdateData: (data: ExtractedData) => void;
   onApply: (data: ScanApplyData) => void;
   onRetake: () => void;
   onClose: () => void;
+}
+
+function normalizeText(text: string): string {
+  return text.trim().toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
 }
 
 const LABOR_TYPES = [
@@ -47,6 +52,7 @@ export function ScanReviewScreen({
   imagePreviewUrl,
   showConfidence,
   hasExistingLines,
+  existingLineDescriptions,
   onUpdateData,
   onApply,
   onRetake,
@@ -57,7 +63,14 @@ export function ScanReviewScreen({
   const [showDateCandidates, setShowDateCandidates] = useState(false);
   const [userEditedDate, setUserEditedDate] = useState(false);
   const [data, setData] = useState(extractedData);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
+  const [pendingApplyData, setPendingApplyData] = useState<ScanApplyData | null>(null);
+  const [duplicateDescriptions, setDuplicateDescriptions] = useState<string[]>([]);
 
+  const existingNormalized = useMemo(
+    () => new Set(existingLineDescriptions.map(normalizeText).filter(t => t.length > 0)),
+    [existingLineDescriptions]
+  );
   const updateField = (field: keyof Pick<ExtractedData, 'roNumber' | 'advisor' | 'date' | 'customerName' | 'mileage'>, value: string) => {
     const updated = { ...data, [field]: value || null };
     setData(updated);
@@ -117,12 +130,31 @@ export function ScanReviewScreen({
     };
   };
 
+  const findDuplicates = (applyData: ScanApplyData): string[] => {
+    if (existingNormalized.size === 0) return [];
+    return applyData.lines
+      .filter(l => existingNormalized.has(normalizeText(l.description)))
+      .map(l => l.description);
+  };
+
+  const applyWithDuplicateCheck = (applyData: ScanApplyData, successMsg: string) => {
+    const dupes = findDuplicates(applyData);
+    if (dupes.length > 0) {
+      setDuplicateDescriptions(dupes);
+      setPendingApplyData(applyData);
+      setShowDuplicatePrompt(true);
+    } else {
+      onApply(applyData);
+      toast.success(successMsg);
+    }
+  };
+
   const handleApplyClick = () => {
     if (hasExistingLines) {
       setShowApplyPrompt(true);
     } else {
-      onApply(buildApplyData('prepend'));
-      toast.success('Scan applied');
+      const applyData = buildApplyData('prepend');
+      applyWithDuplicateCheck(applyData, 'Scan applied');
     }
   };
 
@@ -431,8 +463,8 @@ export function ScanReviewScreen({
             <Button
               onClick={() => {
                 setShowApplyPrompt(false);
-                onApply(buildApplyData('prepend'));
-                toast.success('Scanned lines added at top');
+                const applyData = buildApplyData('prepend');
+                applyWithDuplicateCheck(applyData, 'Scanned lines added at top');
               }}
               className="w-full"
             >
@@ -452,6 +484,76 @@ export function ScanReviewScreen({
             <Button
               variant="outline"
               onClick={() => setShowApplyPrompt(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate lines prompt */}
+      <Dialog open={showDuplicatePrompt} onOpenChange={setShowDuplicatePrompt}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Duplicate lines detected
+            </DialogTitle>
+            <DialogDescription>
+              {duplicateDescriptions.length} scanned {duplicateDescriptions.length === 1 ? 'line matches' : 'lines match'} existing lines on this RO:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-40 overflow-y-auto space-y-1 px-1">
+            {duplicateDescriptions.map((desc, i) => (
+              <div key={i} className="text-sm px-3 py-1.5 bg-muted rounded-lg truncate">
+                {desc || <span className="text-muted-foreground italic">Empty description</span>}
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingApplyData) {
+                  const dupeNorm = new Set(duplicateDescriptions.map(normalizeText));
+                  const filtered: ScanApplyData = {
+                    ...pendingApplyData,
+                    lines: pendingApplyData.lines.filter(l => !dupeNorm.has(normalizeText(l.description))),
+                  };
+                  setShowDuplicatePrompt(false);
+                  setPendingApplyData(null);
+                  if (filtered.lines.length > 0) {
+                    onApply(filtered);
+                    toast.success('Duplicates skipped');
+                  } else {
+                    toast.info('All lines were duplicates — nothing added');
+                  }
+                }
+              }}
+              className="w-full"
+            >
+              Skip duplicates (recommended)
+            </Button>
+            <Button
+              onClick={() => {
+                if (pendingApplyData) {
+                  setShowDuplicatePrompt(false);
+                  onApply(pendingApplyData);
+                  setPendingApplyData(null);
+                  toast.success('All lines added (including duplicates)');
+                }
+              }}
+              className="w-full"
+            >
+              Add duplicates anyway
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowDuplicatePrompt(false);
+                setPendingApplyData(null);
+              }}
               className="w-full"
             >
               Cancel
