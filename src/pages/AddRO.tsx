@@ -196,9 +196,7 @@ export default function AddRO() {
     }
   };
 
-  const isValid = roNumber.trim() !== '' && 
-    advisor.trim() !== '' && 
-    (totalHours > 0 || tbdCount > 0);
+  const isValid = roNumber.trim() !== '';
 
   // Desktop: Use the full workspace instead
   if (!isMobile) {

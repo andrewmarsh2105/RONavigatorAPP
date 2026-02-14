@@ -20,23 +20,7 @@ export interface ReviewIssue {
 export function getReviewIssues(ro: RepairOrder, allROs: RepairOrder[]): ReviewIssue[] {
   const issues: ReviewIssue[] = [];
 
-  // Rule 1 – Missing hours (non-TBD lines with a description but 0 hours)
-  if (ro.lines?.length > 0) {
-    ro.lines.forEach((line) => {
-      if (!line.isTbd && line.description && (line.hoursPaid === 0 || line.hoursPaid == null)) {
-        issues.push({
-          code: 'missing_hours',
-          title: 'Missing hours',
-          detail: `Line ${line.lineNo}: "${line.description}" has 0 paid hours.`,
-          suggestedAction: 'go_to_line',
-          severity: 'warning',
-          roId: ro.id,
-          lineId: line.id,
-          lineNo: line.lineNo,
-        });
-      }
-    });
-  }
+  // Rule 1 – reserved for future use (missing_hours removed — 0h lines are valid)
 
   // Rule 2 – Duplicate RO number
   if (ro.roNumber !== '') {
