@@ -105,7 +105,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
 
   const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
   const tbdCount = lines.filter(l => l.isTbd).length;
-  const isValid = roNumber.trim() !== '' && advisor.trim() !== '' && (totalHours > 0 || tbdCount > 0);
+  const isValid = roNumber.trim() !== '';
 
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);

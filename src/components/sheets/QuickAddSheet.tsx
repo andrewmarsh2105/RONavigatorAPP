@@ -147,9 +147,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setIsSimpleMode(false);
   };
 
-  const isValid = roNumber.trim() !== '' && 
-    advisor.trim() !== '' && 
-    (isSimpleMode ? paidHours > 0 : linesTotalHours > 0);
+  const isValid = roNumber.trim() !== '';
 
   return (
     <BottomSheet

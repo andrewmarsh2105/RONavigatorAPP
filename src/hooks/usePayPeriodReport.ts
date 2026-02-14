@@ -178,16 +178,16 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       .map(([id, data]) => ({ referenceId: id, referenceName: data.name, ...data }))
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    // Missing hours: lines with description but 0 hours
-    const missingHoursCount = paidLines.filter(({ line }) => line.hoursPaid === 0).length;
+    // Missing hours removed as a warning — 0h lines are valid
+    const missingHoursCount = 0;
 
-    // Needs review: duplicate RO numbers
+    // Needs review: duplicate RO numbers only
     const roNumberCounts = new Map<string, number>();
     rosInRange.forEach(ro => {
       if (ro.roNumber) roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) || 0) + 1);
     });
     const duplicateROCount = Array.from(roNumberCounts.values()).filter(c => c > 1).reduce((s, c) => s + c, 0);
-    const needsReviewCount = missingHoursCount + duplicateROCount;
+    const needsReviewCount = duplicateROCount;
 
     // Flagged count
     const roIds = new Set(rosInRange.map(r => r.id));
