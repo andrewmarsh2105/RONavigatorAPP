@@ -127,12 +127,12 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
           <>
             {/* Template indicator */}
             {templates.length > 0 && (
-              <div className="w-full max-w-sm">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border">
-                  <div className="flex items-center gap-2 min-w-0">
+              <div className="w-full max-w-sm relative">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border overflow-hidden">
+                  <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                     <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     {selectedTemplate ? (
-                      <span className="text-sm font-medium truncate">
+                      <span className="text-sm font-medium truncate block max-w-[200px]">
                         Using: {selectedTemplate.name}
                       </span>
                     ) : (
@@ -150,7 +150,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, exi
 
                 {/* Template dropdown */}
                 {showTemplatePicker && (
-                  <div className="mt-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                  <div className="absolute left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-10">
                     <button
                       onClick={() => {
                         setSelectedTemplateId(null);
