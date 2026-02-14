@@ -15,6 +15,7 @@ interface ScanFlowProps {
   onApply: (data: ScanApplyData) => void;
   roId?: string;
   hasExistingLines?: boolean;
+  existingLineDescriptions?: string[];
 }
 
 export interface ScanApplyData {
@@ -28,7 +29,7 @@ export interface ScanApplyData {
   mode: 'prepend' | 'replace';
 }
 
-export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: ScanFlowProps) {
+export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines, existingLineDescriptions = [] }: ScanFlowProps) {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
   const roContext = useROSafe();
@@ -61,6 +62,7 @@ export function ScanFlow({ isOpen, onClose, onApply, roId, hasExistingLines }: S
         imagePreviewUrl={imagePreviewUrl}
         showConfidence={userSettings.showScanConfidence}
         hasExistingLines={!!hasExistingLines}
+        existingLineDescriptions={existingLineDescriptions}
         onUpdateData={updateExtractedData}
         onApply={onApply}
         onRetake={() => reset()}

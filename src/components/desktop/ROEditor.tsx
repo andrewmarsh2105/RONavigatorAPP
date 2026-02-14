@@ -366,6 +366,7 @@ export function ROEditor({ ro, isNew = false, onSave, onCancel, onSaveAndAddAnot
         onApply={handleScanApply}
         roId={ro?.id}
         hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
+        existingLineDescriptions={lines.map(l => l.description)}
       />
     </div>
   );

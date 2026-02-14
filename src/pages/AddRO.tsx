@@ -496,6 +496,7 @@ export default function AddRO() {
         onApply={handleScanApply}
         roId={editingROId}
         hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
+        existingLineDescriptions={lines.map(l => l.description)}
       />
     </div>
   );
