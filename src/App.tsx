@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ROProvider } from "@/contexts/ROContext";
 import { FlagProvider } from "@/contexts/FlagContext";
 import { OfflineProvider } from "@/contexts/OfflineContext";
@@ -57,7 +56,6 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <SubscriptionProvider>
       <OfflineProvider>
       <ROProvider>
         <FlagProvider>
@@ -78,7 +76,6 @@ const App = () => (
         </FlagProvider>
       </ROProvider>
       </OfflineProvider>
-      </SubscriptionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
