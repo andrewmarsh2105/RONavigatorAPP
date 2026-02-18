@@ -189,62 +189,59 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Sticky Header Strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {/* RO Number */}
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <input
-                type="text"
-                value={roNumber}
-                onChange={(e) => setRoNumber(e.target.value)}
-                placeholder="RO #"
-                className="w-24 h-8 px-2 bg-muted rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            {/* Date */}
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            {/* Advisor */}
-            <AdvisorCombobox
-              value={advisor}
-              onChange={setAdvisor}
-              advisors={settings.advisors}
-              onCreateAdvisor={(name) => {
-                const newAdvisor = { id: Date.now().toString(), name };
-                updateAdvisors([...settings.advisors, newAdvisor]);
-              }}
+      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3 space-y-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* RO Number */}
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <input
+              type="text"
+              value={roNumber}
+              onChange={(e) => setRoNumber(e.target.value)}
+              placeholder="RO #"
+              className="w-24 h-8 px-2 bg-muted rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
             />
-
-            {/* Labor Type */}
-            <select
-              value={laborType}
-              onChange={(e) => {
-                const newType = e.target.value as LaborType;
-                setLaborType(newType);
-                // Propagate to all existing lines immediately
-                setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
-              }}
-              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {LABOR_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
           </div>
 
-          {/* Right-aligned actions: Upload icon + Total */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Date */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {/* Advisor */}
+          <AdvisorCombobox
+            value={advisor}
+            onChange={setAdvisor}
+            advisors={settings.advisors}
+            onCreateAdvisor={(name) => {
+              const newAdvisor = { id: Date.now().toString(), name };
+              updateAdvisors([...settings.advisors, newAdvisor]);
+            }}
+          />
+
+          {/* Labor Type */}
+          <select
+            value={laborType}
+            onChange={(e) => {
+              const newType = e.target.value as LaborType;
+              setLaborType(newType);
+              setLines(prev => prev.map(l => ({ ...l, laborType: newType, updatedAt: new Date().toISOString() })));
+            }}
+            className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {LABOR_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+
+          {/* Spacer + right-aligned actions */}
+          <div className="ml-auto flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => setShowScanFlow(true)}
               className="h-8 w-8 flex items-center justify-center bg-secondary rounded hover:bg-secondary/80 transition-colors"
@@ -252,9 +249,9 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             >
               <Camera className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xl font-bold text-primary">{totalHours.toFixed(1)}h</span>
+              <span className="text-xl font-bold text-primary tabular-nums">{totalHours.toFixed(1)}h</span>
               {tbdCount > 0 && (
                 <span className="text-xs text-warning font-medium">({tbdCount} TBD)</span>
               )}
@@ -314,7 +311,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           presets={settings.presets}
           highlightedIds={highlightedLineIds}
           roVehicle={vehicle}
-          showVehicleChips={userSettings.showVehicleChips}
+          showVehicleChips={false}
           defaultLaborType={laborType}
         />
 
