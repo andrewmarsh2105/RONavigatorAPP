@@ -277,6 +277,7 @@ export type Database = {
           id: string
           mileage: string | null
           notes: string | null
+          paid_date: string | null
           ro_number: string
           status: Database["public"]["Enums"]["ro_status"]
           updated_at: string
@@ -295,6 +296,7 @@ export type Database = {
           id?: string
           mileage?: string | null
           notes?: string | null
+          paid_date?: string | null
           ro_number: string
           status?: Database["public"]["Enums"]["ro_status"]
           updated_at?: string
@@ -313,6 +315,7 @@ export type Database = {
           id?: string
           mileage?: string | null
           notes?: string | null
+          paid_date?: string | null
           ro_number?: string
           status?: Database["public"]["Enums"]["ro_status"]
           updated_at?: string

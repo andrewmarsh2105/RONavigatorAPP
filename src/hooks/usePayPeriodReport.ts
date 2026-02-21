@@ -69,7 +69,10 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
   const { flags } = useFlagContext();
 
   return useMemo(() => {
-    const rosInRange = ros.filter(ro => ro.date >= startDate && ro.date <= endDate);
+    const rosInRange = ros.filter(ro => {
+      const effectiveDate = ro.paidDate || ro.date;
+      return effectiveDate >= startDate && effectiveDate <= endDate;
+    });
 
     // Collect all non-TBD lines (lines with description)
     const linesInRange: { ro: RepairOrder; line: ROLine }[] = [];
@@ -95,12 +98,14 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       dayMap.set(ds, { date: ds, totalHours: 0, roCount: 0, warrantyHours: 0, customerPayHours: 0, internalHours: 0 });
     }
     rosInRange.forEach(ro => {
-      const day = dayMap.get(ro.date);
+      const effectiveDate = ro.paidDate || ro.date;
+      const day = dayMap.get(effectiveDate);
       if (!day) return;
       day.roCount += 1;
     });
     paidLines.forEach(({ ro, line }) => {
-      const day = dayMap.get(ro.date);
+      const effectiveDate = ro.paidDate || ro.date;
+      const day = dayMap.get(effectiveDate);
       if (!day) return;
       day.totalHours += line.hoursPaid;
       const lt = line.laborType || 'customer-pay';

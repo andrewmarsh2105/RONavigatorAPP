@@ -41,6 +41,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [notes, setNotes] = useState(ro?.notes || '');
   const [vehicle, setVehicle] = useState<VehicleInfo>(ro?.vehicle || {});
   const [mileage, setMileage] = useState(ro?.mileage || '');
+  const [paidDate, setPaidDate] = useState(ro?.paidDate || '');
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (ro?.lines?.length) return ro.lines.map(l => ({ ...l, laborType: l.laborType || 'customer-pay' }));
     if (ro && ro.paidHours > 0) {
@@ -73,6 +74,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       setNotes(ro.notes || '');
       setVehicle(ro.vehicle || {});
       setMileage(ro.mileage || '');
+      setPaidDate(ro.paidDate || '');
       if (ro.lines?.length) {
         setLines(ro.lines);
       } else if (ro.paidHours > 0) {
@@ -95,6 +97,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       setNotes('');
       setVehicle({});
       setMileage('');
+      setPaidDate('');
       setLines([createEmptyLine(1)]);
       setShowDetails(false);
     }
@@ -156,6 +159,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
+      paidDate: paidDate.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -178,6 +182,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       setRoNumber('');
       setCustomerName('');
       setNotes('');
+      setPaidDate('');
       setLines([createEmptyLine(1)]);
       setShowDetails(false);
       onSaveAndAddAnother?.();
@@ -212,6 +217,27 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
               onChange={(e) => setDate(e.target.value)}
               className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
+          </div>
+
+          {/* Paid Date */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <input
+              type="date"
+              value={paidDate}
+              onChange={(e) => setPaidDate(e.target.value)}
+              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              title="Paid Date (leave empty to use RO date)"
+            />
+            {paidDate && (
+              <button
+                onClick={() => setPaidDate('')}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                title="Clear paid date"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Advisor */}

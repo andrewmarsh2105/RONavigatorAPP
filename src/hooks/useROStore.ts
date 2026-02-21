@@ -33,10 +33,11 @@ function dbToRO(row: any, lines: any[]): RepairOrder {
       ? { year: row.vehicle_year ?? undefined, make: row.vehicle_make ?? undefined, model: row.vehicle_model ?? undefined, trim: row.vehicle_trim ?? undefined }
       : undefined;
 
-  return {
+    return {
     id: row.id,
     roNumber: row.ro_number,
     date: row.date,
+    paidDate: row.paid_date || undefined,
     advisor: row.advisor_name,
     customerName: row.customer_name || undefined,
     mileage: row.mileage || undefined,
@@ -216,6 +217,7 @@ export function useROStore() {
         vehicle_make: ro.vehicle?.make ?? null,
         vehicle_model: ro.vehicle?.model ?? null,
         vehicle_trim: ro.vehicle?.trim ?? null,
+        paid_date: ro.paidDate || null,
       })
       .select()
       .single();
@@ -282,6 +284,7 @@ export function useROStore() {
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName || null;
     if (updates.mileage !== undefined) dbUpdates.mileage = updates.mileage || null;
+    if (updates.paidDate !== undefined) dbUpdates.paid_date = updates.paidDate || null;
     if (updates.vehicle !== undefined) {
       dbUpdates.vehicle_year = updates.vehicle?.year ?? null;
       dbUpdates.vehicle_make = updates.vehicle?.make ?? null;

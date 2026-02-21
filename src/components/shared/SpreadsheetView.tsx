@@ -42,9 +42,13 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
 
     // Group ROs by date descending
     const byDate = new Map<string, RepairOrder[]>();
-    const sorted = [...ros].sort((a, b) => b.date.localeCompare(a.date));
+    const sorted = [...ros].sort((a, b) => {
+      const aDate = a.paidDate || a.date;
+      const bDate = b.paidDate || b.date;
+      return bDate.localeCompare(aDate);
+    });
     for (const ro of sorted) {
-      const key = ro.date.slice(0, 10);
+      const key = (ro.paidDate || ro.date).slice(0, 10);
       if (!byDate.has(key)) byDate.set(key, []);
       byDate.get(key)!.push(ro);
     }
@@ -164,11 +168,13 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
               const description = line ? line.description : row.ro.workPerformed;
               const lineNo = line ? line.lineNo : 1;
 
-              const [y, m, d] = row.ro.date.split('-').map(Number);
+              const effectiveDate = row.ro.paidDate || row.ro.date;
+              const [y, m, d] = effectiveDate.split('-').map(Number);
               const formattedDate = new Date(y, m - 1, d).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
               });
+              const hasDifferentPaidDate = row.ro.paidDate && row.ro.paidDate !== row.ro.date;
 
               const typeLabel = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'INT';
               const typeClass = laborType === 'warranty'
@@ -210,6 +216,11 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                         rowSpan={row.groupSize}
                       >
                         {formattedDate}
+                        {hasDifferentPaidDate && (
+                          <div className="text-[10px] text-muted-foreground/60">
+                            RO: {(() => { const [oy, om, od] = row.ro.date.split('-').map(Number); return new Date(oy, om - 1, od).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); })()}
+                          </div>
+                        )}
                       </td>
                       <td
                         className="px-3 py-2 text-muted-foreground whitespace-nowrap align-top"

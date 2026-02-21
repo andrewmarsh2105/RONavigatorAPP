@@ -62,6 +62,7 @@ export default function AddRO() {
   const [notes, setNotes] = useState(editingRO?.notes || '');
   const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
   const [mileage, setMileage] = useState(editingRO?.mileage || '');
+  const [paidDate, setPaidDate] = useState(editingRO?.paidDate || '');
   
   const [lines, setLines] = useState<ROLine[]>(() => {
     if (editingRO?.lines?.length) {
@@ -176,6 +177,7 @@ export default function AddRO() {
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
+      paidDate: paidDate.trim() || undefined,
       paidHours: totalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -200,6 +202,7 @@ export default function AddRO() {
         setRoNumber('');
         setCustomerName('');
         setNotes('');
+        setPaidDate('');
         setLines([createEmptyLine(1)]);
       } else {
         navigate(-1);
@@ -300,6 +303,25 @@ export default function AddRO() {
         <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
           <CollapsibleContent>
             <div className="px-3 py-2 space-y-2 bg-muted/20">
+              {/* Paid Date */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-16">Paid Date</span>
+                <input
+                  type="date"
+                  value={paidDate}
+                  onChange={(e) => setPaidDate(e.target.value)}
+                  placeholder="Same as RO date"
+                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {paidDate && (
+                  <button
+                    onClick={() => setPaidDate('')}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               {/* Labor Type */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-16">Labor</span>
