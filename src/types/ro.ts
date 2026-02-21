@@ -33,6 +33,7 @@ export interface RepairOrder {
   laborType: LaborType;
   workPerformed: string;
   notes?: string;
+  paidDate?: string;
   photos?: string[];
   lines: ROLine[];
   isSimpleMode: boolean;

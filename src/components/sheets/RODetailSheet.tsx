@@ -66,11 +66,17 @@ export function RODetailSheet({
 
   if (!ro) return null;
 
-  const formattedDate = new Date(ro.date).toLocaleDateString('en-US', {
+  const [fy, fm, fd] = ro.date.split('-').map(Number);
+  const formattedDate = new Date(fy, fm - 1, fd).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+
+  const hasDifferentPaidDate = ro.paidDate && ro.paidDate !== ro.date;
+  const formattedPaidDate = hasDifferentPaidDate
+    ? (() => { const [py, pm, pd] = ro.paidDate!.split('-').map(Number); return new Date(py, pm - 1, pd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); })()
+    : null;
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -111,7 +117,10 @@ export function RODetailSheet({
               {/* Date */}
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Calendar className="h-3.5 w-3.5" />
-                <span>{formattedDate}</span>
+                <span>{hasDifferentPaidDate ? formattedPaidDate : formattedDate}</span>
+                {hasDifferentPaidDate && (
+                  <span className="text-[10px] text-muted-foreground/60">(RO: {formattedDate})</span>
+                )}
               </div>
               
               <div className="flex-1" />

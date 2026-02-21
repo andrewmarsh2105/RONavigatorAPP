@@ -1,0 +1,1 @@
+ALTER TABLE public.ros ADD COLUMN paid_date date DEFAULT NULL;
