@@ -1,60 +1,42 @@
 
 
-# Add "Paid Date" to Repair Orders
+# Separate "Paid Date" from "RO Date" for Clarity
 
-## The Problem
+## What Changes
 
-Currently each RO has a single date field (when the RO was opened). When parts are delayed, the tech finishes the job on a different day or week. The hours then show up under the wrong day in the spreadsheet and summary views, making weekly pay period tracking inaccurate.
+Right now, the Paid Date is buried inside the collapsed "More details" section (mobile) or sits right next to the RO Date with the same Calendar icon (desktop), making it easy to confuse the two. We'll pull Paid Date out and give it its own distinct visual treatment so technicians always know:
 
-## The Solution
+- **Date** = when the RO was written/opened
+- **Paid Date** = when you actually got paid (only fill this in if it's different)
 
-Add an optional **Paid Date** field to each RO. When set, this date is used for grouping in the spreadsheet and summary calculations. When left empty, the system falls back to the original RO date -- so existing ROs and quick entries still work the same way.
+## Mobile (`src/pages/AddRO.tsx`)
 
-## How It Works for Technicians
+Move the Paid Date **out** of the collapsible "More details" section and place it in a small, clearly labeled row directly below the main header strip. It will:
 
-- When creating an RO, the "Date" field stays the same (RO open date)
-- A new **Paid Date** field appears in the "More details" section
-- If parts are delayed, the tech fills in the Paid Date when the job is actually done
-- The spreadsheet and weekly summaries group by Paid Date when it exists, otherwise by the RO date
-- In the spreadsheet, ROs with a different Paid Date show a small indicator so techs can see it at a glance
+- Show a distinct label: **"Paid on a different day?"** with a tap-to-add style
+- When no paid date is set, display as a subtle tappable chip/link: "Paid on a different day? Tap to set"
+- When set, show the date with a clear "Paid:" label and an X button to clear it
+- Use a different icon (a banknote/dollar icon or a check-circle) instead of Calendar to visually distinguish it from the RO Date
+
+This keeps the main header clean but makes Paid Date visible and obvious without expanding details.
+
+## Desktop (`src/components/desktop/ROEditor.tsx`)
+
+- Add a visible label "Paid Date" next to the input so it's not just two identical calendar inputs side by side
+- Add a label "RO Date" to the existing date input as well
+- Use a different icon for Paid Date (e.g., `CircleDollarSign` or `CalendarCheck`) to visually separate it
 
 ## Technical Details
 
-### 1. Database Migration
-Add a nullable `paid_date` column to the `ros` table:
-```sql
-ALTER TABLE public.ros ADD COLUMN paid_date date DEFAULT NULL;
-```
+### File: `src/pages/AddRO.tsx`
+- Remove the Paid Date `<div>` from inside the `<CollapsibleContent>` block (lines ~306-325)
+- Add a new row between the DetailsCollapsible and the Collapsible sections
+- When `paidDate` is empty: render a small tappable text link "Paid on a different day? Tap to set" that reveals the date input
+- When `paidDate` is set: render a chip showing "Paid: [date]" with a clear button
+- Import `CalendarCheck` from lucide-react for the distinct icon
 
-### 2. Type Update (`src/types/ro.ts`)
-Add `paidDate?: string` to the `RepairOrder` interface.
-
-### 3. Data Layer (`src/hooks/useROStore.ts` and `src/contexts/ROContext.tsx`)
-- Map the new `paid_date` DB column to `paidDate` in the RO object during fetch/save
-- Include `paid_date` in insert and update operations
-
-### 4. Add RO Form (`src/pages/AddRO.tsx`)
-- Add a `paidDate` state field
-- Show a "Paid Date" input inside the "More details" collapsible section, right below the existing Date field
-- Only visible when the collapsible is expanded, keeping the main form clean
-
-### 5. Desktop Editor (`src/components/desktop/ROEditor.tsx`)
-- Add a "Paid Date" input field in the details area
-
-### 6. Spreadsheet View (`src/components/shared/SpreadsheetView.tsx`)
-- Use `ro.paidDate || ro.date` as the grouping/sorting key instead of `ro.date`
-- When paidDate differs from date, show the original RO date in a smaller muted label so techs know the original open date
-- Day separator headers reflect the paid date grouping
-
-### 7. Summary/Report Hook (`src/hooks/usePayPeriodReport.ts`)
-- Change the date filter to use `ro.paidDate || ro.date` when determining if an RO falls within the selected range
-- This ensures weekly pay period totals reflect when work was actually completed
-
-### 8. RO Detail Sheet (`src/components/sheets/RODetailSheet.tsx`)
-- Show Paid Date in the details section when it exists and differs from the RO date
-
-### No Breaking Changes
-- `paid_date` is nullable, so all existing ROs continue to work unchanged
-- The fallback `paidDate || date` means every view works with or without the new field
-- No existing behavior changes unless the tech explicitly sets a Paid Date
+### File: `src/components/desktop/ROEditor.tsx`
+- Add text labels ("RO Date" and "Paid Date") above or beside the respective date inputs (lines ~211-241)
+- Change the Paid Date icon from `Calendar` to `CalendarCheck`
+- Add placeholder text "Leave empty if same day" to the Paid Date input
 
