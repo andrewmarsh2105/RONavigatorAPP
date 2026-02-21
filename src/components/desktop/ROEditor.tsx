@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Save, Plus, Calendar, User, Clock, FileText, Check } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, CalendarCheck, User, Clock, FileText, Check } from 'lucide-react';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
 import { AdvisorCombobox } from './AdvisorCombobox';
@@ -208,9 +208,10 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             />
           </div>
 
-          {/* Date */}
+          {/* RO Date */}
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-muted-foreground">RO Date</span>
             <input
               type="date"
               value={date}
@@ -221,13 +222,15 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
           {/* Paid Date */}
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <CalendarCheck className="h-4 w-4 text-primary flex-shrink-0" />
+            <span className="text-xs text-muted-foreground">Paid Date</span>
             <input
               type="date"
               value={paidDate}
               onChange={(e) => setPaidDate(e.target.value)}
               className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              title="Paid Date (leave empty to use RO date)"
+              title="Leave empty if paid same day as RO"
+              placeholder="Leave empty if same day"
             />
             {paidDate && (
               <button

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image } from 'lucide-react';
+import { Camera, ArrowLeft, Upload, Loader2, Plus, Calendar, CalendarCheck, User, Clock, ChevronDown, ChevronUp, FileText, Settings2, Image, X } from 'lucide-react';
 import { localDateStr } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
@@ -299,29 +299,44 @@ export default function AddRO() {
           layout="mobile"
         />
 
+        {/* Paid Date - Distinct row outside collapsible */}
+        <div className="px-3 py-1.5 border-t border-border/50">
+          {paidDate ? (
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span className="text-xs font-medium text-foreground">Paid:</span>
+              <input
+                type="date"
+                value={paidDate}
+                onChange={(e) => setPaidDate(e.target.value)}
+                className="h-7 px-1.5 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={() => setPaidDate('')}
+                className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Clear paid date"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                // Set to today and let user change
+                setPaidDate(localDateStr());
+              }}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+            >
+              <CalendarCheck className="h-3.5 w-3.5" />
+              <span>Paid on a different day? Tap to set</span>
+            </button>
+          )}
+        </div>
+
         {/* Collapsible More Fields (Labor Type, Notes) */}
         <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
           <CollapsibleContent>
             <div className="px-3 py-2 space-y-2 bg-muted/20">
-              {/* Paid Date */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-16">Paid Date</span>
-                <input
-                  type="date"
-                  value={paidDate}
-                  onChange={(e) => setPaidDate(e.target.value)}
-                  placeholder="Same as RO date"
-                  className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                {paidDate && (
-                  <button
-                    onClick={() => setPaidDate('')}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
               {/* Labor Type */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-16">Labor</span>
