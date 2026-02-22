@@ -1,76 +1,108 @@
 
-# UI Polish and Professional Cleanup
 
-After reviewing all screens (Auth, ROs, Summary, Settings, AddRO, NotFound), here are the issues and fixes organized by priority.
+# Launch Readiness Checklist
 
----
-
-## 1. Sign-In Page (Auth.tsx) -- Major Overhaul
-
-**Current issues:**
-- Plain, generic look with no visual identity -- feels like a template
-- Raw HTML inputs instead of proper styled components
-- No card container -- content floats on a flat background
-- No app icon/logo -- just text
-- Missing "Forgot Password?" link (expected by users, looks incomplete without it)
-- No subtle branding or visual anchor
-
-**Fixes:**
-- Wrap form in a `Card` component with subtle shadow for depth
-- Add a wrench/tool icon or the app icon above the title for visual identity
-- Use the project's `input-base` class or the `Input` component for consistent styling
-- Add a "Forgot Password?" link under the password field (even if just a placeholder toast for now)
-- Add a subtle tagline like "Track your hours. Get paid right." below the title
-- Add a version or footer line at the bottom ("RO Tracker v1.0") for polish
-- Increase spacing between the sign-in/sign-up toggle and the form
+A thorough audit of the entire codebase, from branding to security, to get RO Tracker ready for public release and advertising at ROnavigator.com.
 
 ---
 
-## 2. Summary Tab Header (SummaryTab.tsx)
+## 1. Branding and SEO (index.html)
 
-**Current issues:**
-- The top Tabs ("Summary | Compare") use `rounded-none bg-muted/50` which looks flat and unfinished next to the rest of the polished UI
-- The `Select` dropdown for date range sits flush with no visual grouping -- feels disconnected from the date label beside it
+The HTML meta tags still reference Lovable's default OG image and Twitter handle, which will look unprofessional when links are shared.
 
-**Fixes:**
-- Style the `TabsList` with a subtle bottom border and slightly more padding for a cleaner tab bar look
-- Group the Select + date label in a small card or bordered container row so they read as one cohesive unit
-
----
-
-## 3. NotFound Page (NotFound.tsx)
-
-**Current issues:**
-- Very plain -- no icon, no personality
-- Uses `bg-muted` which is inconsistent with `bg-background` used everywhere else
-
-**Fixes:**
-- Change background to `bg-background` for consistency
-- Add a search or compass icon above the 404
-- Use a `Button` component for the "Return to Home" link instead of a raw anchor
+**Changes to `index.html`:**
+- Update `<title>` from "RO Tracker" to "RO Navigator - Track Your Hours. Get Paid Right."
+- Update `og:title` and `og:description` to match your brand
+- Replace `og:image` and `twitter:image` URLs from the Lovable placeholder to your own branded image (we can generate one or you can provide it)
+- Change `twitter:site` from `@Lovable` to your own handle (or remove it)
+- Update `<meta name="description">` to something more marketing-oriented, e.g. "Track your automotive repair orders, hours, and pay summaries. Free for techs."
 
 ---
 
-## 4. App.css Cleanup
+## 2. Remove Dev Debug Panel from Production Build
 
-**Current issues:**
-- Contains default Vite template CSS (`.logo`, `.logo-spin`, `.read-the-docs`, `.card`) that is never used
-- The `#root` styles (max-width, padding, text-align center) actively conflict with the app layout -- they just happen to be overridden by other styles
+The `DevDebugPanel` component is rendered in `App.tsx` on every page load. While it has a `PROD` guard that hides the UI, it still mounts in production, registers event listeners, and ships the code to users.
 
-**Fix:**
-- Delete all content from `App.css` or remove the file entirely and its import from `main.tsx` (if imported)
+**Changes:**
+- Remove `<DevDebugPanel />` from `App.tsx` entirely (or wrap in a lazy dev-only import)
+- This saves bundle size and removes any chance of the debug button flashing
 
 ---
 
-## 5. Minor Polish Items
+## 3. "Export All Data" Button is a No-Op
 
-| Location | Issue | Fix |
-|----------|-------|-----|
-| Auth.tsx | Submit button missing `cursor-pointer` | Add `cursor-pointer` class |
-| Auth.tsx | Toggle link ("Sign Up" / "Sign In") has no button cursor either | Already a `<button>` but add explicit cursor |
-| SummaryTab.tsx | Export buttons at bottom use raw `<button>` with inline classes | Use `Button` component for consistency |
-| SummaryTab.tsx | "Proof Pack" button uses raw `<button>` | Use `Button` with proper sizing |
-| SettingsTab.tsx | "Custom" segmented control for pay period is selected but no end dates are shown -- empty state text says to add dates but the placeholder "Day (1-31)" is vague | Add a small info note: "Add at least 2 dates to define your pay cycle" |
+In Settings under "Data", the "Export All Data" row has `onClick={() => {}}` -- it does nothing. Users tapping it will think the app is broken.
+
+**Fix options (pick one):**
+- **Implement it:** Export all ROs as a JSON or CSV file download (similar to the existing CSV export in Summary)
+- **Remove it:** Delete the row if you don't want this feature at launch
+
+Recommended: Implement a simple full-data JSON export so users feel confident their data is portable.
+
+---
+
+## 4. Version Number Row is a Dead Button
+
+The "Version" row in Settings also has `onClick={() => {}}`. Tapping it navigates nowhere and shows a chevron arrow suggesting it should do something.
+
+**Fix:** Remove the `onClick` and chevron arrow -- make it a static display row (no hover/tap styling).
+
+---
+
+## 5. OG/Social Preview Image
+
+Your social share image currently points to `https://lovable.dev/opengraph-image-p98pqg.png` -- a generic Lovable image. When you advertise ROnavigator.com on social media or in messages, this is what previews will show.
+
+**Fix:** Create a branded OG image (1200x630px) with your app name, tagline, and a screenshot of the app. Upload it to `public/og-image.png` and update the meta tags in `index.html`.
+
+---
+
+## 6. App Naming Consistency
+
+The app is deployed at ROnavigator.com but all internal references say "RO Tracker":
+- Auth page branding says "RO Tracker"
+- Auth page footer says "RO Tracker v1.0"
+- HTML title says "RO Tracker"
+- Settings About section says version "1.0.0"
+
+**Fix:** Decide on one name and update all references. If the brand is "RO Navigator", update:
+- `Auth.tsx` -- title, footer
+- `index.html` -- title, description, OG tags
+- `SettingsTab.tsx` -- version row value
+
+---
+
+## 7. Security: Enable Leaked Password Protection
+
+The database linter flagged that leaked password protection is disabled. This is a simple toggle that prevents users from signing up with passwords known to be compromised.
+
+**Fix:** Enable this in the authentication settings via the backend configuration.
+
+---
+
+## 8. Error Handling Polish
+
+- `startCheckout` and `openPortal` in `SubscriptionContext.tsx` silently `console.error` on failure without notifying the user. If Stripe checkout fails, the user sees nothing.
+
+**Fix:** Add `toast.error('Could not open checkout. Please try again.')` in the catch blocks.
+
+---
+
+## 9. Missing `DialogDescription` Import
+
+The `SettingsTab.tsx` uses `DialogDescription` in the clear-all dialog but the import is not visible in the provided code. Need to verify it's imported (it appears to be based on the JSX usage -- just needs confirmation).
+
+---
+
+## 10. robots.txt Update
+
+The `robots.txt` allows all crawlers but doesn't include a sitemap reference.
+
+**Fix:** Add `Sitemap: https://ronavigator.com/sitemap.xml` (optional, but helps SEO). Also can simplify to just:
+```
+User-agent: *
+Allow: /
+```
 
 ---
 
@@ -78,8 +110,25 @@ After reviewing all screens (Auth, ROs, Summary, Settings, AddRO, NotFound), her
 
 | File | Changes |
 |------|---------|
-| `src/pages/Auth.tsx` | Card wrapper, icon, tagline, Input components, forgot password link, footer |
-| `src/pages/NotFound.tsx` | Background fix, icon, Button component |
-| `src/App.css` | Remove all unused Vite template CSS |
-| `src/components/tabs/SummaryTab.tsx` | Tab styling, Select grouping, Button components for export |
-| `src/components/tabs/SettingsTab.tsx` | Better empty state text for custom pay period |
+| `index.html` | Update title, description, OG tags, Twitter tags, remove Lovable references |
+| `src/App.tsx` | Remove `DevDebugPanel` component and import |
+| `src/pages/Auth.tsx` | Update branding to match chosen app name |
+| `src/components/tabs/SettingsTab.tsx` | Implement "Export All Data", fix Version row, update app name |
+| `src/contexts/SubscriptionContext.tsx` | Add toast error messages for checkout/portal failures |
+| `public/robots.txt` | Simplify and optionally add sitemap reference |
+
+---
+
+## Summary of Priority
+
+| Priority | Item | Impact |
+|----------|------|--------|
+| Critical | Fix OG image and social meta tags | Shared links look unprofessional |
+| Critical | Remove DevDebugPanel from prod | Ships dev code to users |
+| Critical | Fix "Export All Data" no-op | Broken UX, users will report as bug |
+| High | App naming consistency (RO Tracker vs RO Navigator) | Brand confusion |
+| High | Add error toasts for checkout failures | Silent failures lose customers |
+| Medium | Fix Version row dead button | Minor UX annoyance |
+| Medium | Enable leaked password protection | Security best practice |
+| Low | robots.txt cleanup | Minor SEO improvement |
+
