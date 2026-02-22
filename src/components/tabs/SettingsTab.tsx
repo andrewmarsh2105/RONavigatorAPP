@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star, Crown } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
 import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
@@ -320,7 +321,8 @@ export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
   const { userSettings, updateUserSetting } = useFlagContext();
-  const { isPro, subscriptionEnd, startCheckout, openPortal } = useSubscription();
+  const { isPro, subscriptionEnd, openPortal } = useSubscription();
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
@@ -480,7 +482,7 @@ export function SettingsTab() {
                 Upgrade to Pro for unlimited ROs, OCR scanning, spreadsheet view, and multi-period reporting.
               </p>
               <button
-                onClick={startCheckout}
+                onClick={() => setShowUpgradeDialog(true)}
                 className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
               >
                 Upgrade to Pro — $9.99/mo
@@ -876,6 +878,7 @@ export function SettingsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ProUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import type { RepairOrder } from '@/types/ro';
 import { useRO } from '@/contexts/ROContext';
 import { SpreadsheetView } from '@/components/shared/SpreadsheetView';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { toast } from 'sonner';
 
 type RightPanel = 'editor' | 'settings' | 'summary' | 'none';
@@ -18,7 +19,8 @@ type ViewMode = 'split' | 'spreadsheet';
 
 export function DesktopWorkspace() {
   const { ros } = useRO();
-  const { isPro, startCheckout } = useSubscription();
+  const { isPro } = useSubscription();
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>('none');
@@ -135,7 +137,7 @@ export function DesktopWorkspace() {
         </button>
         {!isPro && (
           <button
-            onClick={startCheckout}
+            onClick={() => setShowUpgradeDialog(true)}
             className="ml-1 px-2 py-1 rounded-md text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
             title="Upgrade to Pro"
           >
@@ -195,6 +197,7 @@ export function DesktopWorkspace() {
           </div>
         </div>
       )}
+      <ProUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 }
