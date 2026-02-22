@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, CalendarCheck, User, Clock, FileText, Check } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, User, Clock, FileText, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
@@ -67,7 +67,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     }
     return [createEmptyLine(1)];
   });
-  const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.mileage || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model));
+  const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.mileage || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model || ro?.paidDate));
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
@@ -235,29 +235,6 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
             />
           </div>
 
-          {/* Paid Date */}
-          <div className="flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="text-xs text-muted-foreground">Paid Date</span>
-            <input
-              type="date"
-              value={paidDate}
-              onChange={(e) => setPaidDate(e.target.value)}
-              className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              title="Leave empty if paid same day as RO"
-              placeholder="Leave empty if same day"
-            />
-            {paidDate && (
-              <button
-                onClick={() => setPaidDate('')}
-                className="text-xs text-muted-foreground hover:text-foreground"
-                title="Clear paid date"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
           {/* Advisor */}
           <AdvisorCombobox
             value={advisor}
@@ -313,6 +290,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           onCustomerNameChange={setCustomerName}
           mileage={mileage}
           onMileageChange={setMileage}
+          paidDate={paidDate}
+          onPaidDateChange={setPaidDate}
           open={showDetails}
           onOpenChange={setShowDetails}
           layout="desktop"

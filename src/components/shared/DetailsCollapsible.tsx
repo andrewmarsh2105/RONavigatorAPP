@@ -1,4 +1,4 @@
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, CalendarCheck } from 'lucide-react';
 import { formatVehicleChip } from '@/types/ro';
 import type { VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,8 @@ interface DetailsCollapsibleProps {
   onCustomerNameChange: (name: string) => void;
   mileage: string;
   onMileageChange: (mileage: string) => void;
+  paidDate?: string;
+  onPaidDateChange?: (date: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layout?: 'mobile' | 'desktop';
@@ -27,12 +29,18 @@ export function DetailsCollapsible({
   onCustomerNameChange,
   mileage,
   onMileageChange,
+  paidDate,
+  onPaidDateChange,
   open,
   onOpenChange,
   layout = 'mobile',
 }: DetailsCollapsibleProps) {
   const vehicleChip = formatVehicleChip(vehicle);
   const isDesktop = layout === 'desktop';
+
+  const paidDateChip = paidDate
+    ? `Paid ${new Date(paidDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}`
+    : null;
 
   const handleClearVehicle = () => {
     onVehicleChange({});
@@ -80,6 +88,12 @@ export function DetailsCollapsible({
                   <span className="text-foreground truncate">{mileage} mi</span>
                 </>
               )}
+              {paidDateChip && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="text-primary truncate font-medium">{paidDateChip}</span>
+                </>
+              )}
             </div>
           )}
         </button>
@@ -95,6 +109,31 @@ export function DetailsCollapsible({
           {isDesktop ? (
             /* Desktop: grid layout */
             <div className="space-y-2">
+              {onPaidDateChange && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Paid Date</label>
+                  <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <input
+                    type="date"
+                    value={paidDate || ''}
+                    onChange={(e) => onPaidDateChange(e.target.value)}
+                    className="h-8 px-2 bg-muted rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    title="Leave empty if paid same day as RO"
+                  />
+                  {paidDate && (
+                    <button
+                      onClick={() => onPaidDateChange('')}
+                      className="p-1.5 text-muted-foreground hover:text-destructive rounded transition-colors"
+                      title="Clear paid date"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {!paidDate && (
+                    <span className="text-xs text-muted-foreground italic">Paid on a different day?</span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <label className="text-xs text-muted-foreground w-16 flex-shrink-0">Customer</label>
                 <input
@@ -162,6 +201,29 @@ export function DetailsCollapsible({
           ) : (
             /* Mobile: stacked layout */
             <div className="space-y-2">
+              {onPaidDateChange && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-16">Paid Date</span>
+                  <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <input
+                    type="date"
+                    value={paidDate || ''}
+                    onChange={(e) => onPaidDateChange(e.target.value)}
+                    className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {paidDate && (
+                    <button
+                      onClick={() => onPaidDateChange('')}
+                      className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+              {!paidDate && onPaidDateChange && (
+                <div className="pl-16 text-xs text-muted-foreground italic">Paid on a different day?</div>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-16">Customer</span>
                 <input
