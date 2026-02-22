@@ -7,8 +7,9 @@ import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { useRO } from '@/contexts/ROContext';
-import type { LaborType, RepairOrder, Preset, ROLine } from '@/types/ro';
+import type { LaborType, RepairOrder, Preset, ROLine, VehicleInfo } from '@/types/ro';
 import { cn, localDateStr } from '@/lib/utils';
 
 interface QuickAddSheetProps {
@@ -36,6 +37,11 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [lines, setLines] = useState<ROLine[]>(editingRO?.lines || [createEmptyLine(1)]);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
+  const [paidDate, setPaidDate] = useState(editingRO?.paidDate || '');
+  const [customerName, setCustomerName] = useState(editingRO?.customerName || '');
+  const [vehicle, setVehicle] = useState<VehicleInfo>(editingRO?.vehicle || {});
+  const [mileage, setMileage] = useState(editingRO?.mileage || '');
+  const [showDetailsOpen, setShowDetailsOpen] = useState(false);
 
   // Reset form when opening/closing or when editingRO changes
   useEffect(() => {
@@ -49,6 +55,11 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         setNotes(editingRO.notes || '');
         setLines(editingRO.lines.length > 0 ? editingRO.lines : [createEmptyLine(1)]);
         setIsSimpleMode(editingRO.isSimpleMode);
+        setPaidDate(editingRO.paidDate || '');
+        setCustomerName(editingRO.customerName || '');
+        setVehicle(editingRO.vehicle || {});
+        setMileage(editingRO.mileage || '');
+        setShowDetailsOpen(!!(editingRO.paidDate || editingRO.customerName || editingRO.mileage || editingRO.vehicle?.year || editingRO.vehicle?.make));
       } else {
         resetForm();
       }
@@ -68,7 +79,12 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     setLines([createEmptyLine(1)]);
     setSelectedPresets([]);
     setShowMoreDetails(false);
-    setIsSimpleMode(false); // Default to Lines Mode
+    setIsSimpleMode(false);
+    setPaidDate('');
+    setCustomerName('');
+    setVehicle({});
+    setMileage('');
+    setShowDetailsOpen(false);
   };
 
   const handleSave = (addAnother: boolean = false) => {
@@ -80,6 +96,10 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
     const roData = {
       roNumber,
       advisor,
+      customerName: customerName.trim() || undefined,
+      vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
+      mileage: mileage.trim() || undefined,
+      paidDate: paidDate.trim() || undefined,
       paidHours: isSimpleMode ? paidHours : linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -313,13 +333,30 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             </>
           )}
 
+          {/* Details Collapsible (Vehicle, Customer, Mileage, Paid Date) */}
+          <div className="border border-border rounded-xl overflow-hidden">
+            <DetailsCollapsible
+              vehicle={vehicle}
+              onVehicleChange={setVehicle}
+              customerName={customerName}
+              onCustomerNameChange={setCustomerName}
+              mileage={mileage}
+              onMileageChange={setMileage}
+              paidDate={paidDate}
+              onPaidDateChange={setPaidDate}
+              open={showDetailsOpen}
+              onOpenChange={setShowDetailsOpen}
+              layout="mobile"
+            />
+          </div>
+
           {/* More Details Accordion */}
           <div className="border border-border rounded-xl overflow-hidden">
             <button
               onClick={() => setShowMoreDetails(!showMoreDetails)}
               className="w-full p-4 flex items-center justify-between touch-feedback"
             >
-              <span className="font-medium">More Details</span>
+              <span className="font-medium">Notes</span>
               {showMoreDetails ? (
                 <ChevronUp className="h-5 w-5 text-muted-foreground" />
               ) : (
@@ -337,19 +374,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                   className="overflow-hidden"
                 >
                   <div className="p-4 pt-0 space-y-4">
-                    {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Notes
-                      </label>
-                      <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Additional notes..."
-                        rows={3}
-                        className="w-full p-4 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes..."
+                      rows={3}
+                      className="w-full p-4 bg-secondary rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
                 </motion.div>
               )}
