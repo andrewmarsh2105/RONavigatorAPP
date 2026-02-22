@@ -1,107 +1,34 @@
 
-# Pro Subscription System with Feature Gating
 
-## Overview
-Implement a Stripe-powered Pro subscription with two gated features: **RO cap** (free users limited to 150 ROs/month) and **multi-period reporting** in the Summary tab. OCR scanning and scan templates also gated (per existing memory). Proof Pack, CSV, and copy summary remain free. Spreadsheet view with print is Pro-only. Premium features are hidden (not crossed out) for free users, with subtle upgrade prompts.
+# Add Pro Override Table for Free Pro Access
 
-## Pricing
-- **Free**: Core RO tracking, manual entry, flags, basic summary (1-week/2-week/custom), Proof Pack, CSV export, copy summary
-- **Pro ($9.99/month)**: Unlimited ROs, OCR scan, scan templates, spreadsheet view with print, multi-period reporting (side-by-side comparison)
+## What This Does
+Creates a database table that lets you grant specific users Pro access for free, bypassing the Stripe subscription check. You'll be able to add users by their email or user ID directly in the backend.
 
-Using existing Stripe product `prod_TytAJ1A0OZTgh0` and price `price_1T0vODQViI7PZv2K8M9McWMn`.
+## How It Works
+1. A new `pro_overrides` table stores user IDs of people who get free Pro access
+2. The `check-subscription` backend function checks this table first -- if the user is in it, they're immediately treated as Pro without hitting Stripe
+3. The app code stays the same; `isPro` just works regardless of whether access came from Stripe or the override table
 
-## What Gets Gated
+## Technical Steps
 
-| Feature | Free | Pro |
-|---------|------|-----|
-| RO creation | 150/month | Unlimited |
-| Manual line entry | Yes | Yes |
-| Flag inbox | Yes | Yes |
-| Summary (1wk/2wk/custom) | Yes | Yes |
-| Proof Pack + CSV export | Yes | Yes |
-| OCR scan (photo capture) | Hidden | Yes |
-| Scan templates | Hidden | Yes |
-| Spreadsheet view + print | Hidden | Yes |
-| Multi-period reporting | Hidden | Yes |
+### 1. Create `pro_overrides` table (migration)
+- Columns: `id`, `user_id` (unique, references auth.users), `reason` (text, optional note like "beta tester"), `created_at`
+- RLS: Only allow SELECT for the user's own row (so the edge function with service role key can read all rows)
 
-## Multi-Period Reporting (New Feature)
-A new section in the Summary tab (Pro only) that lets users select two date ranges and see them side-by-side for comparison -- e.g., this pay period vs. last pay period. Shows totals, labor type breakdowns, and delta/change indicators.
+### 2. Update `check-subscription` edge function
+- Before checking Stripe, query `pro_overrides` for the authenticated user's ID using the service role client
+- If a row exists, return `{ subscribed: true, product_id: "override", subscription_end: null }` immediately
+- If not, proceed with normal Stripe check as before
 
-## UX Approach -- Subtle but Visible
-- Gated features are **completely hidden** from the UI (not shown as disabled/locked)
-- A small, tasteful "Upgrade to Pro" card appears in Settings with a brief feature list
-- A subtle "Pro" badge appears in the top bar (desktop) or settings (mobile) when on the free plan, tapping opens the upgrade screen
-- When free users hit the 150 RO/month cap, a friendly bottom sheet explains the limit and offers upgrade
-- No banners, no pop-ups on load, no aggressive upselling
+### 3. Update `SubscriptionContext.tsx`
+- Relax the `isPro` check: currently requires `product_id === PRO_PRODUCT_ID`, needs to also accept `product_id === "override"`
 
-## Technical Details
+### How to Add Users
+After this is built, you can add users to the override table directly from the backend SQL runner:
+```sql
+INSERT INTO pro_overrides (user_id, reason)
+VALUES ('the-user-uuid-here', 'beta tester');
+```
+You can find a user's ID by looking up their email in the authentication system.
 
-### 1. Edge Functions (3 new)
-
-**`check-subscription`** -- Checks if authenticated user has an active Stripe subscription. Returns `{ subscribed, product_id, subscription_end }`. Called on auth state change and periodically.
-
-**`create-checkout`** -- Creates a Stripe checkout session for the Pro plan. Returns `{ url }` for redirect.
-
-**`customer-portal`** -- Creates a Stripe billing portal session for subscription management. Returns `{ url }`.
-
-### 2. Subscription Context (`src/contexts/SubscriptionContext.tsx`)
-- Wraps the app, provides `{ isPro, loading, subscriptionEnd, checkSubscription }`
-- Calls `check-subscription` on mount and every 60 seconds
-- Re-checks on auth state changes
-- Exposes helper: `isPro` boolean for gating
-
-### 3. RO Cap Logic
-- Count ROs created in the current calendar month (filter by `created_at`)
-- In `useROStore.addRO`, check if free user has reached 150 ROs this month
-- If capped, show a friendly bottom sheet instead of creating the RO
-- Pro users bypass the check entirely
-
-### 4. UI Changes
-
-**Settings tab:**
-- Add a "Plan" settings group near the top showing current plan status
-- Free users see a card: "Upgrade to Pro -- Unlock OCR scanning, spreadsheet view, unlimited ROs, and more" with a subtle upgrade button
-- Pro users see "Pro Plan" with subscription end date and "Manage Subscription" button
-- Hide "Scan Templates" section for free users
-
-**Summary tab:**
-- Hide the multi-period comparison section for free users (not rendered at all)
-- Multi-period section appears below existing content for Pro users
-
-**Desktop workspace (top bar):**
-- Hide the spreadsheet view toggle button for free users
-- Subtle "Pro" text badge near settings icon for free users (clickable, opens upgrade)
-
-**Mobile (Index/bottom bar):**
-- No scan FAB for free users (already hidden since OCR is gated)
-- No visual changes to bottom bar
-
-**AddRO / ROEditor:**
-- Hide the scan/photo button for free users
-- Show RO cap bottom sheet when limit reached
-
-### 5. Database
-- No new tables needed -- subscription status is checked live from Stripe via edge function
-- RO count for cap uses existing `ros` table filtered by `created_at` in current month
-
-### 6. Config Updates
-- `supabase/config.toml`: Add entries for the 3 new edge functions with `verify_jwt = false`
-
-### 7. Files to Create
-- `supabase/functions/check-subscription/index.ts`
-- `supabase/functions/create-checkout/index.ts`
-- `supabase/functions/customer-portal/index.ts`
-- `src/contexts/SubscriptionContext.tsx`
-
-### 8. Files to Modify
-- `src/App.tsx` -- Wrap with SubscriptionProvider
-- `src/contexts/AuthContext.tsx` -- No changes needed (subscription context handles its own checks)
-- `src/components/tabs/SettingsTab.tsx` -- Add Plan section, hide templates for free
-- `src/components/tabs/SummaryTab.tsx` -- Add multi-period comparison (Pro only)
-- `src/components/desktop/DesktopWorkspace.tsx` -- Hide spreadsheet toggle, add Pro badge
-- `src/components/scan/ScanFlow.tsx` -- No changes (parent hides the button)
-- `src/pages/AddRO.tsx` -- Hide scan button for free users
-- `src/components/desktop/ROEditor.tsx` -- Hide scan button for free users
-- `src/hooks/useROStore.ts` -- Add RO cap check in addRO
-- `supabase/config.toml` -- Add function entries
-- `src/pages/Index.tsx` -- Conditionally hide scan-related FAB
