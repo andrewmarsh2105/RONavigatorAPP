@@ -1,46 +1,53 @@
 
 
-# Move Paid Date to a Better Location
+# Add Favorites to Preset Quick Rail
 
-## Problem
+## Overview
 
-On desktop, the Paid Date field sits in the top header strip alongside RO#, Date, Advisor, and Labor Type -- making the header feel crowded. On mobile, the Paid Date field is missing entirely from the QuickAddSheet.
-
-## Solution
-
-Move Paid Date out of the main header and into the "Details" collapsible section on both desktop and mobile. This makes sense because:
-- Paid Date is an optional override (most ROs don't need it)
-- It logically groups with other secondary metadata (customer, vehicle, mileage)
-- It declutters the primary header, keeping only the essential fields: RO#, Date, Advisor, Labor Type
-
-When a Paid Date is set, it will show as a summary chip in the collapsed Details bar (e.g. "Paid 02/20") so it remains visible at a glance.
+Add a "favorite" toggle to labor presets so favorited presets appear first in the quick-add rail when editing an RO. Users can star/unstar presets from Settings, and favorites will be sorted to the front of the rail on both desktop and mobile.
 
 ## Changes
 
-### 1. DetailsCollapsible (`src/components/shared/DetailsCollapsible.tsx`)
+### 1. Database Migration
 
-- Add `paidDate` and `onPaidDateChange` props
-- Add a Paid Date input row in both desktop grid and mobile stacked layouts, positioned as the first field (since it's date-related and most important of the "details" group)
-- Show a "Paid: MM/DD" chip in the collapsed summary bar when a paid date is set
-- Include a clear button next to the paid date input
+Add an `is_favorite` boolean column to the `labor_references` table:
 
-### 2. Desktop ROEditor (`src/components/desktop/ROEditor.tsx`)
+```sql
+ALTER TABLE labor_references ADD COLUMN is_favorite boolean NOT NULL DEFAULT false;
+```
 
-- Remove the Paid Date field from the sticky header strip (lines 238-259)
-- Pass `paidDate` and `onPaidDateChange` props to `DetailsCollapsible`
-- Auto-expand Details when editing an RO that already has a paid date set
+### 2. Types (`src/types/ro.ts`)
 
-### 3. Mobile QuickAddSheet (`src/components/sheets/QuickAddSheet.tsx`)
+Add `isFavorite?: boolean` to the `Preset` interface.
 
-- Add `paidDate` state (currently missing entirely)
-- Pass `paidDate` and `onPaidDateChange` to the DetailsCollapsible or add it in the "More Details" accordion section
-- Include `paidDate` in the save data
+### 3. Data Layer (`src/hooks/useROStore.ts`)
 
-## Files to Modify
+- Update `dbToPreset` to map `row.is_favorite` to the Preset object.
+- Update `updatePresets` to include `is_favorite` in the insert rows.
+
+### 4. PresetSearchRail (`src/components/shared/PresetSearchRail.tsx`)
+
+- Accept a `favoriteIds` prop (or read `isFavorite` from presets directly).
+- Sort filtered presets so favorites come first.
+- Show a small star icon on favorite preset chips to visually distinguish them.
+- Add a subtle separator (a thin divider or extra gap) between the favorites group and the rest.
+
+### 5. Settings - Preset Management (`src/components/tabs/SettingsTab.tsx`)
+
+- Add a star toggle button on each preset row in the preset list.
+- Tapping the star toggles `isFavorite` on that preset and saves via `updatePresets`.
+
+### 6. LineItemEditor (`src/components/mobile/LineItemEditor.tsx`)
+
+No changes needed -- it already passes presets to `PresetSearchRail`, which will handle the sorting internally.
+
+## Technical Details
 
 | File | Change |
 |------|--------|
-| `src/components/shared/DetailsCollapsible.tsx` | Add paidDate prop, input row, collapsed summary chip |
-| `src/components/desktop/ROEditor.tsx` | Remove paid date from header, pass it to DetailsCollapsible |
-| `src/components/sheets/QuickAddSheet.tsx` | Add paidDate state, include in More Details and save data |
+| Database migration | Add `is_favorite boolean DEFAULT false` to `labor_references` |
+| `src/types/ro.ts` | Add `isFavorite?: boolean` to `Preset` |
+| `src/hooks/useROStore.ts` | Map `is_favorite` in `dbToPreset`, include in `updatePresets` insert |
+| `src/components/shared/PresetSearchRail.tsx` | Sort favorites first, show star icon on favorites, subtle visual separator |
+| `src/components/tabs/SettingsTab.tsx` | Add star toggle button on each preset row |
 
