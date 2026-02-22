@@ -363,6 +363,11 @@ function PayPeriodRangeSection({ userSettings, updateUserSetting }: {
           <div className="border-t border-border pt-4 space-y-3">
             <p className="text-sm text-muted-foreground">
               Set the day(s) of the month your pay period ends on (e.g., 15 and 28).
+              {payPeriodEndDates.length < 2 && (
+                <span className="block mt-1 text-xs text-muted-foreground/70">
+                  Add at least 2 dates to define your pay cycle.
+                </span>
+              )}
             </p>
 
             {/* Current end dates */}

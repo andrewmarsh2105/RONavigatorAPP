@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Loader2, Mail, Lock } from 'lucide-react';
+import { Loader2, Mail, Lock, Wrench } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -38,69 +42,115 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.info('Enter your email address first, then tap Forgot Password');
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      toast.success('Password reset email sent — check your inbox');
+    } catch (err: any) {
+      toast.error(err.message || 'Could not send reset email');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">RO Tracker</h1>
-          <p className="text-muted-foreground text-sm">
-            {isLogin ? 'Sign in to your account' : 'Create a new account'}
-          </p>
+        {/* Branding */}
+        <div className="text-center space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Wrench className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">RO Tracker</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Track your hours. Get paid right.
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full h-12 pl-10 pr-4 bg-muted rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
+        {/* Form Card */}
+        <Card className="shadow-md">
+          <CardContent className="pt-6 space-y-5">
+            <p className="text-sm font-medium text-center text-muted-foreground">
+              {isLogin ? 'Sign in to your account' : 'Create a new account'}
+            </p>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-                className="w-full h-12 pl-10 pr-4 bg-muted rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="pl-10 h-11"
+                  />
+                </div>
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={cn(
-              'w-full h-12 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2',
-              'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
-            )}
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isLogin ? 'Sign In' : 'Sign Up'}
-          </button>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="pl-10 h-11"
+                  />
+                </div>
+                {isLogin && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-primary hover:underline cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+              </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-primary font-medium hover:underline"
-          >
-            {isLogin ? 'Sign Up' : 'Sign In'}
-          </button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 cursor-pointer"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isLogin ? 'Sign In' : 'Sign Up'}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary font-medium hover:underline cursor-pointer"
+              >
+                {isLogin ? 'Sign Up' : 'Sign In'}
+              </button>
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground/60">
+          RO Tracker v1.0
         </p>
       </div>
     </div>
