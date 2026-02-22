@@ -1,39 +1,33 @@
 
 
-# Fix: Period B Hours Missing from Daily Table and Chart
+# Move Pay Period Comparison to Its Own Tab
 
-## Root Cause
+## Problem
+The comparison section (chart + table + summary cards) is wedged between the Total Card and Daily Breakdown, pushing important daily data down the page -- especially painful on mobile.
 
-A timezone bug in `usePayPeriodReport.ts` at line 94-97. When building the day-by-day map:
+## Solution
+Add a "Compare" option to the existing `SegmentedControl` at the top of the Summary tab. When selected, the entire content area shows only the comparison UI (date pickers, summary cards, chart, daily table, labor breakdown). The regular summary views (1 Week, 2 Weeks, Custom) remain unchanged with no comparison section inline.
 
-```
-const start = new Date("2025-02-09");  // Parsed as UTC midnight
-d.getDate()                             // Returns LOCAL date = Feb 8 in US timezones
-```
+## Changes
 
-The dayMap ends up with shifted date keys (e.g., "2025-02-08" instead of "2025-02-09"). When RO dates (stored as correct local strings like "2025-02-09") are looked up via `dayMap.get(effectiveDate)`, they don't match, so hours silently stay at 0.
+### File: `src/components/tabs/SummaryTab.tsx`
 
-The total hours in the summary cards work correctly because they're calculated directly from the filtered lines array, bypassing the dayMap entirely.
+1. **Add "Compare" to SegmentedControl options** (Pro users only)
+   - Add `{ value: 'compare', label: 'Compare' }` to the options array
+   - Only include this option when `isPro` is true
 
-This bug affects BOTH periods, but can appear to work for one period if its RO dates happen to coincide with the shifted keys.
+2. **Conditionally render content based on segment value**
+   - When `segmentValue === 'compare'`: render only the `MultiPeriodComparison` component (with its own date pickers, chart, table)
+   - Otherwise: render the existing summary content (Total Card, warnings, daily breakdown, advisors, etc.)
 
-## Fix
+3. **Remove inline comparison** from the regular summary views
+   - Remove the `{isPro && <MultiPeriodComparison ... />}` block currently at line 509-514
 
-**File: `src/hooks/usePayPeriodReport.ts`** (lines 94-95)
+4. **Hide the custom date range pickers** when in Compare mode (Compare has its own date pickers inside the component)
 
-Change:
-```
-const start = new Date(startDate);
-const end = new Date(endDate);
-```
+5. **Hide the period label row** ("Feb 16 - Feb 22") when in Compare mode since it doesn't apply
 
-To:
-```
-const start = new Date(startDate + 'T12:00:00');
-const end = new Date(endDate + 'T12:00:00');
-```
-
-Appending `T12:00:00` forces local-time parsing (noon), eliminating the UTC midnight shift. This is the same pattern already used elsewhere in `SummaryTab.tsx` (e.g., line 45: `new Date(summary.date + 'T12:00:00')`).
-
-That's it -- a two-character-level fix on two lines. No other files need changes.
-
+## Result
+- Regular summary views: Total Card, warnings, daily breakdown, advisors, labor refs, export -- no comparison clutter
+- Compare view: Full-screen comparison with all the chart/table/delta detail, nothing else competing for attention
+- Clean toggle between modes via the top segmented control
