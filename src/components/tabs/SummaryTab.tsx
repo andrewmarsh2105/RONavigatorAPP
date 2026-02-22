@@ -434,10 +434,10 @@ export function SummaryTab() {
       {/* Sticky Header with Tabs */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full rounded-none bg-muted/50 h-11">
-            <TabsTrigger value="summary" className="flex-1 data-[state=active]:bg-background">Summary</TabsTrigger>
+          <TabsList className="w-full rounded-none bg-transparent h-11 gap-0 p-0">
+            <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Summary</TabsTrigger>
             {isPro && (
-              <TabsTrigger value="compare" className="flex-1 data-[state=active]:bg-background">Compare</TabsTrigger>
+              <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Compare</TabsTrigger>
             )}
           </TabsList>
         </Tabs>
@@ -448,21 +448,23 @@ export function SummaryTab() {
         {activeTab === 'summary' && (
           <div className="space-y-4">
             {/* Date Range Header */}
-            <div className="px-4 pt-3 flex items-center gap-3">
-              <Select value={rangeMode} onValueChange={setRangeMode}>
-                <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">1 Week</SelectItem>
-                  <SelectItem value="two_weeks">2 Weeks</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                  {hasCustomPayPeriod && (
-                    <SelectItem value="pay_period">Pay Period</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <span className="font-semibold text-sm text-muted-foreground">{viewModeLabel}</span>
+            <div className="px-4 pt-3">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <Select value={rangeMode} onValueChange={setRangeMode}>
+                  <SelectTrigger className="w-[140px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">1 Week</SelectItem>
+                    <SelectItem value="two_weeks">2 Weeks</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                    {hasCustomPayPeriod && (
+                      <SelectItem value="pay_period">Pay Period</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <span className="font-semibold text-sm text-muted-foreground">{viewModeLabel}</span>
+              </div>
             </div>
 
             {/* Custom date pickers */}
@@ -586,28 +588,30 @@ export function SummaryTab() {
 
               {/* Export + Proof Pack Buttons */}
               <div className="space-y-3 pt-4">
-                <button
+                <Button
                   onClick={() => setShowProofPack(true)}
-                  className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2"
+                  className="w-full h-12 cursor-pointer"
                 >
                   <FileText className="h-5 w-5" />
                   Proof Pack
-                </button>
+                </Button>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={handleCopySummary}
-                    className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                    className="h-11 cursor-pointer"
                   >
                     <Copy className="h-4 w-4" />
                     Copy Summary
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
                     onClick={handleExportCSV}
-                    className="py-3 bg-secondary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm"
+                    className="h-11 cursor-pointer"
                   >
                     <Download className="h-4 w-4" />
                     Export CSV
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
