@@ -1,34 +1,46 @@
 
 
-# Add Pro Override Table for Free Pro Access
+# Admin UI for Managing Pro Overrides
 
-## What This Does
-Creates a database table that lets you grant specific users Pro access for free, bypassing the Stripe subscription check. You'll be able to add users by their email or user ID directly in the backend.
+## Overview
+A new protected admin page at `/admin` where you can search users by email and toggle their Pro override on/off -- no SQL needed.
 
 ## How It Works
-1. A new `pro_overrides` table stores user IDs of people who get free Pro access
-2. The `check-subscription` backend function checks this table first -- if the user is in it, they're immediately treated as Pro without hitting Stripe
-3. The app code stays the same; `isPro` just works regardless of whether access came from Stripe or the override table
+1. A new backend function (`admin-manage-overrides`) handles the logic server-side
+2. It verifies the caller is an admin before allowing any changes
+3. A simple UI lets you type an email, see if they have Pro override, and toggle it
+
+## Security
+- A `user_roles` table determines who is an admin
+- The backend function checks admin status server-side before performing any action
+- Only admins can access the page; non-admins are redirected
 
 ## Technical Steps
 
-### 1. Create `pro_overrides` table (migration)
-- Columns: `id`, `user_id` (unique, references auth.users), `reason` (text, optional note like "beta tester"), `created_at`
-- RLS: Only allow SELECT for the user's own row (so the edge function with service role key can read all rows)
+### 1. Database: Create `user_roles` table + helper function
+- Create `app_role` enum with values `admin`, `user`
+- Create `user_roles` table with `user_id` + `role`
+- Create `has_role()` security definer function for safe RLS checks
+- RLS: users can only SELECT their own role
+- Insert your user ID as `admin` in the same migration
 
-### 2. Update `check-subscription` edge function
-- Before checking Stripe, query `pro_overrides` for the authenticated user's ID using the service role client
-- If a row exists, return `{ subscribed: true, product_id: "override", subscription_end: null }` immediately
-- If not, proceed with normal Stripe check as before
+### 2. Backend function: `admin-manage-overrides`
+Accepts two actions:
+- **`search`**: Takes an email string, queries `auth.admin.listUsers()` to find matching users, and checks if each has a `pro_overrides` row. Returns user ID, email, and override status.
+- **`toggle`**: Takes a user ID and a boolean. Inserts or deletes from `pro_overrides` accordingly.
 
-### 3. Update `SubscriptionContext.tsx`
-- Relax the `isPro` check: currently requires `product_id === PRO_PRODUCT_ID`, needs to also accept `product_id === "override"`
+Both actions first verify the caller has the `admin` role via the `has_role()` function.
 
-### How to Add Users
-After this is built, you can add users to the override table directly from the backend SQL runner:
-```sql
-INSERT INTO pro_overrides (user_id, reason)
-VALUES ('the-user-uuid-here', 'beta tester');
-```
-You can find a user's ID by looking up their email in the authentication system.
+### 3. Frontend: `/admin` page
+- Protected route that checks admin role on mount
+- Search input for email (searches on Enter or button click)
+- Results table showing: email, user ID, Pro Override toggle (Switch component)
+- Toggling the switch calls the backend function to insert/delete the override
+- Toast notifications for success/error feedback
 
+### 4. Route + Navigation
+- Add `/admin` route in `App.tsx` behind `ProtectedRoute`
+- Add a small "Admin" link in Settings (visible only to admins) for easy access
+
+### Finding Your User ID
+To seed yourself as admin, I'll need your user ID. I can look it up from the database if you tell me your email, or you can find it in the backend under Authentication > Users.
