@@ -1,46 +1,27 @@
 
 
-# Admin UI for Managing Pro Overrides
+# Stop Scanned Advisors from Being Added to Advisor Presets
 
-## Overview
-A new protected admin page at `/admin` where you can search users by email and toggle their Pro override on/off -- no SQL needed.
+## What Changes
+When you scan an RO, the advisor name detected by OCR will still appear on the scan review screen for reference, but it will **not** be applied to the RO form when you tap "Apply." This means scanned advisors won't end up in your advisor presets list (since that list is automatically built from your saved ROs).
 
-## How It Works
-1. A new backend function (`admin-manage-overrides`) handles the logic server-side
-2. It verifies the caller is an admin before allowing any changes
-3. A simple UI lets you type an email, see if they have Pro override, and toggle it
+You can still manually select or type an advisor after applying the scan -- this only prevents the automatic population.
 
-## Security
-- A `user_roles` table determines who is an admin
-- The backend function checks admin status server-side before performing any action
-- Only admins can access the page; non-admins are redirected
+## Technical Details
 
-## Technical Steps
+### Files to Change
 
-### 1. Database: Create `user_roles` table + helper function
-- Create `app_role` enum with values `admin`, `user`
-- Create `user_roles` table with `user_id` + `role`
-- Create `has_role()` security definer function for safe RLS checks
-- RLS: users can only SELECT their own role
-- Insert your user ID as `admin` in the same migration
+**1. `src/pages/AddRO.tsx`** (mobile flow)
+- In the `handleScanApply` function, remove the line that sets the advisor from scan data:
+  ```
+  // Remove: if (data.advisor) setAdvisor(data.advisor);
+  ```
 
-### 2. Backend function: `admin-manage-overrides`
-Accepts two actions:
-- **`search`**: Takes an email string, queries `auth.admin.listUsers()` to find matching users, and checks if each has a `pro_overrides` row. Returns user ID, email, and override status.
-- **`toggle`**: Takes a user ID and a boolean. Inserts or deletes from `pro_overrides` accordingly.
+**2. `src/components/desktop/ROEditor.tsx`** (desktop flow)
+- Same change -- remove the advisor assignment from `handleScanApply`:
+  ```
+  // Remove: if (data.advisor) setAdvisor(data.advisor);
+  ```
 
-Both actions first verify the caller has the `admin` role via the `has_role()` function.
+That's it -- two one-line removals. The scan review screen still displays the scanned advisor for your reference, but it won't carry over into the saved RO, so it won't appear in your advisor dropdown for future ROs.
 
-### 3. Frontend: `/admin` page
-- Protected route that checks admin role on mount
-- Search input for email (searches on Enter or button click)
-- Results table showing: email, user ID, Pro Override toggle (Switch component)
-- Toggling the switch calls the backend function to insert/delete the override
-- Toast notifications for success/error feedback
-
-### 4. Route + Navigation
-- Add `/admin` route in `App.tsx` behind `ProtectedRoute`
-- Add a small "Admin" link in Settings (visible only to admins) for easy access
-
-### Finding Your User ID
-To seed yourself as admin, I'll need your user ID. I can look it up from the database if you tell me your email, or you can find it in the backend under Authentication > Users.
