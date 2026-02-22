@@ -1,38 +1,46 @@
 
 
-# Add Skeleton Loading States to the RO List Panel
+# Move Paid Date to a Better Location
 
-## Overview
+## Problem
 
-Add shimmer skeleton placeholders to the RO list so that when data is loading from the backend, users see a polished loading state instead of a blank panel or "No ROs found."
+On desktop, the Paid Date field sits in the top header strip alongside RO#, Date, Advisor, and Labor Type -- making the header feel crowded. On mobile, the Paid Date field is missing entirely from the QuickAddSheet.
+
+## Solution
+
+Move Paid Date out of the main header and into the "Details" collapsible section on both desktop and mobile. This makes sense because:
+- Paid Date is an optional override (most ROs don't need it)
+- It logically groups with other secondary metadata (customer, vehicle, mileage)
+- It declutters the primary header, keeping only the essential fields: RO#, Date, Advisor, Labor Type
+
+When a Paid Date is set, it will show as a summary chip in the collapsed Details bar (e.g. "Paid 02/20") so it remains visible at a glance.
 
 ## Changes
 
-### 1. ROListPanel -- consume `loadingROs` and show skeletons (`src/components/desktop/ROListPanel.tsx`)
+### 1. DetailsCollapsible (`src/components/shared/DetailsCollapsible.tsx`)
 
-- Import `Skeleton` from `@/components/ui/skeleton`
-- Destructure `loadingROs` from `useRO()`
-- Before the grouped ROs list, if `loadingROs` is true, render 5-6 skeleton rows that mimic the shape of a real RO row:
-  - A skeleton bar for the RO number + status pill area
-  - A narrower skeleton bar for the advisor/description line
-  - A small skeleton on the right for the hours badge
-- Each skeleton row is wrapped in the same padding/border styling as real rows for visual consistency
-- Add a skeleton date header above every 3 rows to mimic the date grouping
+- Add `paidDate` and `onPaidDateChange` props
+- Add a Paid Date input row in both desktop grid and mobile stacked layouts, positioned as the first field (since it's date-related and most important of the "details" group)
+- Show a "Paid: MM/DD" chip in the collapsed summary bar when a paid date is set
+- Include a clear button next to the paid date input
 
-### 2. Mobile list (optional, low effort) (`src/components/tabs/ROsTab.tsx`)
+### 2. Desktop ROEditor (`src/components/desktop/ROEditor.tsx`)
 
-- Apply the same loading skeleton pattern to the mobile RO list if it also uses `useRO()`
+- Remove the Paid Date field from the sticky header strip (lines 238-259)
+- Pass `paidDate` and `onPaidDateChange` props to `DetailsCollapsible`
+- Auto-expand Details when editing an RO that already has a paid date set
 
-## Technical Details
+### 3. Mobile QuickAddSheet (`src/components/sheets/QuickAddSheet.tsx`)
 
-- `loadingROs` is already returned from `useROStore` and available via `useRO()`
-- `Skeleton` component already exists at `src/components/ui/skeleton.tsx`
-- No new dependencies or database changes needed
+- Add `paidDate` state (currently missing entirely)
+- Pass `paidDate` and `onPaidDateChange` to the DetailsCollapsible or add it in the "More Details" accordion section
+- Include `paidDate` in the save data
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/desktop/ROListPanel.tsx` | Add `loadingROs` destructuring, render skeleton rows when loading |
-| `src/components/tabs/ROsTab.tsx` | Same skeleton treatment for mobile list (if applicable) |
+| `src/components/shared/DetailsCollapsible.tsx` | Add paidDate prop, input row, collapsed summary chip |
+| `src/components/desktop/ROEditor.tsx` | Remove paid date from header, pass it to DetailsCollapsible |
+| `src/components/sheets/QuickAddSheet.tsx` | Add paidDate state, include in More Details and save data |
 
