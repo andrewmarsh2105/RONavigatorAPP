@@ -42,7 +42,7 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mt-2">
-            Unlock the full power of your RO tracker for <span className="font-semibold text-foreground">$9.99/month</span>.
+            Unlock the full power of your RO tracker for <span className="font-semibold text-foreground">$8.99/month</span>.
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
           {/* CTA */}
           <Button onClick={handleCheckout} className="w-full py-6 text-base font-semibold rounded-xl">
             <Crown className="h-5 w-5 mr-2" />
-            Subscribe — $9.99/month
+            Subscribe — $8.99/month
           </Button>
           <p className="text-[11px] text-center text-muted-foreground">
             Cancel anytime. Managed through Stripe.
