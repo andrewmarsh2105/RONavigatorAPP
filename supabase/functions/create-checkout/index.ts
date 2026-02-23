@@ -53,9 +53,12 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const isAuthError = errorMessage.includes("not authenticated") || 
+                        errorMessage.includes("Authorization") ||
+                        errorMessage.includes("Auth session");
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: isAuthError ? 401 : 500,
     });
   }
 });
