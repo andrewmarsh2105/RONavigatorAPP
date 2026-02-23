@@ -588,7 +588,7 @@ export default function AddRO() {
             }}
             className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold"
           >
-            Upgrade to Pro — $9.99/mo
+            Upgrade to Pro — $8.99/mo
           </button>
           <button
             onClick={() => setShowCapSheet(false)}

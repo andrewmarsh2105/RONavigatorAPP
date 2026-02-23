@@ -663,7 +663,7 @@ export function SettingsTab() {
                 onClick={() => setShowUpgradeDialog(true)}
                 className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
               >
-                Upgrade to Pro — $9.99/mo
+                Upgrade to Pro — $8.99/mo
               </button>
             </div>
           )}
