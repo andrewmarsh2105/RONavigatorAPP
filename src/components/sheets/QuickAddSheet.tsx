@@ -238,7 +238,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             
             {/* Advisor chips from managed advisors */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {settings.advisors.slice(0, 4).map((adv) => (
+              {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4).map((adv) => (
                 <Chip
                   key={adv.id}
                   label={adv.name.split(' ')[0]} // First name only
@@ -255,7 +255,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             </div>
 
             {/* Show selected advisor if not in first 4 */}
-            {advisor && !settings.advisors.slice(0, 4).find(a => a.name === advisor) && (
+            {advisor && ![...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 4).find(a => a.name === advisor) && (
               <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl">
                 <span className="font-medium">{advisor}</span>
                 <button onClick={() => setAdvisor('')} className="ml-auto">
@@ -428,7 +428,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         title="Select Advisor"
       >
         <div className="p-4 space-y-2">
-          {settings.advisors.map((adv) => (
+          {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).map((adv) => (
             <button
               key={adv.id}
               onClick={() => {
