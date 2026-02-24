@@ -46,6 +46,40 @@ function openDB(): Promise<IDBDatabase> {
 
 export async function enqueue(action: Omit<QueuedAction, 'id' | 'createdAt' | 'retries'>): Promise<QueuedAction> {
   const db = await openDB();
+
+  // Deduplication: check for existing actions that should be replaced
+  const existing = await new Promise<QueuedAction[]>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result as QueuedAction[]);
+    req.onerror = () => reject(req.error);
+  });
+
+  // For addRO: skip if same roNumber already queued
+  if (action.type === 'addRO' && action.payload?.ro?.roNumber) {
+    const dup = existing.find(
+      e => e.type === 'addRO' && e.payload?.ro?.roNumber === action.payload.ro.roNumber
+    );
+    if (dup) return dup; // Already queued, return existing
+  }
+
+  // For updateRO/deleteRO: replace existing action for same id
+  if ((action.type === 'updateRO' || action.type === 'deleteRO') && action.payload?.id) {
+    const dup = existing.find(
+      e => (e.type === 'updateRO' || e.type === 'deleteRO') && e.payload?.id === action.payload.id
+    );
+    if (dup) {
+      // Remove old entry and insert new one with same id
+      const item: QueuedAction = { ...action, id: dup.id, createdAt: dup.createdAt, retries: 0 };
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(item);
+        tx.oncomplete = () => resolve(item);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+  }
+
   const item: QueuedAction = {
     ...action,
     id: crypto.randomUUID(),

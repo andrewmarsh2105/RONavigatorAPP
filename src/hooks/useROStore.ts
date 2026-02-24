@@ -295,6 +295,30 @@ export function useROStore() {
       return;
     }
 
+    // Stale-edit detection: check server's updated_at before saving
+    const localRO = ros.find(r => r.id === id);
+    if (localRO) {
+      try {
+        const { data: serverRow } = await supabase
+          .from('ros')
+          .select('updated_at')
+          .eq('id', id)
+          .single();
+        if (serverRow && serverRow.updated_at !== localRO.updatedAt) {
+          toast.error('This RO was modified elsewhere. Please refresh before editing.');
+          return;
+        }
+      } catch (err) {
+        // If we can't check, fall back to offline queue on network error
+        const msg = (err as any)?.message || '';
+        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+          await queueAction('updateRO', { id, updates });
+          toast.info('Network issue — update saved offline');
+          return;
+        }
+      }
+    }
+
     const dbUpdates: any = {};
     if (updates.roNumber !== undefined) dbUpdates.ro_number = updates.roNumber;
     if (updates.advisor !== undefined) dbUpdates.advisor_name = updates.advisor;
@@ -312,7 +336,16 @@ export function useROStore() {
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
-      if (error) { toast.error('Failed to update RO'); return; }
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+          await queueAction('updateRO', { id, updates });
+          toast.info('Network issue — update saved offline');
+          return;
+        }
+        toast.error('Failed to update RO');
+        return;
+      }
     }
 
     // Replace lines if provided
@@ -377,7 +410,17 @@ export function useROStore() {
     }
 
     const { error } = await supabase.from('ros').delete().eq('id', id);
-    if (error) { toast.error('Failed to delete RO'); return; }
+    if (error) {
+      const msg = error.message || '';
+      if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+        await queueAction('deleteRO', { id });
+        setROs(prev => prev.filter(ro => ro.id !== id));
+        toast.info('Network issue — delete saved offline');
+        return;
+      }
+      toast.error('Failed to delete RO');
+      return;
+    }
     setROs(prev => prev.filter(ro => ro.id !== id));
   }, [user, isOnline, queueAction]);
 
