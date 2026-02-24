@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -15,12 +16,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const intentionalSignOut = useRef(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
+        toast.error('Your session expired. Please sign in again.');
+      }
+      // Reset the flag after processing
+      intentionalSignOut.current = false;
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    intentionalSignOut.current = true;
     await supabase.auth.signOut();
   };
 

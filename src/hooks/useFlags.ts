@@ -57,23 +57,34 @@ export function useFlags() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('ro_flags')
-      .insert({
-        user_id: user.id,
-        ro_id: roId,
-        ro_line_id: roLineId || null,
-        flag_type: flagType as any,
-        note: note || null,
-      })
-      .select()
-      .single();
-    if (error) {
-      toast.error(`Failed to add flag: ${error.message}`);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from('ro_flags')
+        .insert({
+          user_id: user.id,
+          ro_id: roId,
+          ro_line_id: roLineId || null,
+          flag_type: flagType as any,
+          note: note || null,
+        })
+        .select()
+        .single();
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+          await queueAction('addFlag', { roId, flagType, note, roLineId });
+          toast.info('Network issue — flag saved offline');
+          return;
+        }
+        toast.error(`Failed to add flag: ${error.message}`);
+        return;
+      }
+      setFlags(prev => [dbToFlag(data), ...prev]);
+      toast.success('Flag added');
+    } catch (err: any) {
+      await queueAction('addFlag', { roId, flagType, note, roLineId });
+      toast.info('Network issue — flag saved offline');
     }
-    setFlags(prev => [dbToFlag(data), ...prev]);
-    toast.success('Flag added');
   }, [user, isOnline, queueAction]);
 
   const clearFlag = useCallback(async (flagId: string) => {
@@ -86,16 +97,29 @@ export function useFlags() {
       return;
     }
 
-    const { error } = await supabase
-      .from('ro_flags')
-      .update({ cleared_at: new Date().toISOString() })
-      .eq('id', flagId);
-    if (error) {
-      toast.error(`Failed to clear flag: ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase
+        .from('ro_flags')
+        .update({ cleared_at: new Date().toISOString() })
+        .eq('id', flagId);
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+          await queueAction('clearFlag', { flagId });
+          setFlags(prev => prev.filter(f => f.id !== flagId));
+          toast.info('Network issue — flag cleared offline');
+          return;
+        }
+        toast.error(`Failed to clear flag: ${error.message}`);
+        return;
+      }
+      setFlags(prev => prev.filter(f => f.id !== flagId));
+      toast.success('Flag cleared');
+    } catch (err: any) {
+      await queueAction('clearFlag', { flagId });
+      setFlags(prev => prev.filter(f => f.id !== flagId));
+      toast.info('Network issue — flag cleared offline');
     }
-    setFlags(prev => prev.filter(f => f.id !== flagId));
-    toast.success('Flag cleared');
   }, [user, isOnline, queueAction]);
 
   const getFlagsForRO = useCallback((roId: string) => {
