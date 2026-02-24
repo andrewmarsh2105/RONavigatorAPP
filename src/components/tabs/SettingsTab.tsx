@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -470,6 +470,8 @@ export function SettingsTab() {
   const [confirmText, setConfirmText] = useState('');
   const [showFinalConfirm, setShowFinalConfirm] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showAllPresets, setShowAllPresets] = useState(false);
+  const [showAllAdvisors, setShowAllAdvisors] = useState(false);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -719,7 +721,7 @@ export function SettingsTab() {
           </div>
 
           <div className="space-y-1">
-            {settings.presets.map((preset) => (
+            {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
               <PresetItem
                 key={preset.id}
                 preset={preset}
@@ -732,6 +734,18 @@ export function SettingsTab() {
                 }}
               />
             ))}
+            {settings.presets.length > 6 && (
+              <button
+                onClick={() => setShowAllPresets(v => !v)}
+                className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                {showAllPresets ? (
+                  <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
+                ) : (
+                  <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.presets.length - 6})</>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -750,7 +764,7 @@ export function SettingsTab() {
           </div>
 
           <div className="space-y-1">
-            {settings.advisors.map((advisor) => (
+            {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
               <AdvisorItem
                 key={advisor.id}
                 advisor={advisor}
@@ -758,6 +772,18 @@ export function SettingsTab() {
                 onDelete={() => deleteAdvisor(advisor.id)}
               />
             ))}
+            {settings.advisors.length > 6 && (
+              <button
+                onClick={() => setShowAllAdvisors(v => !v)}
+                className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                {showAllAdvisors ? (
+                  <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
+                ) : (
+                  <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.advisors.length - 6})</>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
