@@ -17,9 +17,9 @@ export function AdvisorCombobox({ value, onChange, advisors, onCreateAdvisor, cl
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filtered = advisors.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = [...advisors]
+    .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const exactMatch = advisors.some(a => a.name.toLowerCase() === search.trim().toLowerCase());
   const showCreate = search.trim().length > 0 && !exactMatch;
