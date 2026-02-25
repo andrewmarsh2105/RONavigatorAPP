@@ -1,48 +1,79 @@
 
 
-## Add Yearly Plan at $79.99/year + Fix Monthly Price to $8.99
+## Plan: "Hide Totals" Toggle Setting
 
-### What's changing
-- Create **two new Stripe prices**: monthly at $8.99 and yearly at $79.99 on the existing Pro product
-- Update the **Pro Upgrade Dialog** to let users pick between Monthly and Yearly billing (with a savings badge showing ~26% savings)
-- Update the **checkout backend function** to accept a `plan` parameter (`monthly` or `yearly`) and use the correct price
-- Update the **Subscription Context** to pass the selected plan to the checkout function
+### Overview
+Add a new user setting toggle called "Hide Hours Totals" that, when enabled, replaces all aggregated hour totals (daily, weekly, pay period, monthly) with `--.-h` or similar placeholder text. Individual RO line hours remain visible and editable. The user can toggle it back on to reveal totals again.
 
-### Steps
+### New Setting
 
-1. **Create two new Stripe prices**
-   - Monthly: $8.99/month (899 cents, recurring monthly) on `prod_TytAJ1A0OZTgh0`
-   - Yearly: $79.99/year (7999 cents, recurring yearly) on `prod_TytAJ1A0OZTgh0`
+**`useUserSettings.ts`** -- Add a new boolean setting `hideTotals` (default: `false`), mapped to DB column `hide_totals`.
 
-2. **Update `supabase/functions/create-checkout/index.ts`**
-   - Accept a `plan` field from the request body (`"monthly"` or `"yearly"`)
-   - Map to the correct new price ID
-   - Default to monthly if not specified
+**Database migration** -- Add column `hide_totals boolean default false` to `user_settings` table.
 
-3. **Update `src/contexts/SubscriptionContext.tsx`**
-   - Modify `startCheckout` to accept an optional `plan` parameter and pass it in the edge function body
+### Settings UI
 
-4. **Update `src/components/ProUpgradeDialog.tsx`**
-   - Add a toggle/segmented control to switch between Monthly ($8.99/mo) and Yearly ($79.99/yr)
-   - Show a savings indicator on the yearly option (e.g., "Save 26%")
-   - Pass the selected plan to `startCheckout`
-   - Update the CTA button text to reflect the selected plan
+**`SettingsTab.tsx`** -- Add a new toggle row under the "Appearance" settings group:
+```
+Hide Hour Totals
+```
+This toggle controls `hideTotals` via `updateUserSetting('hideTotals', v)`.
 
-### Technical details
+### Where Totals Get Hidden
 
-**Edge function change** (`create-checkout/index.ts`):
-- Parse `plan` from request JSON body
-- Map prices: `{ monthly: "price_NEW_MONTHLY_ID", yearly: "price_NEW_YEARLY_ID" }`
-- Use the mapped price in `line_items`
+The setting will be read via `useFlagContext().userSettings.hideTotals` and applied in these locations:
 
-**SubscriptionContext change**:
-- `startCheckout` signature becomes `(plan?: 'monthly' | 'yearly') => Promise<void>`
-- Passes `{ plan: plan || 'monthly' }` as the body to `supabase.functions.invoke`
+1. **SummaryTab.tsx (Summary view)**
+   - The large "Total Hours" card -- replace `report.totalHours.toFixed(1)` with `--.-`
+   - Labor type breakdown pills inside the total card
+   - WeekBlock subtotals (`weekTotal`)
+   - Grand Total (2 Weeks) row
+   - DaySummaryCard `totalHours` display
+   - AdvisorCard hours pill
+   - By Labor Reference hours
+   - Compare view summary cards, delta, daily table values, chart tooltip values
 
-**ProUpgradeDialog UI change**:
-- Add state for `selectedPlan` (`'monthly' | 'yearly'`)
-- Two plan cards or a toggle at the top of the CTA area
-- Monthly card: "$8.99/mo"
-- Yearly card: "$79.99/yr" with a "Save 26%" badge
-- CTA button updates dynamically: "Subscribe -- $8.99/month" or "Subscribe -- $79.99/year"
+2. **ROsTab.tsx (RO card list)**
+   - The `hours-pill` on each ROCard -- keep showing individual RO hours (user said they can still input hours, so per-RO hours stay visible)
+   - **No changes here** -- individual RO hours are not "totals"
+
+3. **SpreadsheetView.tsx**
+   - Summary footer totals (RO count stays, but total hours, W/CP/I breakdown become `--.-`)
+   - Date separator day totals (`dayHours`)
+   - RO Total column values
+   - Individual line hours remain visible
+
+4. **Desktop ROListPanel** -- If it shows any aggregated totals, hide those too.
+
+### Implementation Approach
+
+Create a small utility function:
+```typescript
+export function maskHours(value: number, hidden: boolean): string {
+  return hidden ? '--.-' : value.toFixed(1);
+}
+```
+
+This keeps changes minimal -- just swap `.toFixed(1)` calls with `maskHours(value, hideTotals)` at the aggregated total display points.
+
+### What Stays Visible
+- Individual line hours on each RO card
+- Hours input fields when adding/editing ROs
+- Individual line hours in spreadsheet rows (the per-line "Hours" column)
+- RO count and line count stats
+
+### What Gets Hidden
+- Daily totals (day summary cards, date separators)
+- Weekly/biweekly/pay period totals
+- Grand totals
+- Labor type breakdowns (W/CP/I summaries)
+- Spreadsheet footer totals
+- RO Total column in spreadsheet
+- Compare view totals and deltas
+
+### Technical Details
+
+- **Migration**: `ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS hide_totals boolean DEFAULT false;`
+- **Files modified**: `useUserSettings.ts`, `SettingsTab.tsx`, `SummaryTab.tsx`, `SpreadsheetView.tsx`, plus a new `maskHours` utility
+- **No breaking changes**: Default is `false`, so existing behavior is unchanged
 
