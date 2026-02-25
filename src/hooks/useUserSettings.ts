@@ -17,6 +17,7 @@ interface UserSettings {
   weekStartDay: number;
   payPeriodType: PayPeriodType;
   payPeriodEndDates: number[] | null;
+  hideTotals: boolean;
 }
 
 const defaults: UserSettings = {
@@ -31,6 +32,7 @@ const defaults: UserSettings = {
   weekStartDay: 0,
   payPeriodType: 'week',
   payPeriodEndDates: null,
+  hideTotals: false,
 };
 
 export function useUserSettings() {
@@ -58,6 +60,7 @@ export function useUserSettings() {
         weekStartDay: (data as any).week_start_day ?? 0,
         payPeriodType: ((data as any).pay_period_type as PayPeriodType) || 'week',
         payPeriodEndDates: (data as any).pay_period_end_dates || null,
+        hideTotals: (data as any).hide_totals ?? false,
       });
     }
     setLoaded(true);
@@ -79,6 +82,7 @@ export function useUserSettings() {
       : key === 'weekStartDay' ? 'week_start_day'
       : key === 'payPeriodType' ? 'pay_period_type'
       : key === 'payPeriodEndDates' ? 'pay_period_end_dates'
+      : key === 'hideTotals' ? 'hide_totals'
       : key;
     
     const { error } = await supabase

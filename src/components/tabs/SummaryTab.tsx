@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, createContext, useContext } from 'react';
 import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -10,6 +10,7 @@ import { ProofPack } from '@/components/reports/ProofPack';
 import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
+import { maskHours } from '@/lib/maskHours';
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +23,8 @@ import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport'
 import type { SummaryRange } from '@/hooks/useUserSettings';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const HideTotalsContext = createContext(false);
+const useHideTotals = () => useContext(HideTotalsContext);
 
 function getWeekRange(date: Date): { start: string; end: string } {
   const start = new Date(date);
@@ -42,6 +45,7 @@ function getTwoWeekRange(date: Date): { start: string; end: string } {
 }
 
 function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?: boolean }) {
+  const hide = useHideTotals();
   const date = new Date(summary.date + 'T12:00:00');
   const dayName = dayNames[date.getDay()];
   const dayNum = date.getDate();
@@ -55,10 +59,10 @@ function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?:
       <div className="w-px h-10 bg-border flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold tabular-nums">{summary.totalHours.toFixed(1)}h</span>
+          <span className="text-2xl font-bold tabular-nums">{maskHours(summary.totalHours, hide)}h</span>
           <span className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</span>
         </div>
-        {summary.totalHours > 0 && (
+        {summary.totalHours > 0 && !hide && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {summary.warrantyHours > 0 && <StatusPill type="warranty" hours={summary.warrantyHours} size="sm" />}
             {summary.customerPayHours > 0 && <StatusPill type="customer-pay" hours={summary.customerPayHours} size="sm" />}
@@ -71,23 +75,25 @@ function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?:
 }
 
 function AdvisorCard({ summary }: { summary: AdvisorBreakdown }) {
+  const hide = useHideTotals();
   return (
     <div className="card-mobile p-4 flex items-center justify-between w-full">
       <div>
         <div className="font-semibold text-[15px]">{summary.advisor}</div>
         <div className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</div>
         <div className="flex gap-2 mt-1 text-[11px] font-medium text-muted-foreground">
-          {summary.warrantyHours > 0 && <span>W: {summary.warrantyHours.toFixed(1)}</span>}
-          {summary.customerPayHours > 0 && <span>CP: {summary.customerPayHours.toFixed(1)}</span>}
-          {summary.internalHours > 0 && <span>Int: {summary.internalHours.toFixed(1)}</span>}
+          {!hide && summary.warrantyHours > 0 && <span>W: {summary.warrantyHours.toFixed(1)}</span>}
+          {!hide && summary.customerPayHours > 0 && <span>CP: {summary.customerPayHours.toFixed(1)}</span>}
+          {!hide && summary.internalHours > 0 && <span>Int: {summary.internalHours.toFixed(1)}</span>}
         </div>
       </div>
-      <span className="hours-pill text-base tabular-nums">{summary.totalHours.toFixed(1)}h</span>
+      <span className="hours-pill text-base tabular-nums">{maskHours(summary.totalHours, hide)}h</span>
     </div>
   );
 }
 
 function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: string; todayStr: string }) {
+  const hide = useHideTotals();
   const weekTotal = days.reduce((s, d) => s + d.totalHours, 0);
   const visibleDays = days.filter(d => d.totalHours > 0 || d.date === todayStr);
 
@@ -95,7 +101,7 @@ function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: str
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{label}</h4>
-        <span className="text-sm font-bold">{weekTotal.toFixed(1)}h</span>
+        <span className="text-sm font-bold">{maskHours(weekTotal, hide)}h</span>
       </div>
       {visibleDays.length === 0 ? (
         <p className="text-sm text-muted-foreground px-1">No entries</p>
@@ -169,6 +175,7 @@ function MultiPeriodComparison({
   const hasData = range1 && range2;
 
   const delta = hasData ? report2.totalHours - report1.totalHours : 0;
+  const hide = useHideTotals();
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const deltaColor = delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-500' : 'text-muted-foreground';
   const deltaBg = delta > 0 ? 'bg-green-100 dark:bg-green-900/30' : delta < 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted';
@@ -219,37 +226,37 @@ function MultiPeriodComparison({
           <div className="grid grid-cols-3 gap-2">
             <div className="card-mobile p-3 text-center border-t-2 border-primary">
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period A</div>
-              <div className="text-2xl font-bold tabular-nums">{report1.totalHours.toFixed(1)}<span className="text-lg opacity-60">h</span></div>
+              <div className="text-2xl font-bold tabular-nums">{maskHours(report1.totalHours, hide)}<span className="text-lg opacity-60">h</span></div>
               <div className="text-[11px] text-muted-foreground">{report1.totalROs} ROs · {report1.totalLines} lines</div>
-              <div className="flex flex-wrap gap-1 mt-2 justify-center">
+              {!hide && <div className="flex flex-wrap gap-1 mt-2 justify-center">
                 {report1.byLaborType.map(lt => (
                   <span key={lt.laborType} className="px-1.5 py-0.5 bg-primary/10 rounded-full text-[10px] font-medium text-primary">
                     {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
                   </span>
                 ))}
-              </div>
+              </div>}
             </div>
 
             <div className="flex flex-col items-center justify-center">
               <div className={cn('rounded-xl px-3 py-2 flex flex-col items-center', deltaBg)}>
                 <DeltaIcon className={cn('h-5 w-5 mb-0.5', deltaColor)} />
                 <span className={cn('text-lg font-bold tabular-nums', deltaColor)}>
-                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}h
+                  {hide ? '--.-' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}h
                 </span>
               </div>
             </div>
 
             <div className="card-mobile p-3 text-center border-t-2 border-violet-500">
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period B</div>
-              <div className="text-2xl font-bold tabular-nums">{report2.totalHours.toFixed(1)}<span className="text-lg opacity-60">h</span></div>
+              <div className="text-2xl font-bold tabular-nums">{maskHours(report2.totalHours, hide)}<span className="text-lg opacity-60">h</span></div>
               <div className="text-[11px] text-muted-foreground">{report2.totalROs} ROs · {report2.totalLines} lines</div>
-              <div className="flex flex-wrap gap-1 mt-2 justify-center">
+              {!hide && <div className="flex flex-wrap gap-1 mt-2 justify-center">
                 {report2.byLaborType.map(lt => (
                   <span key={lt.laborType} className="px-1.5 py-0.5 bg-violet-500/10 rounded-full text-[10px] font-medium text-violet-600 dark:text-violet-400">
                     {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
                   </span>
                 ))}
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -291,10 +298,10 @@ function MultiPeriodComparison({
                   return (
                     <TableRow key={row.dayIndex}>
                       <TableCell className="text-sm font-medium py-2">{row.dayLabel}</TableCell>
-                      <TableCell className="text-sm text-right tabular-nums py-2">{row.periodA.toFixed(1)}h</TableCell>
-                      <TableCell className="text-sm text-right tabular-nums py-2">{row.periodB.toFixed(1)}h</TableCell>
+                      <TableCell className="text-sm text-right tabular-nums py-2">{hide ? '--.-h' : `${row.periodA.toFixed(1)}h`}</TableCell>
+                      <TableCell className="text-sm text-right tabular-nums py-2">{hide ? '--.-h' : `${row.periodB.toFixed(1)}h`}</TableCell>
                       <TableCell className={cn('text-sm text-right tabular-nums font-semibold py-2 rounded-r', dColor, dBg)}>
-                        {row.delta > 0 ? '+' : ''}{row.delta.toFixed(1)}h
+                        {hide ? '--.-h' : `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)}h`}
                       </TableCell>
                     </TableRow>
                   );
@@ -303,10 +310,10 @@ function MultiPeriodComparison({
               <TableFooter>
                 <TableRow>
                   <TableCell className="font-bold text-sm py-2">Total</TableCell>
-                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{totalA.toFixed(1)}h</TableCell>
-                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{totalB.toFixed(1)}h</TableCell>
+                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{hide ? '--.-h' : `${totalA.toFixed(1)}h`}</TableCell>
+                  <TableCell className="font-bold text-sm text-right tabular-nums py-2">{hide ? '--.-h' : `${totalB.toFixed(1)}h`}</TableCell>
                   <TableCell className={cn('font-bold text-sm text-right tabular-nums py-2', deltaColor, deltaBg, 'rounded-r')}>
-                    {delta > 0 ? '+' : ''}{delta.toFixed(1)}h
+                    {hide ? '--.-h' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}h`}
                   </TableCell>
                 </TableRow>
               </TableFooter>
@@ -326,13 +333,13 @@ function MultiPeriodComparison({
                 <div key={key} className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{label}</span>
                   <div className="flex items-center gap-3 tabular-nums">
-                    <span>{a.toFixed(1)}h</span>
-                    <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
+                    <span>{hide ? '--.-' : a.toFixed(1)}h</span>
+                    {!hide && <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
                       d > 0 ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' :
                       d < 0 ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-muted-foreground')}>
                       {d > 0 ? '+' : ''}{d.toFixed(1)}
-                    </span>
-                    <span>{b.toFixed(1)}h</span>
+                    </span>}
+                    <span>{hide ? '--.-' : b.toFixed(1)}h</span>
                   </div>
                 </div>
               );
@@ -348,6 +355,7 @@ export function SummaryTab() {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
   const { isPro } = useSubscription();
+  const hideTotals = userSettings.hideTotals ?? false;
 
   // Determine initial range selection from settings
   const payPeriodType = userSettings.payPeriodType || 'week';
@@ -509,12 +517,13 @@ export function SummaryTab() {
                     {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
                   </span>
                 </div>
-                <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{report.totalHours.toFixed(1)}<span className="text-3xl ml-1 opacity-80">h</span></div>
+                <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-3xl ml-1 opacity-80">h</span></div>
                 {report.tbdLineCount > 0 && (
                   <div className="text-xs text-primary-foreground/65 mb-2 font-medium">
-                    ⏳ {report.tbdLineCount} TBD lines ({report.tbdHours.toFixed(1)}h) not counted
+                    ⏳ {report.tbdLineCount} TBD lines ({hideTotals ? '--.-' : report.tbdHours.toFixed(1)}h) not counted
                   </div>
                 )}
+                {!hideTotals && (
                 <div className="flex flex-wrap gap-2">
                   {report.byLaborType.map(lt => (
                     <span key={lt.laborType} className="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold">
@@ -522,6 +531,7 @@ export function SummaryTab() {
                     </span>
                   ))}
                 </div>
+                )}
               </div>
 
               {/* Warnings */}
@@ -544,20 +554,22 @@ export function SummaryTab() {
 
               {/* Day summaries */}
               {weekBlocks ? (
-                <>
+                <HideTotalsContext.Provider value={hideTotals}>
                   <WeekBlock days={weekBlocks.week1.days} label={weekBlocks.week1.label} todayStr={todayStr} />
                   <WeekBlock days={weekBlocks.week2.days} label={weekBlocks.week2.label} todayStr={todayStr} />
                   <div className="bg-muted/50 rounded-xl p-3 flex justify-between items-center">
                     <span className="font-semibold text-sm text-muted-foreground uppercase">Grand Total (2 Weeks)</span>
-                    <span className="text-lg font-bold">{report.totalHours.toFixed(1)}h</span>
+                    <span className="text-lg font-bold">{maskHours(report.totalHours, hideTotals)}h</span>
                   </div>
-                </>
+                </HideTotalsContext.Provider>
               ) : (
                 <div className="space-y-2">
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
+                  <HideTotalsContext.Provider value={hideTotals}>
                   {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
                     <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
                   ))}
+                  </HideTotalsContext.Provider>
                 </div>
               )}
 
@@ -567,9 +579,11 @@ export function SummaryTab() {
                 {report.byAdvisor.length === 0 ? (
                   <p className="text-sm text-muted-foreground px-1">No data</p>
                 ) : (
-                  report.byAdvisor.map((summary) => (
+                  <HideTotalsContext.Provider value={hideTotals}>
+                  {report.byAdvisor.map((summary) => (
                     <AdvisorCard key={summary.advisor} summary={summary} />
-                  ))
+                  ))}
+                  </HideTotalsContext.Provider>
                 )}
               </div>
 
@@ -580,7 +594,7 @@ export function SummaryTab() {
                   {report.byLaborRef.map(r => (
                     <div key={r.referenceId} className="card-mobile p-3 flex justify-between items-center">
                       <span className="text-sm font-medium">{r.referenceName}</span>
-                      <span className="text-sm font-bold">{r.totalHours.toFixed(1)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+                      <span className="text-sm font-bold">{maskHours(r.totalHours, hideTotals)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
                     </div>
                   ))}
                 </div>
@@ -620,12 +634,14 @@ export function SummaryTab() {
 
         {activeTab === 'compare' && isPro && (
           <div className="p-4">
+            <HideTotalsContext.Provider value={hideTotals}>
             <MultiPeriodComparison
               start1={compareStart1} end1={compareEnd1}
               start2={compareStart2} end2={compareEnd2}
               onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
               onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
             />
+            </HideTotalsContext.Provider>
           </div>
         )}
       </div>

@@ -697,6 +697,12 @@ export function SettingsTab() {
             toggleValue={userSettings.keywordAutofill}
             onToggle={(v) => updateUserSetting('keywordAutofill', v)}
           />
+          <SettingsRow
+            label="Hide Hour Totals"
+            toggle
+            toggleValue={userSettings.hideTotals}
+            onToggle={(v) => updateUserSetting('hideTotals', v)}
+          />
         </SettingsGroup>
 
         {/* Pay Period Range */}
