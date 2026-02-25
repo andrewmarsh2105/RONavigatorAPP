@@ -168,7 +168,7 @@ function MultiPeriodComparison({
 
   const hasData = range1 && range2;
 
-  const delta = hasData ? report1.totalHours - report2.totalHours : 0;
+  const delta = hasData ? report2.totalHours - report1.totalHours : 0;
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const deltaColor = delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-500' : 'text-muted-foreground';
   const deltaBg = delta > 0 ? 'bg-green-100 dark:bg-green-900/30' : delta < 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted';
@@ -192,7 +192,7 @@ function MultiPeriodComparison({
         bDate: dayB?.date,
         periodA: aHours,
         periodB: bHours,
-        delta: aHours - bHours,
+        delta: bHours - aHours,
       });
     }
     return rows;
