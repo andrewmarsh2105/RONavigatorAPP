@@ -5,6 +5,8 @@ import DOMPurify from 'dompurify';
 import { Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadCSV } from '@/lib/exportUtils';
+import { maskHours } from '@/lib/maskHours';
+import { useFlagContext } from '@/contexts/FlagContext';
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 
@@ -38,6 +40,8 @@ const ROW_BATCH_SIZE = 100;
 export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(ROW_BATCH_SIZE);
+  const { userSettings } = useFlagContext();
+  const hideTotals = userSettings.hideTotals ?? false;
 
   const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
     const allRows: TableRow[] = [];
@@ -241,7 +245,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                       <div className="flex items-center justify-between">
                         <span>{row.dateLabel}</span>
                         <span className="text-muted-foreground font-medium normal-case tracking-normal">
-                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {row.dayHours.toFixed(1)}h
+                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayHours, hideTotals)}h
                         </span>
                       </div>
                     </td>
@@ -343,7 +347,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
                       className="px-3 py-2 text-right tabular-nums font-bold text-primary whitespace-nowrap align-top bg-primary/5"
                       rowSpan={row.groupSize}
                     >
-                      {row.roTotal.toFixed(1)}h
+                      {maskHours(row.roTotal, hideTotals)}h
                     </td>
                   ) : null}
                 </tr>
@@ -372,10 +376,10 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
         <div className="flex items-center gap-3 tabular-nums">
-          <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {warrantyHours.toFixed(1)}h</span>
-          <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {cpHours.toFixed(1)}h</span>
-          <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {internalHours.toFixed(1)}h</span>
-          <span className="font-bold text-foreground ml-1">{totalHours.toFixed(1)}h total</span>
+          <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
+          <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
+          <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
+          <span className="font-bold text-foreground ml-1">{maskHours(totalHours, hideTotals)}h total</span>
         </div>
       </div>
     </div>

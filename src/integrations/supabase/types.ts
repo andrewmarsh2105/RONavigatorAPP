@@ -397,6 +397,7 @@ export type Database = {
           default_template_id: string | null
           flag_inbox_date_range: string | null
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
+          hide_totals: boolean | null
           id: string
           keyword_autofill: boolean
           pay_period_end_dates: number[] | null
@@ -414,6 +415,7 @@ export type Database = {
           default_template_id?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
+          hide_totals?: boolean | null
           id?: string
           keyword_autofill?: boolean
           pay_period_end_dates?: number[] | null
@@ -431,6 +433,7 @@ export type Database = {
           default_template_id?: string | null
           flag_inbox_date_range?: string | null
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
+          hide_totals?: boolean | null
           id?: string
           keyword_autofill?: boolean
           pay_period_end_dates?: number[] | null
