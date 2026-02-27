@@ -165,8 +165,8 @@ export function ScanReviewScreen({
       date: data.date || undefined,
       customerName: data.customerName || undefined,
       mileage: data.mileage || undefined,
-      vehicle: (data.vehicleYear || data.vehicleMake || data.vehicleModel)
-        ? { year: data.vehicleYear ?? undefined, make: data.vehicleMake ?? undefined, model: data.vehicleModel ?? undefined }
+      vehicle: (data.vehicleYear || data.vehicleMake || data.vehicleModel || data.vehicleVin)
+        ? { year: data.vehicleYear ?? undefined, make: data.vehicleMake ?? undefined, model: data.vehicleModel ?? undefined, vin: data.vehicleVin ?? undefined }
         : undefined,
       lines,
       mode,
@@ -572,6 +572,18 @@ export function ScanReviewScreen({
                   className="flex-1 h-10 px-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+              <input
+                type="text"
+                value={data.vehicleVin || ''}
+                onChange={e => {
+                  const updated = { ...data, vehicleVin: e.target.value.toUpperCase() || null };
+                  setData(updated);
+                  onUpdateData(updated);
+                }}
+                placeholder="VIN (optional)"
+                maxLength={17}
+                className="w-full h-10 px-2 bg-muted rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
           </div>
         </div>

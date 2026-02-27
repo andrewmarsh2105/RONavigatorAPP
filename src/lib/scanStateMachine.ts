@@ -42,6 +42,7 @@ export interface ExtractedData {
   vehicleYear: number | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
+  vehicleVin: string | null;
   candidateDates: CandidateDate[];
   lines: ExtractedLine[];
   fieldConfidence: {
@@ -183,6 +184,7 @@ export function mergePageIntoSession(
       vehicleYear: existing.vehicleYear ?? pageData.vehicleYear,
       vehicleMake: existing.vehicleMake ?? pageData.vehicleMake,
       vehicleModel: existing.vehicleModel ?? pageData.vehicleModel,
+      vehicleVin: existing.vehicleVin ?? pageData.vehicleVin,
       candidateDates: existing.candidateDates,
       // Append new lines at the top (most-recent page first)
       lines: [...taggedLines, ...existing.lines],

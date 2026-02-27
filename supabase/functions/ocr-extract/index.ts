@@ -81,6 +81,7 @@ Return a JSON object with this exact structure:
   "vehicleYear": number or null (4-digit year),
   "vehicleMake": "string or null",
   "vehicleModel": "string or null",
+  "vehicleVin": "string or null (17-character VIN if visible)",
   "candidateDates": [
     {
       "value": "YYYY-MM-DD",
