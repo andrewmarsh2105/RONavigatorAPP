@@ -61,6 +61,16 @@ serve(async (req) => {
       mode: "subscription",
       subscription_data: {
         trial_period_days: 7,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: "cancel",
+          },
+        },
+      },
+      custom_text: {
+        submit: {
+          message: "Your 7-day free trial starts now — you won't be charged until the trial ends. Cancel anytime.",
+        },
       },
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
