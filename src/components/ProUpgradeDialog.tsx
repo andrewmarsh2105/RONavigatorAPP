@@ -167,10 +167,10 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
           {/* CTA */}
           <Button onClick={handleCheckout} className="w-full py-6 text-base font-semibold rounded-xl">
             <Crown className="h-5 w-5 mr-2" />
-            {selectedPlan === 'monthly' ? 'Subscribe — $8.99/month' : 'Subscribe — $79.99/year'}
+            Start 7-Day Free Trial
           </Button>
           <p className="text-[11px] text-center text-muted-foreground">
-            Cancel anytime. Managed through Stripe.
+            7-day free trial, then {selectedPlan === 'monthly' ? '$8.99/month' : '$79.99/year'}. Cancel anytime.
           </p>
         </div>
       </DialogContent>
