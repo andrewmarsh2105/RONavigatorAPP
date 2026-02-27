@@ -29,8 +29,8 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
   const handleCheckout = async () => {
-    onOpenChange(false);
     await startCheckout(selectedPlan);
+    onOpenChange(false);
   };
 
   return (
