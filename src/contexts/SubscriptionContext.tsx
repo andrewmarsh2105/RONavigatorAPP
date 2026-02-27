@@ -9,6 +9,9 @@ interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
   subscriptionEnd: string | null;
+  checkoutLoading: boolean;
+  checkoutFallbackUrl: string | null;
+  clearCheckoutFallback: () => void;
   checkSubscription: () => Promise<void>;
   startCheckout: (plan?: 'monthly' | 'yearly') => Promise<void>;
   openPortal: () => Promise<void>;
@@ -21,6 +24,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutFallbackUrl, setCheckoutFallbackUrl] = useState<string | null>(null);
+
+  const clearCheckoutFallback = useCallback(() => setCheckoutFallbackUrl(null), []);
 
   const checkSubscription = useCallback(async () => {
     if (!session?.access_token) {
@@ -32,7 +39,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) {
-        // Silently handle auth errors (expired session, etc.)
         if (error.message?.includes('non-2xx')) {
           setIsPro(false);
           return;
@@ -45,13 +51,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setSubscriptionEnd(data?.subscription_end || null);
     } catch (err) {
       console.error('Failed to check subscription:', err);
-      // Don't reset isPro on transient errors
     } finally {
       setLoading(false);
     }
   }, [session]);
 
-  // Check on mount and when auth changes
   useEffect(() => {
     if (user) {
       checkSubscription();
@@ -61,20 +65,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [user, checkSubscription]);
 
-  // Periodic refresh every 60s
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(checkSubscription, 60_000);
     return () => clearInterval(interval);
   }, [user, checkSubscription]);
 
-  // Check on checkout return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
-      // Delay slightly for Stripe to process
       setTimeout(checkSubscription, 2000);
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('checkout') === 'cancel') {
       window.history.replaceState({}, '', window.location.pathname);
@@ -82,20 +82,33 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [checkSubscription]);
 
   const startCheckout = useCallback(async (plan?: 'monthly' | 'yearly') => {
+    setCheckoutLoading(true);
+    setCheckoutFallbackUrl(null);
     try {
+      console.log('[CHECKOUT] Invoking create-checkout, plan:', plan || 'monthly');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
       });
+      console.log('[CHECKOUT] Response:', { hasUrl: !!data?.url, error: error?.message });
       if (error) throw error;
       if (data?.url) {
+        console.log('[CHECKOUT] Redirecting via location.href...');
         window.location.href = data.url;
+        // If still here after 2s, Safari may have blocked — show fallback
+        setTimeout(() => {
+          setCheckoutFallbackUrl(data.url);
+          setCheckoutLoading(false);
+        }, 2000);
+        return;
       } else {
         toast.error('Checkout URL not received. Please try again.');
       }
-    } catch (err) {
-      console.error('[CHECKOUT] Failed:', err);
-      toast.error('Could not open checkout. Please try again.');
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error('[CHECKOUT] Failed:', msg);
+      toast.error(`Checkout failed: ${msg}`);
     }
+    setCheckoutLoading(false);
   }, []);
 
   const openPortal = useCallback(async () => {
@@ -112,7 +125,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, checkSubscription, startCheckout, openPortal }}>
+    <SubscriptionContext.Provider value={{ isPro, loading, subscriptionEnd, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback, checkSubscription, startCheckout, openPortal }}>
       {children}
     </SubscriptionContext.Provider>
   );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Check, X, Camera, Table2, BarChart3, Infinity } from 'lucide-react';
+import { Crown, Check, X, Camera, Table2, BarChart3, Infinity, ExternalLink, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.jpg';
@@ -25,16 +25,21 @@ const features = [
 ];
 
 export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) {
-  const { startCheckout } = useSubscription();
+  const { startCheckout, checkoutLoading, checkoutFallbackUrl, clearCheckoutFallback } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
   const handleCheckout = async () => {
     await startCheckout(selectedPlan);
-    onOpenChange(false);
+    // Don't close dialog — we're navigating away or showing fallback
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) clearCheckoutFallback();
+    onOpenChange(newOpen);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-0 gap-0">
         {/* Hero */}
         <div className="bg-gradient-to-br from-primary/15 to-primary/5 p-6 pb-4">
@@ -165,10 +170,33 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
           </div>
 
           {/* CTA */}
-          <Button onClick={handleCheckout} className="w-full py-6 text-base font-semibold rounded-xl">
-            <Crown className="h-5 w-5 mr-2" />
-            Start 7-Day Free Trial
-          </Button>
+          {checkoutFallbackUrl ? (
+            <a
+              href={checkoutFallbackUrl}
+              className="flex items-center justify-center w-full py-4 text-base font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <ExternalLink className="h-5 w-5 mr-2" />
+              Tap here to open checkout
+            </a>
+          ) : (
+            <Button
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="w-full py-6 text-base font-semibold rounded-xl"
+            >
+              {checkoutLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Opening checkout…
+                </>
+              ) : (
+                <>
+                  <Crown className="h-5 w-5 mr-2" />
+                  Start 7-Day Free Trial
+                </>
+              )}
+            </Button>
+          )}
           <p className="text-[11px] text-center text-muted-foreground">
             7-day free trial, then {selectedPlan === 'monthly' ? '$8.99/month' : '$79.99/year'}. Cancel anytime.
           </p>
