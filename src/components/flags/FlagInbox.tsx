@@ -153,7 +153,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
                 : 'bg-muted text-muted-foreground'
             )}
           >
-            All ({flags.length})
+            Flags ({flags.length})
           </button>
           {tbdItems.length > 0 && (
             <button
