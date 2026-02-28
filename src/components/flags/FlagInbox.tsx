@@ -239,7 +239,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
               <div className="px-4 py-3 border-t border-border">
                 {confirmClearTbd ? (
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-destructive font-medium flex-1">Delete all {tbdItems.length} TBD line(s)?</p>
+                    <p className="text-xs text-destructive font-medium flex-1">Clear TBD from {tbdItems.length} line(s)?</p>
                     <button
                       onClick={() => { clearAllTbdLines?.(); setConfirmClearTbd(false); }}
                       className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground"
@@ -259,7 +259,7 @@ export function FlagInbox({ onNavigateToRO }: FlagInboxProps) {
                     className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Clear All TBD Lines
+                    Clear All TBD Status
                   </button>
                 )}
               </div>
