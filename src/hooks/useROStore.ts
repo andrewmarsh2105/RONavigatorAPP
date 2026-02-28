@@ -549,12 +549,12 @@ export function useROStore() {
     const tbdLineIds = ros.flatMap(ro => ro.lines.filter(l => l.isTbd).map(l => l.id));
     if (tbdLineIds.length === 0) return;
 
-    const { error } = await supabase.from('ro_lines').delete().in('id', tbdLineIds);
+    const { error } = await supabase.from('ro_lines').update({ is_tbd: false }).in('id', tbdLineIds);
     if (error) {
-      toast.error('Failed to clear TBD lines');
+      toast.error('Failed to clear TBD status');
       return;
     }
-    toast.success(`Cleared ${tbdLineIds.length} TBD line(s)`);
+    toast.success(`Cleared TBD from ${tbdLineIds.length} line(s)`);
     await fetchROs();
   }, [user, ros, fetchROs]);
 
