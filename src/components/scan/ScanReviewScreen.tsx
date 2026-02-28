@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef } from 'react';
-import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2 } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,7 @@ export function ScanReviewScreen({
   const addPageCameraRef = useRef<HTMLInputElement>(null);
   const addPagePhotoRef = useRef<HTMLInputElement>(null);
   const addPageDesktopRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const pageCount = pages.length;
   const isMultiPage = pageCount > 1;
@@ -108,6 +109,13 @@ export function ScanReviewScreen({
     setData(latestExtracted);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestExtracted]);
+
+  // Auto-scroll to top when new page lines arrive
+  useEffect(() => {
+    if (newLineIds.size > 0 && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [newLineIds]);
 
   const existingNormalized = useMemo(
     () => new Set(existingLineDescriptions.map(normalizeDesc).filter(t => t.length > 0)),
@@ -136,6 +144,7 @@ export function ScanReviewScreen({
       hours: 0,
       laborType: 'customer-pay',
       confidence: 1,
+      isTbd: false,
     };
     const updated = { ...data, lines: [newLine, ...data.lines] };
     setData(updated);
@@ -154,6 +163,7 @@ export function ScanReviewScreen({
       lineNo: i + 1,
       description: line.description,
       hoursPaid: line.hours,
+      isTbd: line.isTbd || false,
       laborType: line.laborType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -342,7 +352,7 @@ export function ScanReviewScreen({
         <button onClick={onClose} className="text-sm text-muted-foreground">Cancel</button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         {/* Page thumbnails strip (multi-page) */}
         {isMultiPage && (
           <div className="px-4 pt-3">
@@ -909,6 +919,19 @@ function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge,
                 <option key={lt.value} value={lt.value}>{lt.label}</option>
               ))}
             </select>
+            <button
+              onClick={() => onUpdate(line.id, 'isTbd', !line.isTbd)}
+              className={cn(
+                'h-8 px-2 rounded text-xs font-bold flex items-center gap-1 transition-colors',
+                line.isTbd
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+              title="Mark as TBD"
+            >
+              <Clock className="h-3 w-3" />
+              TBD
+            </button>
             {showConfidence && <ConfidenceBadge value={line.confidence} />}
           </div>
         </div>
