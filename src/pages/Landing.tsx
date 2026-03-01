@@ -406,6 +406,10 @@ export default function Landing() {
               Create Your Free Account <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
+          <p className="text-xs text-muted-foreground/60">No credit card required to start.</p>
+          <Link to="/auth" className="text-sm font-medium text-primary hover:underline">
+            Already have an account? Sign in
+          </Link>
         </motion.div>
       </section>
 
