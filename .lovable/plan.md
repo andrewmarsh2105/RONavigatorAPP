@@ -1,34 +1,26 @@
 
 
-## Plan: Add TBD Filter to Flag Inbox
+# Make Mobile RO List More Compact and Usable
 
-The Flag Inbox will get a new "TBD" virtual filter that surfaces all RO lines where `is_tbd = true`. These aren't database flags — they're derived from the RO data already loaded in `ROContext`.
+## Current State
+Each RO card uses `p-4` padding, three lines of text (RO number row, date/advisor row, work description row), plus a gap of `space-y-3` between cards. This takes up significant vertical space per card.
 
-### 1. Update Flag Inbox Components — add TBD filter chip
+## Changes
 
-**Both `FlagInbox.tsx` and `FlagInboxPage.tsx`:**
-- Add a "TBD" chip button alongside the existing flag type filter chips (after "All")
-- When "TBD" is selected as the active filter, hide the real flags list and instead show TBD lines derived from `ros` in ROContext
-- Each TBD item displays: RO number, line number, line description, and labor type
-- Clicking a TBD item navigates to the RO (same as flag items)
-- No "clear" button on TBD items (they're not flags — user resolves by editing the line)
+### 1. Compact the ROCard layout (ROsTab.tsx)
+- Reduce card padding from `p-4` to `p-3`
+- Collapse into a **two-row layout**: RO number + date/advisor on the first row, work description removed (it's accessible in the detail sheet)
+- Shrink RO number font from `text-[17px]` to `text-[15px]`
+- Move date/advisor inline with RO number instead of on a separate line
+- Reduce hours pill from `text-base` to `text-sm`
 
-### 2. Derive TBD items from ROContext
+### 2. Reduce list spacing (ROsTab.tsx)
+- Change card list gap from `space-y-3` to `space-y-2`
 
-- In both components, compute TBD items: iterate `ros` → `ro.lines` → filter `line.isTbd === true`
-- Shape each into a display item with `roId`, `roNumber`, `lineNo`, `description`, and `createdAt`
-- Include TBD count in the chip label: `TBD (N)`
-- TBD chip only shows when count > 0 (same pattern as other type chips)
+### 3. Shrink search bar height (ROsTab.tsx)
+- Reduce search input and filter buttons from `h-11` to `h-10`
+- Reduce search bar container padding from `py-3` to `py-2`
 
-### 3. UI behavior
-
-- When TBD filter is active, date range filters are hidden (TBD status is current state, not time-based)
-- The "All" chip count remains flags-only; TBD count is separate
-- TBD items use a distinct amber/yellow style to differentiate from flags
-- Empty state message: "No TBD lines" when filter is active but no TBD lines exist
-
-### Technical Details
-- No database changes needed — TBD data comes from existing `ros` in ROContext
-- No changes to `useFlags` hook or `FlagContext` — TBD is purely a UI-level filter
-- Navigation uses the same `handleFlagTap` / `handleFlagClick` pattern with `roId` and `lineId`
+### Result
+Each card will be roughly 40% shorter, letting users see 5-7 ROs on screen instead of 3-4. Work description text is still visible when tapping into the detail sheet. All tap targets remain above 44px minimum via the card itself being tappable.
 
