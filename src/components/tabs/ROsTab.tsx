@@ -336,6 +336,28 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             ))}
           </div>
         )}
+        {/* Date Range Chips */}
+        <div className="flex gap-1.5 px-4 pt-1.5 pb-0.5 overflow-x-auto no-scrollbar">
+          {([
+            { value: 'all', label: 'All' },
+            { value: 'today', label: 'Today' },
+            { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Weeks' : 'Week' },
+            { value: 'month', label: 'Month' },
+            ...(hasCustomPayPeriod ? [{ value: 'pay_period', label: 'Pay Period' }] : []),
+          ] as const).map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setFilters(prev => ({ ...prev, dateRange: value as FilterState['dateRange'] }))}
+              className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                filters.dateRange === value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* RO List or Spreadsheet */}
