@@ -110,6 +110,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pay_period_closeouts: {
+        Row: {
+          breakdowns: Json
+          closed_at: string
+          id: string
+          period_end: string
+          period_start: string
+          proof_pack_url: string | null
+          ro_ids: string[]
+          totals: Json
+          user_id: string
+        }
+        Insert: {
+          breakdowns?: Json
+          closed_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          proof_pack_url?: string | null
+          ro_ids?: string[]
+          totals?: Json
+          user_id: string
+        }
+        Update: {
+          breakdowns?: Json
+          closed_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          proof_pack_url?: string | null
+          ro_ids?: string[]
+          totals?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       pro_overrides: {
         Row: {
           created_at: string
