@@ -659,7 +659,7 @@ export function SettingsTab() {
                 <span className="font-semibold">Free Plan</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Upgrade to Pro for unlimited ROs, OCR scanning, spreadsheet view, and multi-period reporting.
+                Upgrade to Pro for OCR scanning, closeouts, period comparison, spreadsheet exports, and more.
               </p>
               <button
                 onClick={() => setShowUpgradeDialog(true)}
