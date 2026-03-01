@@ -1,5 +1,5 @@
 import { useState, useMemo, createContext, useContext } from 'react';
-import { Download, Copy, FileText, AlertTriangle, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
+import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
@@ -12,12 +12,14 @@ import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportU
 import { cn, localDateStr } from '@/lib/utils';
 import { maskHours } from '@/lib/maskHours';
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
@@ -26,94 +28,70 @@ const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HideTotalsContext = createContext(false);
 const useHideTotals = () => useContext(HideTotalsContext);
 
-function getWeekRange(date: Date): { start: string; end: string } {
-  const start = new Date(date);
-  start.setDate(start.getDate() - start.getDay() + 1);
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// ── Date range helpers ────────────────────────────────────
+function getDayRange(): { start: string; end: string } {
+  const d = new Date();
+  const s = localDateStr(d);
+  return { start: s, end: s };
+}
+
+function getWeekRange(weekStartDay: number): { start: string; end: string } {
+  const d = new Date();
+  const diff = (d.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff);
   const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return { start: fmt(start), end: fmt(end) };
+  end.setDate(start.getDate() + 6);
+  return { start: localDateStr(start), end: localDateStr(end) };
 }
 
-function getTwoWeekRange(date: Date): { start: string; end: string } {
-  const end = new Date(date);
-  end.setDate(end.getDate() - end.getDay() + 7);
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function getMonthRange(): { start: string; end: string } {
+  const d = new Date();
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return { start: localDateStr(start), end: localDateStr(end) };
+}
+
+function getTwoWeekRange(weekStartDay: number): { start: string; end: string } {
+  const d = new Date();
+  const diff = (d.getDay() - weekStartDay + 7) % 7;
+  const end = new Date(d);
+  end.setDate(d.getDate() + (6 - diff));
   const start = new Date(end);
-  start.setDate(start.getDate() - 13);
-  return { start: fmt(start), end: fmt(end) };
+  start.setDate(end.getDate() - 13);
+  return { start: localDateStr(start), end: localDateStr(end) };
 }
 
-function DaySummaryCard({ summary, isToday }: { summary: DayBreakdown; isToday?: boolean }) {
-  const hide = useHideTotals();
-  const date = new Date(summary.date + 'T12:00:00');
-  const dayName = dayNames[date.getDay()];
-  const dayNum = date.getDate();
-
+// ── Skeleton loaders ──────────────────────────────────────
+function KPISkeleton() {
   return (
-    <div className={cn('card-mobile p-4 flex items-center gap-4 transition-shadow duration-200', isToday && 'ring-2 ring-primary shadow-raised')}>
-      <div className="text-center w-10 flex-shrink-0">
-        <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{dayName}</div>
-        <div className="text-2xl font-bold tabular-nums leading-tight">{dayNum}</div>
-      </div>
-      <div className="w-px h-10 bg-border flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold tabular-nums">{maskHours(summary.totalHours, hide)}h</span>
-          <span className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</span>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="card-mobile p-4 space-y-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-20" />
         </div>
-        {summary.totalHours > 0 && !hide && (
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {summary.warrantyHours > 0 && <StatusPill type="warranty" hours={summary.warrantyHours} size="sm" />}
-            {summary.customerPayHours > 0 && <StatusPill type="customer-pay" hours={summary.customerPayHours} size="sm" />}
-            {summary.internalHours > 0 && <StatusPill type="internal" hours={summary.internalHours} size="sm" />}
-          </div>
-        )}
-      </div>
+      ))}
     </div>
   );
 }
 
-function AdvisorCard({ summary }: { summary: AdvisorBreakdown }) {
-  const hide = useHideTotals();
+function BreakdownSkeleton() {
   return (
-    <div className="card-mobile p-4 flex items-center justify-between w-full">
-      <div>
-        <div className="font-semibold text-[15px]">{summary.advisor}</div>
-        <div className="text-[13px] text-muted-foreground">{summary.roCount} RO{summary.roCount !== 1 ? 's' : ''}</div>
-        <div className="flex gap-2 mt-1 text-[11px] font-medium text-muted-foreground">
-          {!hide && summary.warrantyHours > 0 && <span>W: {summary.warrantyHours.toFixed(1)}</span>}
-          {!hide && summary.customerPayHours > 0 && <span>CP: {summary.customerPayHours.toFixed(1)}</span>}
-          {!hide && summary.internalHours > 0 && <span>Int: {summary.internalHours.toFixed(1)}</span>}
+    <div className="card-mobile p-4 space-y-3">
+      <Skeleton className="h-4 w-28" />
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex justify-between items-center">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-16" />
         </div>
-      </div>
-      <span className="hours-pill text-base tabular-nums">{maskHours(summary.totalHours, hide)}h</span>
+      ))}
     </div>
   );
 }
 
-function WeekBlock({ days, label, todayStr }: { days: DayBreakdown[]; label: string; todayStr: string }) {
-  const hide = useHideTotals();
-  const weekTotal = days.reduce((s, d) => s + d.totalHours, 0);
-  const visibleDays = days.filter(d => d.totalHours > 0 || d.date === todayStr);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-1">
-        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{label}</h4>
-        <span className="text-sm font-bold">{maskHours(weekTotal, hide)}h</span>
-      </div>
-      {visibleDays.length === 0 ? (
-        <p className="text-sm text-muted-foreground px-1">No entries</p>
-      ) : (
-        visibleDays.map(summary => (
-          <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
-        ))
-      )}
-    </div>
-  );
-}
-
+// ── Multi-period comparison (Pro only) ────────────────────
 function PeriodDatePicker({ label, start, end, onStartChange, onEndChange, color }: {
   label: string; start?: Date; end?: Date;
   onStartChange: (d?: Date) => void; onEndChange: (d?: Date) => void;
@@ -162,18 +140,11 @@ function MultiPeriodComparison({
   onStart1Change: (d?: Date) => void; onEnd1Change: (d?: Date) => void;
   onStart2Change: (d?: Date) => void; onEnd2Change: (d?: Date) => void;
 }) {
-  const range1 = start1 && end1
-    ? { start: localDateStr(start1), end: localDateStr(end1) }
-    : null;
-  const range2 = start2 && end2
-    ? { start: localDateStr(start2), end: localDateStr(end2) }
-    : null;
-
+  const range1 = start1 && end1 ? { start: localDateStr(start1), end: localDateStr(end1) } : null;
+  const range2 = start2 && end2 ? { start: localDateStr(start2), end: localDateStr(end2) } : null;
   const report1 = usePayPeriodReport(range1?.start || '', range1?.end || '');
   const report2 = usePayPeriodReport(range2?.start || '', range2?.end || '');
-
   const hasData = range1 && range2;
-
   const delta = hasData ? report2.totalHours - report1.totalHours : 0;
   const hide = useHideTotals();
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
@@ -192,15 +163,7 @@ function MultiPeriodComparison({
       const aDate = dayA ? new Date(dayA.date + 'T12:00:00') : null;
       const bDate = dayB ? new Date(dayB.date + 'T12:00:00') : null;
       const dayLabel = aDate ? dayNames[aDate.getDay()] : bDate ? dayNames[bDate.getDay()] : `Day ${i + 1}`;
-      rows.push({
-        dayLabel,
-        dayIndex: i,
-        aDate: dayA?.date,
-        bDate: dayB?.date,
-        periodA: aHours,
-        periodB: bHours,
-        delta: bHours - aHours,
-      });
+      rows.push({ dayLabel, dayIndex: i, periodA: aHours, periodB: bHours, delta: bHours - aHours });
     }
     return rows;
   }, [hasData, report1.byDay, report2.byDay]);
@@ -210,33 +173,19 @@ function MultiPeriodComparison({
 
   return (
     <div className="space-y-4">
-      {/* Date Pickers */}
       <PeriodDatePicker label="Period A" start={start1} end={end1} onStartChange={onStart1Change} onEndChange={onEnd1Change} color="bg-primary" />
       <PeriodDatePicker label="Period B" start={start2} end={end2} onStartChange={onStart2Change} onEndChange={onEnd2Change} color="bg-violet-500" />
-
       {!hasData && (
-        <div className="card-mobile p-6 text-center text-muted-foreground text-sm">
-          Select both date ranges above to compare periods
-        </div>
+        <div className="card-mobile p-6 text-center text-muted-foreground text-sm">Select both date ranges above to compare periods</div>
       )}
-
       {hasData && (
         <>
-          {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-2">
             <div className="card-mobile p-3 text-center border-t-2 border-primary">
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period A</div>
               <div className="text-2xl font-bold tabular-nums">{maskHours(report1.totalHours, hide)}<span className="text-lg opacity-60">h</span></div>
               <div className="text-[11px] text-muted-foreground">{report1.totalROs} ROs · {report1.totalLines} lines</div>
-              {!hide && <div className="flex flex-wrap gap-1 mt-2 justify-center">
-                {report1.byLaborType.map(lt => (
-                  <span key={lt.laborType} className="px-1.5 py-0.5 bg-primary/10 rounded-full text-[10px] font-medium text-primary">
-                    {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
-                  </span>
-                ))}
-              </div>}
             </div>
-
             <div className="flex flex-col items-center justify-center">
               <div className={cn('rounded-xl px-3 py-2 flex flex-col items-center', deltaBg)}>
                 <DeltaIcon className={cn('h-5 w-5 mb-0.5', deltaColor)} />
@@ -245,22 +194,12 @@ function MultiPeriodComparison({
                 </span>
               </div>
             </div>
-
             <div className="card-mobile p-3 text-center border-t-2 border-violet-500">
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period B</div>
               <div className="text-2xl font-bold tabular-nums">{maskHours(report2.totalHours, hide)}<span className="text-lg opacity-60">h</span></div>
               <div className="text-[11px] text-muted-foreground">{report2.totalROs} ROs · {report2.totalLines} lines</div>
-              {!hide && <div className="flex flex-wrap gap-1 mt-2 justify-center">
-                {report2.byLaborType.map(lt => (
-                  <span key={lt.laborType} className="px-1.5 py-0.5 bg-violet-500/10 rounded-full text-[10px] font-medium text-violet-600 dark:text-violet-400">
-                    {lt.label.slice(0, 1)}: {lt.totalHours.toFixed(1)}
-                  </span>
-                ))}
-              </div>}
             </div>
           </div>
-
-          {/* Bar Chart */}
           <div className="card-mobile p-4">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Daily Hours Comparison</h4>
             <div className="h-52">
@@ -268,10 +207,8 @@ function MultiPeriodComparison({
                 <BarChart data={dailyData} barGap={2} barCategoryGap="20%">
                   <XAxis dataKey="dayLabel" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))' }}
-                    formatter={(value: number, name: string) => [hide ? '--.-h' : `${value.toFixed(1)}h`, name]}
-                  />
+                  <Tooltip contentStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', border: '1px solid hsl(var(--border))' }}
+                    formatter={(value: number, name: string) => [hide ? '--.-h' : `${value.toFixed(1)}h`, name]} />
                   <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
                   <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="periodB" name="Period B" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
@@ -279,8 +216,6 @@ function MultiPeriodComparison({
               </ResponsiveContainer>
             </div>
           </div>
-
-          {/* Daily Breakdown Table */}
           <div className="card-mobile overflow-hidden">
             <Table>
               <TableHeader>
@@ -319,67 +254,44 @@ function MultiPeriodComparison({
               </TableFooter>
             </Table>
           </div>
-
-          {/* Labor Type Breakdown */}
-          <div className="card-mobile p-4 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">By Labor Type</span>
-            {['Warranty', 'Customer Pay', 'Internal'].map((label, i) => {
-              const key = ['warranty', 'customer-pay', 'internal'][i];
-              const a = report1.byLaborType.find(lt => lt.laborType === key)?.totalHours || 0;
-              const b = report2.byLaborType.find(lt => lt.laborType === key)?.totalHours || 0;
-              const d = a - b;
-              if (a === 0 && b === 0) return null;
-              return (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{label}</span>
-                  <div className="flex items-center gap-3 tabular-nums">
-                    <span>{hide ? '--.-' : a.toFixed(1)}h</span>
-                    {!hide && <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded',
-                      d > 0 ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' :
-                      d < 0 ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-muted-foreground')}>
-                      {d > 0 ? '+' : ''}{d.toFixed(1)}
-                    </span>}
-                    <span>{hide ? '--.-' : b.toFixed(1)}h</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </>
       )}
     </div>
   );
 }
 
+// ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
   const isMobile = useIsMobile();
   const { userSettings } = useFlagContext();
   const { isPro } = useSubscription();
   const hideTotals = userSettings.hideTotals ?? false;
+  const weekStartDay = userSettings.weekStartDay ?? 0;
 
-  // Determine initial range selection from settings
   const payPeriodType = userSettings.payPeriodType || 'week';
   const payPeriodEndDates = userSettings.payPeriodEndDates;
   const hasCustomPayPeriod = payPeriodType === 'custom' && payPeriodEndDates && payPeriodEndDates.length > 0;
 
   const [rangeMode, setRangeMode] = useState<string>(() => {
     if (payPeriodType === 'two_weeks') return 'two_weeks';
-    if (payPeriodType === 'custom' && hasCustomPayPeriod) return 'pay_period';
+    if (hasCustomPayPeriod) return 'pay_period';
     return 'week';
   });
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
+  const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Multi-period comparison state (Pro only)
+  // Compare state
   const [compareStart1, setCompareStart1] = useState<Date | undefined>();
   const [compareEnd1, setCompareEnd1] = useState<Date | undefined>();
   const [compareStart2, setCompareStart2] = useState<Date | undefined>();
   const [compareEnd2, setCompareEnd2] = useState<Date | undefined>();
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = localDateStr(today);
 
   const dateRange = useMemo(() => {
     if (rangeMode === 'custom' && customStart && customEnd) {
@@ -388,35 +300,18 @@ export function SummaryTab() {
     if (rangeMode === 'pay_period' && hasCustomPayPeriod) {
       return getCustomPayPeriodRange(payPeriodEndDates!, today);
     }
-    if (rangeMode === 'two_weeks') return getTwoWeekRange(today);
-    return getWeekRange(today);
-  }, [rangeMode, todayStr, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates]);
+    if (rangeMode === 'day') return getDayRange();
+    if (rangeMode === 'month') return getMonthRange();
+    if (rangeMode === 'two_weeks') return getTwoWeekRange(weekStartDay);
+    return getWeekRange(weekStartDay);
+  }, [rangeMode, todayStr, customStart, customEnd, hasCustomPayPeriod, payPeriodEndDates, weekStartDay]);
 
   const report = usePayPeriodReport(dateRange.start, dateRange.end);
-
-  // Split days into two week blocks for biweekly
-  const weekBlocks = useMemo(() => {
-    if (rangeMode !== 'two_weeks') return null;
-    const midpoint = new Date(dateRange.start);
-    midpoint.setDate(midpoint.getDate() + 7);
-    const midStr = midpoint.toISOString().split('T')[0];
-    const week1 = report.byDay.filter(d => d.date < midStr);
-    const week2 = report.byDay.filter(d => d.date >= midStr);
-
-    const w1Start = new Date(dateRange.start + 'T12:00:00');
-    const w1End = new Date(midpoint);
-    w1End.setDate(w1End.getDate() - 1);
-    const w2End = new Date(dateRange.end + 'T12:00:00');
-
-    return {
-      week1: { days: week1, label: `Week 1 (${format(w1Start, 'MMM d')} – ${format(w1End, 'MMM d')})` },
-      week2: { days: week2, label: `Week 2 (${format(midpoint, 'MMM d')} – ${format(w2End, 'MMM d')})` },
-    };
-  }, [rangeMode, report.byDay, dateRange]);
 
   const viewModeLabel = useMemo(() => {
     const s = new Date(dateRange.start + 'T12:00:00');
     const e = new Date(dateRange.end + 'T12:00:00');
+    if (dateRange.start === dateRange.end) return format(s, 'MMM d, yyyy');
     return `${format(s, 'MMM d')} – ${format(e, 'MMM d')}`;
   }, [dateRange]);
 
@@ -432,14 +327,16 @@ export function SummaryTab() {
     toast.success('CSV downloaded');
   };
 
-  const rangeTotalLabel = rangeMode === 'two_weeks' ? '2-Week Total'
-    : rangeMode === 'pay_period' ? 'Pay Period Total'
-    : rangeMode === 'custom' ? 'Total'
-    : 'Week Total';
+  // Advisors: show top 5 by default, expand to all
+  const visibleAdvisors = showAllAdvisors ? report.byAdvisor : report.byAdvisor.slice(0, 5);
+  const hasMoreAdvisors = report.byAdvisor.length > 5;
+
+  // Max hours for day mini-bars
+  const maxDayHours = Math.max(...report.byDay.map(d => d.totalHours), 1);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Sticky Header with Tabs */}
+      {/* Sticky Header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-11 gap-0 p-0">
@@ -451,27 +348,27 @@ export function SummaryTab() {
         </Tabs>
       </div>
 
-      {/* Tab Content */}
+      {/* Content */}
       <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
         {activeTab === 'summary' && (
           <div className="space-y-4">
-            {/* Date Range Header */}
+            {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
-                <Select value={rangeMode} onValueChange={setRangeMode}>
+                <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
                   <SelectTrigger className="w-[140px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="week">1 Week</SelectItem>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
                     <SelectItem value="two_weeks">2 Weeks</SelectItem>
+                    {hasCustomPayPeriod && <SelectItem value="pay_period">Pay Period</SelectItem>}
+                    <SelectItem value="month">Month</SelectItem>
                     <SelectItem value="custom">Custom</SelectItem>
-                    {hasCustomPayPeriod && (
-                      <SelectItem value="pay_period">Pay Period</SelectItem>
-                    )}
                   </SelectContent>
                 </Select>
-                <span className="font-semibold text-sm text-muted-foreground">{viewModeLabel}</span>
+                <span className="font-semibold text-sm text-muted-foreground truncate">{viewModeLabel}</span>
               </div>
             </div>
 
@@ -504,129 +401,212 @@ export function SummaryTab() {
               </div>
             )}
 
-            {/* Main Summary Content */}
-            <div className="px-4 space-y-4">
-              {/* Total Card */}
-              <div className="bg-primary text-primary-foreground rounded-2xl p-5" style={{ boxShadow: '0 4px 20px -4px hsl(var(--primary) / 0.5)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-wide">
-                    {rangeTotalLabel}
-                  </span>
-                  <span className="text-xs text-primary-foreground/65 font-medium">
-                    {report.totalROs} ROs · {report.totalLines} lines
-                    {report.tbdLineCount > 0 && ` · ${report.tbdLineCount} TBD`}
-                  </span>
-                </div>
-                <div className="text-5xl font-bold tabular-nums mb-3 tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-3xl ml-1 opacity-80">h</span></div>
-                {report.tbdLineCount > 0 && (
-                  <div className="text-xs text-primary-foreground/65 mb-2 font-medium">
-                    ⏳ {report.tbdLineCount} TBD lines ({hideTotals ? '--.-' : report.tbdHours.toFixed(1)}h) not counted
+            {/* ── B) KPI Row ─────────────────────────── */}
+            <div className="px-4">
+              <HideTotalsContext.Provider value={hideTotals}>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Total Hours */}
+                  <div className="card-mobile p-4 border-l-4 border-l-primary">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
+                    <div className="text-3xl font-bold tabular-nums tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
+                    <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
                   </div>
-                )}
-                {!hideTotals && (
-                <div className="flex flex-wrap gap-2">
-                  {report.byLaborType.map(lt => (
-                    <span key={lt.laborType} className="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold">
-                      {lt.label}: {lt.totalHours.toFixed(1)}h
-                    </span>
-                  ))}
+
+                  {/* CP / W / I Breakdown */}
+                  <div className="card-mobile p-4">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">By Type</div>
+                    <div className="space-y-1.5">
+                      {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
+                        <div key={lt.laborType} className="flex items-center justify-between text-sm">
+                          <StatusPill type={lt.laborType} hours={lt.totalHours} size="sm" />
+                        </div>
+                      )) : (
+                        <span className="text-xs text-muted-foreground">No data</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Flagged */}
+                  <div className="card-mobile p-4">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Flagged</div>
+                    <div className="flex items-baseline gap-1.5">
+                      <Flag className={cn('h-4 w-4 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')} />
+                      <span className="text-3xl font-bold tabular-nums">{report.flaggedCount}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">items in range</div>
+                  </div>
+
+                  {/* TBD */}
+                  <div className="card-mobile p-4">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">TBD</div>
+                    <div className="flex items-baseline gap-1.5">
+                      <Clock className={cn('h-4 w-4 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')} />
+                      <span className="text-3xl font-bold tabular-nums">{report.tbdLineCount}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {report.tbdLineCount > 0 ? `${hideTotals ? '--.-' : report.tbdHours.toFixed(1)}h excluded` : 'none excluded'}
+                    </div>
+                  </div>
                 </div>
-                )}
+              </HideTotalsContext.Provider>
+            </div>
+
+            {/* ── C) Breakdown Row (2 cards) ─────────── */}
+            <div className="px-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Hours by Day */}
+              <div className="card-mobile overflow-hidden">
+                <div className="px-4 pt-3 pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Day</h3>
+                </div>
+                <Table>
+                  <TableBody>
+                    {report.byDay.map((day) => {
+                      const date = new Date(day.date + 'T12:00:00');
+                      const isToday = day.date === todayStr;
+                      const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
+                      return (
+                        <TableRow key={day.date} className={cn(isToday && 'bg-primary/5')}>
+                          <TableCell className="py-2 pl-4 w-16">
+                            <div className="text-xs font-semibold text-muted-foreground">{dayNames[date.getDay()]}</div>
+                            <div className="text-sm font-bold tabular-nums">{date.getDate()}</div>
+                          </TableCell>
+                          <TableCell className="py-2 pr-2">
+                            <div className="relative h-5 flex items-center">
+                              <div
+                                className="absolute left-0 top-0 h-full rounded-r bg-primary/15 transition-all"
+                                style={{ width: `${barWidth}%` }}
+                              />
+                              <span className="relative z-10 text-sm font-semibold tabular-nums ml-1.5">
+                                {maskHours(day.totalHours, hideTotals)}h
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 pr-4 text-right">
+                            <span className="text-xs text-muted-foreground">{day.roCount} RO{day.roCount !== 1 ? 's' : ''}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell className="font-bold text-sm py-2 pl-4">Total</TableCell>
+                      <TableCell className="font-bold text-sm tabular-nums py-2">{maskHours(report.totalHours, hideTotals)}h</TableCell>
+                      <TableCell className="text-right text-xs text-muted-foreground py-2 pr-4">{report.totalROs} ROs</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
               </div>
 
-              {/* Warnings */}
-              {(report.missingHoursCount > 0 || report.flaggedCount > 0) && (
-                <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-1">
-                  {report.missingHoursCount > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                      <span>{report.missingHoursCount} lines with missing hours</span>
-                    </div>
-                  )}
-                  {report.flaggedCount > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                      <span>{report.flaggedCount} flagged items</span>
-                    </div>
-                  )}
+              {/* Hours by Advisor */}
+              <div className="card-mobile overflow-hidden">
+                <div className="px-4 pt-3 pb-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Advisor</h3>
                 </div>
-              )}
-
-              {/* Day summaries */}
-              {weekBlocks ? (
-                <HideTotalsContext.Provider value={hideTotals}>
-                  <WeekBlock days={weekBlocks.week1.days} label={weekBlocks.week1.label} todayStr={todayStr} />
-                  <WeekBlock days={weekBlocks.week2.days} label={weekBlocks.week2.label} todayStr={todayStr} />
-                  <div className="bg-muted/50 rounded-xl p-3 flex justify-between items-center">
-                    <span className="font-semibold text-sm text-muted-foreground uppercase">Grand Total (2 Weeks)</span>
-                    <span className="text-lg font-bold">{maskHours(report.totalHours, hideTotals)}h</span>
-                  </div>
-                </HideTotalsContext.Provider>
-              ) : (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">Daily Breakdown</h3>
-                  <HideTotalsContext.Provider value={hideTotals}>
-                  {report.byDay.filter(s => s.totalHours > 0 || s.date === todayStr).map((summary) => (
-                    <DaySummaryCard key={summary.date} summary={summary} isToday={summary.date === todayStr} />
-                  ))}
-                  </HideTotalsContext.Provider>
-                </div>
-              )}
-
-              {/* Advisor Summary */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Advisor</h3>
                 {report.byAdvisor.length === 0 ? (
-                  <p className="text-sm text-muted-foreground px-1">No data</p>
+                  <div className="px-4 pb-4 text-sm text-muted-foreground">No data</div>
                 ) : (
-                  <HideTotalsContext.Provider value={hideTotals}>
-                  {report.byAdvisor.map((summary) => (
-                    <AdvisorCard key={summary.advisor} summary={summary} />
-                  ))}
-                  </HideTotalsContext.Provider>
+                  <>
+                    <Table>
+                      <TableBody>
+                        {visibleAdvisors.map((adv) => (
+                          <TableRow key={adv.advisor}>
+                            <TableCell className="py-2 pl-4">
+                              <div className="text-sm font-medium">{adv.advisor}</div>
+                              <div className="flex gap-1.5 mt-0.5">
+                                {!hideTotals && adv.warrantyHours > 0 && <span className="text-[10px] font-medium text-muted-foreground">W:{adv.warrantyHours.toFixed(1)}</span>}
+                                {!hideTotals && adv.customerPayHours > 0 && <span className="text-[10px] font-medium text-muted-foreground">CP:{adv.customerPayHours.toFixed(1)}</span>}
+                                {!hideTotals && adv.internalHours > 0 && <span className="text-[10px] font-medium text-muted-foreground">I:{adv.internalHours.toFixed(1)}</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 text-right">
+                              <span className="text-xs text-muted-foreground">{adv.roCount} ROs</span>
+                            </TableCell>
+                            <TableCell className="py-2 pr-4 text-right">
+                              <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {hasMoreAdvisors && (
+                      <button
+                        onClick={() => setShowAllAdvisors(!showAllAdvisors)}
+                        className="w-full py-2 text-xs font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border"
+                      >
+                        {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
+            </div>
 
-              {/* By Labor Reference */}
-              {report.byLaborRef.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">By Labor Reference</h3>
-                  {report.byLaborRef.map(r => (
-                    <div key={r.referenceId} className="card-mobile p-3 flex justify-between items-center">
-                      <span className="text-sm font-medium">{r.referenceName}</span>
-                      <span className="text-sm font-bold">{maskHours(r.totalHours, hideTotals)}h <span className="text-muted-foreground font-normal">({r.lineCount})</span></span>
+            {/* ── D) More Breakdowns (collapsed) ─────── */}
+            <div className="px-4">
+              <Accordion type="single" collapsible>
+                <AccordionItem value="more" className="border rounded-lg bg-card">
+                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold text-muted-foreground hover:no-underline">
+                    More Breakdowns
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 space-y-4">
+                    {/* Labor Type Breakdown */}
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Labor Type</h4>
+                      {report.byLaborType.map(lt => (
+                        <div key={lt.laborType} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                          <span className="text-sm text-foreground">{lt.label}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground">{lt.lineCount} lines</span>
+                            <span className="text-sm font-bold tabular-nums">{maskHours(lt.totalHours, hideTotals)}h</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
 
-              {/* Export + Proof Pack Buttons */}
-              <div className="space-y-3 pt-4">
-                <Button
-                  onClick={() => setShowProofPack(true)}
-                  className="w-full h-12 cursor-pointer"
-                >
-                  <FileText className="h-5 w-5" />
-                  Proof Pack
+                    {/* Labor Reference Breakdown */}
+                    {report.byLaborRef.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">By Reference / Preset</h4>
+                        {report.byLaborRef.map(r => (
+                          <div key={r.referenceId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                            <span className="text-sm text-foreground">{r.referenceName}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground">{r.lineCount} lines</span>
+                              <span className="text-sm font-bold tabular-nums">{maskHours(r.totalHours, hideTotals)}h</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Flagged summary */}
+                    {report.flaggedCount > 0 && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20">
+                        <Flag className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                        <span className="text-sm">{report.flaggedCount} flagged item{report.flaggedCount !== 1 ? 's' : ''} in this range</span>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+
+            {/* ── Export + Proof Pack ─────────────────── */}
+            <div className="px-4 space-y-3 pt-2 pb-4">
+              <Button onClick={() => setShowProofPack(true)} className="w-full h-12 cursor-pointer">
+                <FileText className="h-5 w-5" />
+                Proof Pack
+              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="secondary" onClick={handleCopySummary} className="h-11 cursor-pointer">
+                  <Copy className="h-4 w-4" />
+                  Copy Summary
                 </Button>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={handleCopySummary}
-                    className="h-11 cursor-pointer"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy Summary
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleExportCSV}
-                    className="h-11 cursor-pointer"
-                  >
-                    <Download className="h-4 w-4" />
-                    Export CSV
-                  </Button>
-                </div>
+                <Button variant="secondary" onClick={handleExportCSV} className="h-11 cursor-pointer">
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
               </div>
             </div>
           </div>
@@ -635,18 +615,17 @@ export function SummaryTab() {
         {activeTab === 'compare' && isPro && (
           <div className="p-4">
             <HideTotalsContext.Provider value={hideTotals}>
-            <MultiPeriodComparison
-              start1={compareStart1} end1={compareEnd1}
-              start2={compareStart2} end2={compareEnd2}
-              onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
-              onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
-            />
+              <MultiPeriodComparison
+                start1={compareStart1} end1={compareEnd1}
+                start2={compareStart2} end2={compareEnd2}
+                onStart1Change={setCompareStart1} onEnd1Change={setCompareEnd1}
+                onStart2Change={setCompareStart2} onEnd2Change={setCompareEnd2}
+              />
             </HideTotalsContext.Provider>
           </div>
         )}
       </div>
 
-      {/* Proof Pack */}
       <ProofPack open={showProofPack} onClose={() => setShowProofPack(false)} report={report} />
     </div>
   );
