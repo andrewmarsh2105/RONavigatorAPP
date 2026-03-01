@@ -315,7 +315,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         </div>
         {/* Search Scope Chips */}
         {showScopes && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">Search by:</span>
             {([
               { key: 'ro', label: 'RO #' },
               { key: 'vehicle', label: 'Vehicle' },
