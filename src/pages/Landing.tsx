@@ -48,11 +48,10 @@ const freeFeatures = [
 ];
 
 const proFeatures = [
-  'Unlimited ROs — no cap',
-  'Scan ROs with your phone (OCR)',
+  'Unlimited ROs',
+  'Scan ROs with your phone',
   'Multi-period reports & exports',
-  'Full spreadsheet view',
-  'Priority support',
+  'Payroll-ready closeouts',
 ];
 
 const faqs = [
@@ -337,6 +336,7 @@ export default function Landing() {
                 <h3 className="font-semibold text-lg">Pro</h3>
                 <p className="text-3xl font-extrabold tracking-tight mt-1">$8.99<span className="text-base font-normal text-muted-foreground">/mo</span></p>
                 <p className="text-xs text-muted-foreground mt-1">or $79.99/yr (save 26%)</p>
+                <p className="text-xs text-muted-foreground/70 mt-1.5">Best for techs who want photo scan + payroll-ready closeouts.</p>
               </div>
               <ul className="space-y-2.5">
                 {proFeatures.map((f) => (
