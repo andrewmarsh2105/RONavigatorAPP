@@ -64,15 +64,46 @@ const LABOR_TYPE_LABELS: Record<LaborType, string> = {
   internal: 'Internal',
 };
 
+/** Convert a date string to a local-day numeric key (no timezone shift). */
+function toDayKey(s: string): number {
+  if (!s) return NaN;
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return NaN;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** Resolve effective date string for an RO (paidDate overrides ro.date). */
+function effectiveDateOf(ro: RepairOrder): string {
+  const pd = ro.paidDate?.trim();
+  return (pd && pd !== '—') ? pd : ro.date;
+}
+
 export function usePayPeriodReport(startDate: string, endDate: string): PayPeriodReport {
   const { ros, settings } = useRO();
   const { flags } = useFlagContext();
 
   return useMemo(() => {
+    const startKey = toDayKey(startDate);
+    const endKey = toDayKey(endDate);
+
     const rosInRange = ros.filter(ro => {
-      const effectiveDate = ro.paidDate || ro.date;
-      return effectiveDate >= startDate && effectiveDate <= endDate;
+      const raw = effectiveDateOf(ro);
+      const key = toDayKey(raw);
+      return !isNaN(key) && key >= startKey && key <= endKey;
     });
+
+    // Dev-only debug when report seems empty
+    if (import.meta.env.DEV && rosInRange.length === 0 && ros.length > 0) {
+      console.debug('[PayPeriodReport] 0 ROs in range', startDate, '→', endDate,
+        'sample:', ros.slice(0, 3).map(r => ({
+          roNumber: r.roNumber, date: r.date, paidDate: r.paidDate,
+          effective: effectiveDateOf(r), key: toDayKey(effectiveDateOf(r)),
+        })),
+        'startKey:', startKey, 'endKey:', endKey,
+      );
+    }
 
     // Collect all lines
     const linesInRange: { ro: RepairOrder; line: ROLine }[] = [];
@@ -102,13 +133,13 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
       dayMap.set(ds, { date: ds, totalHours: 0, roCount: 0, warrantyHours: 0, customerPayHours: 0, internalHours: 0 });
     }
     rosInRange.forEach(ro => {
-      const effectiveDate = ro.paidDate || ro.date;
+      const effectiveDate = effectiveDateOf(ro);
       const day = dayMap.get(effectiveDate);
       if (!day) return;
       day.roCount += 1;
     });
     paidLines.forEach(({ ro, line }) => {
-      const effectiveDate = ro.paidDate || ro.date;
+      const effectiveDate = effectiveDateOf(ro);
       const day = dayMap.get(effectiveDate);
       if (!day) return;
       day.totalHours += line.hoursPaid;
@@ -119,7 +150,7 @@ export function usePayPeriodReport(startDate: string, endDate: string): PayPerio
     });
     // Include simple-mode ROs in day breakdown
     simpleROs.forEach(ro => {
-      const effectiveDate = ro.paidDate || ro.date;
+      const effectiveDate = effectiveDateOf(ro);
       const day = dayMap.get(effectiveDate);
       if (!day) return;
       const h = ro.paidHours || 0;
