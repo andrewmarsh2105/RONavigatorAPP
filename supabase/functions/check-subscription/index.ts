@@ -131,13 +131,10 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
 
-    const isAuthError = errorMessage.includes("Authentication error") ||
-                        errorMessage.includes("No authorization header") ||
-                        errorMessage.includes("not authenticated");
-
+    // Always return 200 with subscribed:false for auth errors —
+    // this is a status-check endpoint, not a protected resource.
     return new Response(JSON.stringify({
       subscribed: false,
-      error: errorMessage,
-    }), { headers, status: isAuthError ? 401 : 500 });
+    }), { headers, status: 200 });
   }
 });
