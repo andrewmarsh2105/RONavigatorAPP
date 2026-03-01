@@ -8,16 +8,19 @@ export function generateLineCSV(report: PayPeriodReport): string {
     'Labor Type', 'Hours Paid', 'Matched Reference',
   ];
 
-  const rows = report.linesInRange
-    .filter(({ line }) => line.description.trim() !== '')
-    .map(({ ro, line }) => {
+  // Group lines by RO so we only print RO-level info on the first line
+  const filtered = report.linesInRange.filter(({ line }) => line.description.trim() !== '');
+  let lastRoId = '';
+  const rows = filtered.map(({ ro, line }) => {
+      const isFirstLine = ro.id !== lastRoId;
+      lastRoId = ro.id;
       const vehicleLabel = formatVehicleChip(line.vehicleOverride ? line.lineVehicle : ro.vehicle) || '';
       return [
-        ro.roNumber,
-        ro.date,
-        ro.advisor || '—',
-        `"${(ro.customerName || '').replace(/"/g, '""')}"`,
-        `"${vehicleLabel.replace(/"/g, '""')}"`,
+        isFirstLine ? ro.roNumber : '',
+        isFirstLine ? ro.date : '',
+        isFirstLine ? (ro.advisor || '—') : '',
+        isFirstLine ? `"${(ro.customerName || '').replace(/"/g, '""')}"` : '',
+        isFirstLine ? `"${vehicleLabel.replace(/"/g, '""')}"` : '',
         line.lineNo.toString(),
         `"${(line.description || '').replace(/"/g, '""')}"`,
         line.laborType || 'customer-pay',

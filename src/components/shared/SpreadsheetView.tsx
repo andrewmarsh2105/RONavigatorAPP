@@ -140,7 +140,7 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
   const hasMore = visibleCount < rows.length;
 
   const handleSaveCSV = useCallback(() => {
-    const headers = ['RO #', 'Date', 'Advisor', 'Vehicle', 'Line', 'Description', 'Type', 'Hours', 'RO Total'];
+    const headers = ['RO #', 'Date', 'Advisor', 'Customer', 'Vehicle', 'Line', 'Description', 'Type', 'Hours', 'RO Total'];
     const csvRows = rows
       .filter((r): r is FlatRow => r.type === 'data')
       .map((row) => {
@@ -152,10 +152,11 @@ export function SpreadsheetView({ ros, onSelectRO }: SpreadsheetViewProps) {
         const typeLabel = laborType === 'warranty' ? 'W' : laborType === 'customer-pay' ? 'CP' : 'INT';
         const vehicle = formatVehicleChip(row.ro.vehicle) || '';
         return [
-          row.ro.roNumber,
-          row.ro.paidDate || row.ro.date,
-          row.ro.advisor || '',
-          `"${vehicle.replace(/"/g, '""')}"`,
+          row.isFirstOfGroup ? row.ro.roNumber : '',
+          row.isFirstOfGroup ? (row.ro.paidDate || row.ro.date) : '',
+          row.isFirstOfGroup ? (row.ro.advisor || '') : '',
+          row.isFirstOfGroup ? `"${(row.ro.customerName || '').replace(/"/g, '""')}"` : '',
+          row.isFirstOfGroup ? `"${vehicle.replace(/"/g, '""')}"` : '',
           lineNo,
           `"${(description || '').replace(/"/g, '""')}"`,
           typeLabel,
