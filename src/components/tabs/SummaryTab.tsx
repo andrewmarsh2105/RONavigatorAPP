@@ -638,7 +638,8 @@ export function SummaryTab() {
               </Accordion>
             </div>
 
-            {/* ── Close Out Button (all ranges) ──── */}
+            {/* ── Close Out Button (Pro only) ──── */}
+            {isPro && (
             <div className="px-4">
               {periodAlreadyClosed ? (
                 <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
@@ -665,14 +666,17 @@ export function SummaryTab() {
                 </div>
               )}
             </div>
+            )}
 
             {/* ── Closed Periods List ─────────────────── */}
+            {isPro && (
             <ClosedPeriodsList
               closeouts={closeouts}
               hideTotals={hideTotals}
               onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
               onViewDetail={(c) => setDetailCloseout(c)}
             />
+            )}
 
             {/* ── Export + Proof Pack ─────────────────── */}
             <div className="px-4 space-y-3 pt-2 pb-4">

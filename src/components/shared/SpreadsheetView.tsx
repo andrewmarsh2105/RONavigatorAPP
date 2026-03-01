@@ -579,32 +579,34 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
           <ColumnChooser activeColumns={activeColIds} onToggle={handleToggleCol} />
 
-          {/* Export dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={handleExportPayroll}>
-                <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportFull}>
-                <Download className="h-3.5 w-3.5 mr-2" /> Full CSV (Audit)
-              </DropdownMenuItem>
-              {isPro && (
+          {/* Export dropdown - Pro only */}
+          {isPro && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={handleExportPayroll}>
+                  <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportFull}>
+                  <Download className="h-3.5 w-3.5 mr-2" /> Full CSV (Audit)
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportXLSX}>
                   <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handlePrint}>
-            <Printer className="h-3.5 w-3.5" />
-          </Button>
+          {isPro && (
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={handlePrint}>
+              <Printer className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
