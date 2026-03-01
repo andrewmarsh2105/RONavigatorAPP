@@ -1,5 +1,5 @@
-import { useState, useMemo, createContext, useContext } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown } from 'lucide-react';
+import { useState, useMemo, createContext, useContext, useCallback } from 'react';
+import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
@@ -20,6 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useCloseouts } from '@/hooks/useCloseouts';
+import { ClosedPeriodsList } from '@/components/reports/ClosedPeriodsList';
+import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
@@ -284,6 +288,12 @@ export function SummaryTab() {
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Closeout state
+  const { closeouts, closeOutPeriod, isCurrentPeriodClosed, getCloseoutForPeriod } = useCloseouts();
+  const [showCloseoutConfirm, setShowCloseoutConfirm] = useState(false);
+  const [closeoutLoading, setCloseoutLoading] = useState(false);
+  const [snapshotProofPack, setSnapshotProofPack] = useState<CloseoutSnapshot | null>(null);
+
   // Compare state
   const [compareStart1, setCompareStart1] = useState<Date | undefined>();
   const [compareEnd1, setCompareEnd1] = useState<Date | undefined>();
@@ -325,6 +335,18 @@ export function SummaryTab() {
     const csv = generateLineCSV(report);
     downloadCSV(csv, `ro-lines-${dateRange.start}-to-${dateRange.end}.csv`);
     toast.success('CSV downloaded');
+  };
+
+  const isPayPeriodMode = rangeMode === 'pay_period';
+  const periodAlreadyClosed = isPayPeriodMode && isCurrentPeriodClosed(dateRange.start, dateRange.end);
+
+  const handleCloseOut = async () => {
+    setCloseoutLoading(true);
+    const ok = await closeOutPeriod(report);
+    setCloseoutLoading(false);
+    setShowCloseoutConfirm(false);
+    if (ok) toast.success('Pay period closed');
+    else toast.error('Failed to close period');
   };
 
   // Advisors: show top 5 by default, expand to all
@@ -592,9 +614,37 @@ export function SummaryTab() {
               </Accordion>
             </div>
 
+            {/* ── Close Out Button (pay period only) ── */}
+            {isPayPeriodMode && (
+              <div className="px-4">
+                {periodAlreadyClosed ? (
+                  <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">This period is closed</span>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCloseoutConfirm(true)}
+                    className="w-full h-11 cursor-pointer"
+                  >
+                    <Lock className="h-4 w-4" />
+                    Close Out Pay Period
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* ── Closed Periods List ─────────────────── */}
+            <ClosedPeriodsList
+              closeouts={closeouts}
+              hideTotals={hideTotals}
+              onViewProofPack={(c) => { setSnapshotProofPack(c); setShowProofPack(true); }}
+            />
+
             {/* ── Export + Proof Pack ─────────────────── */}
             <div className="px-4 space-y-3 pt-2 pb-4">
-              <Button onClick={() => setShowProofPack(true)} className="w-full h-12 cursor-pointer">
+              <Button onClick={() => { setSnapshotProofPack(null); setShowProofPack(true); }} className="w-full h-12 cursor-pointer">
                 <FileText className="h-5 w-5" />
                 Proof Pack
               </Button>
@@ -626,7 +676,30 @@ export function SummaryTab() {
         )}
       </div>
 
-      <ProofPack open={showProofPack} onClose={() => setShowProofPack(false)} report={report} />
+      <ProofPack
+        open={showProofPack}
+        onClose={() => { setShowProofPack(false); setSnapshotProofPack(null); }}
+        report={snapshotProofPack ? undefined : report}
+        snapshot={snapshotProofPack || undefined}
+      />
+
+      {/* Closeout Confirm Dialog */}
+      <Dialog open={showCloseoutConfirm} onOpenChange={setShowCloseoutConfirm}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Close out pay period?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Close out {viewModeLabel}? This freezes totals as a snapshot — future edits to ROs in this range won't change it.
+          </p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowCloseoutConfirm(false)}>Cancel</Button>
+            <Button onClick={handleCloseOut} disabled={closeoutLoading}>
+              {closeoutLoading ? 'Closing…' : 'Close Out'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -13,12 +13,48 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
+import type { CloseoutSnapshot } from '@/hooks/useCloseouts';
 import { generateLineCSV, generateSummaryText, downloadCSV, shareSummary } from '@/lib/exportUtils';
+
+/** Build a minimal PayPeriodReport-compatible object from a frozen snapshot */
+function snapshotToReport(snapshot: CloseoutSnapshot): PayPeriodReport {
+  return {
+    startDate: snapshot.periodStart,
+    endDate: snapshot.periodEnd,
+    totalHours: snapshot.totals.totalHours,
+    totalROs: snapshot.totals.totalROs,
+    totalLines: snapshot.totals.totalLines,
+    tbdLineCount: snapshot.totals.tbdCount,
+    tbdHours: 0,
+    byDay: (snapshot.breakdowns.byDay || []).map(d => ({
+      date: d.date,
+      totalHours: d.totalHours,
+      roCount: d.roCount,
+      warrantyHours: 0,
+      customerPayHours: 0,
+      internalHours: 0,
+    })),
+    byAdvisor: snapshot.breakdowns.byAdvisor || [],
+    byLaborType: (snapshot.breakdowns.byLaborType || []).map(lt => ({
+      laborType: lt.laborType as any,
+      label: lt.label,
+      totalHours: lt.totalHours,
+      lineCount: lt.lineCount,
+    })),
+    byLaborRef: snapshot.breakdowns.byLaborRef || [],
+    missingHoursCount: 0,
+    needsReviewCount: 0,
+    flaggedCount: snapshot.totals.flaggedCount,
+    rosInRange: [],
+    linesInRange: [],
+  };
+}
 
 interface ProofPackProps {
   open: boolean;
   onClose: () => void;
-  report: PayPeriodReport;
+  report?: PayPeriodReport;
+  snapshot?: CloseoutSnapshot;
 }
 
 function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClose: () => void }) {
@@ -195,13 +231,15 @@ function ProofPackContent({ report, onClose }: { report: PayPeriodReport; onClos
   );
 }
 
-export function ProofPack({ open, onClose, report }: ProofPackProps) {
+export function ProofPack({ open, onClose, report, snapshot }: ProofPackProps) {
   const isMobile = useIsMobile();
+  const effectiveReport = snapshot ? snapshotToReport(snapshot) : report!;
+  const title = snapshot ? 'Proof Pack (Closed)' : 'Proof Pack';
 
   if (isMobile) {
     return (
-      <BottomSheet isOpen={open} onClose={onClose} title="Proof Pack" fullHeight>
-        <ProofPackContent report={report} onClose={onClose} />
+      <BottomSheet isOpen={open} onClose={onClose} title={title} fullHeight>
+        <ProofPackContent report={effectiveReport} onClose={onClose} />
       </BottomSheet>
     );
   }
@@ -212,11 +250,11 @@ export function ProofPack({ open, onClose, report }: ProofPackProps) {
         <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Proof Pack
+            {title}
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-auto">
-          <ProofPackContent report={report} onClose={onClose} />
+          <ProofPackContent report={effectiveReport} onClose={onClose} />
         </div>
       </DialogContent>
     </Dialog>
