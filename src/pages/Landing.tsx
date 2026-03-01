@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
-import multiperiodPreview from '@/assets/pro-multiperiod-preview.jpg';
-import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.jpg';
+import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
+import spreadsheetPreview from '@/assets/pro-spreadsheet-preview.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
