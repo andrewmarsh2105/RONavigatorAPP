@@ -109,7 +109,7 @@ serve(async (req) => {
       cancel_url: `${safeOrigin}/?checkout=cancel`,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), { headers, status: 200 });
+    return new Response(JSON.stringify({ url: session.url, version: "2025-03-02a" }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const isAuthError = errorMessage.includes("not authenticated") ||

@@ -159,15 +159,17 @@ serve(async (req) => {
       product_id: productId,
       subscription_end: subscriptionEnd,
       debug: { step: subscribed ? "subscribed" : "no_active_sub", allSubStatuses, stripeKeyPrefix: stripeKey.substring(0, 7) },
+      version: "2025-03-02a",
     }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
     logStep("ERROR", { message: errorMessage });
 
-    // Always return 200 with subscribed:false for auth errors —
-    // this is a status-check endpoint, not a protected resource.
     return new Response(JSON.stringify({
       subscribed: false,
+      debug: { step: "exception", message: errorMessage, stripeKeyPrefix: stripeKey.substring(0, 7) },
+      version: "2025-03-02a",
     }), { headers, status: 200 });
   }
 });

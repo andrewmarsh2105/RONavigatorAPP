@@ -39,7 +39,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       console.log('[SUB] check-subscription FULL response:', JSON.stringify(data));
       if (data?.debug) {
         console.warn('[SUB] DEBUG INFO:', JSON.stringify(data.debug));
@@ -120,10 +122,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setCheckoutFallbackUrl(null);
     try {
       console.log('[CHECKOUT] Invoking create-checkout, plan:', plan || 'monthly');
+      const token = session?.access_token;
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: plan || 'monthly' },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
-      console.log('[CHECKOUT] Response:', { hasUrl: !!data?.url, error: error?.message });
+      console.log('[CHECKOUT] Response:', { hasUrl: !!data?.url, version: data?.version, error: error?.message });
       if (error) throw error;
       if (data?.url) {
         console.log('[CHECKOUT] Redirecting via location.href...');
@@ -144,7 +148,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       toast.error(`Checkout failed: ${msg}`);
     }
     setCheckoutLoading(false);
-  }, []);
+  }, [session]);
 
   const openPortal = useCallback(async () => {
     try {
