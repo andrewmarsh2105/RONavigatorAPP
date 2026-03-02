@@ -258,39 +258,6 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Multi-period / Closeout */}
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
-            <motion.div
-              className="order-2 lg:order-1"
-              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-30px' }} variants={fadeUp} custom={1}
-            >
-              <img
-                src={multiperiodPreview}
-                alt="RO Navigator Pro multi-period comparison and closeout summary"
-                className="rounded-xl md:rounded-2xl shadow-raised border border-border/50 w-full"
-                loading="lazy"
-              />
-            </motion.div>
-            <motion.div
-              className="space-y-4 order-1 lg:order-2"
-              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeUp} custom={0}
-            >
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Close out with confidence
-              </h2>
-              <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                Freeze your pay period, compare it against previous ones, and generate proof packs for payroll — all from your phone.
-              </p>
-              <div className="space-y-1.5">
-                {['Snapshot hours at period end', 'Side-by-side period comparison', 'Proof pack PDF export'].map((t) => (
-                  <div key={t} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span>{t}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
         </div>
       </section>
 
