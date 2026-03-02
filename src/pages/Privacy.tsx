@@ -49,7 +49,7 @@ export default function Privacy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">5. Data Retention & Deletion</h2>
-            <p>Your data is retained as long as your account is active. You may request deletion of your account and all associated data by contacting us at <a href="mailto:ronavigator@outlook.com" className="text-primary hover:underline">ronavigator@outlook.com</a>.</p>
+            <p>Your data is retained as long as your account is active. You may request deletion of your account and all associated data by contacting us at <a href="mailto:support@ronavigator.com" className="text-primary hover:underline">support@ronavigator.com</a>.</p>
           </section>
 
           <section className="space-y-3">
@@ -59,7 +59,7 @@ export default function Privacy() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">7. Contact</h2>
-            <p>For privacy-related questions, contact us at <a href="mailto:ronavigator@outlook.com" className="text-primary hover:underline">ronavigator@outlook.com</a>.</p>
+            <p>For privacy-related questions, contact us at <a href="mailto:support@ronavigator.com" className="text-primary hover:underline">support@ronavigator.com</a>.</p>
           </section>
         </div>
       </main>
