@@ -40,6 +40,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
+      console.log('[SUB] check-subscription response:', JSON.stringify(data), 'error:', error?.message);
       if (error) {
         if (error.message?.includes('non-2xx')) {
           setIsPro(false);
@@ -50,7 +51,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       const subStatus = data?.status as string | null;
       const subscribed = data?.subscribed === true;
-      if (subscribed) console.log('[SUB] Pro active, stripe status:', subStatus, 'product:', data?.product_id);
+      console.log('[SUB] Resolved:', { subscribed, status: subStatus, product_id: data?.product_id, subscription_end: data?.subscription_end });
       // Track purchase_completed when Pro becomes active
       if (subscribed && !prevIsPro.current && user) {
         trackPurchaseCompleted(user.id);
@@ -84,19 +85,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
       window.history.replaceState({}, '', window.location.pathname);
-      // Retry up to 3 times over ~10s to wait for Stripe to propagate
+      // Retry up to 5 times over ~15s to wait for Stripe to propagate
       let attempt = 0;
-      const maxAttempts = 3;
-      const delays = [2000, 4000, 4000]; // 2s, 6s, 10s total
+      const maxAttempts = 5;
+      const delays = [2000, 3000, 3000, 3500, 3500]; // cumulative: 2s, 5s, 8s, 11.5s, 15s
       const syncToast = toast.loading('Syncing subscription…');
       const tryCheck = async () => {
         attempt++;
         console.log(`[SUB] Post-checkout check attempt ${attempt}/${maxAttempts}`);
         await checkSubscription();
-        // After checkSubscription, isPro is updated via setState — read it on next tick
         setTimeout(() => {
           if (prevIsPro.current) {
-            toast.success('Pro unlocked!', { id: syncToast });
+            toast.success('Pro unlocked! 🎉', { id: syncToast });
           } else if (attempt < maxAttempts) {
             setTimeout(tryCheck, delays[attempt]);
           } else {
