@@ -885,8 +885,8 @@ export function SettingsTab() {
         <SettingsGroup title="Support">
           <button
             onClick={() => {
-              window.open('mailto:ronavigator@outlook.com', '_blank');
-              navigator.clipboard.writeText('ronavigator@outlook.com');
+              window.open('mailto:support@ronavigator.com', '_blank');
+              navigator.clipboard.writeText('support@ronavigator.com');
               toast.success('Email copied to clipboard!');
             }}
             className="w-full p-4 flex items-center gap-3 tap-target touch-feedback"
@@ -894,7 +894,7 @@ export function SettingsTab() {
             <Mail className="h-5 w-5 text-muted-foreground" />
             <div className="flex-1 min-w-0 text-left">
               <span className="font-medium">Contact Support</span>
-              <p className="text-xs text-muted-foreground">ronavigator@outlook.com</p>
+              <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>

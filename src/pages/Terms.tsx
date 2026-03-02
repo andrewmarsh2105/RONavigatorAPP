@@ -70,7 +70,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">10. Contact</h2>
-            <p>Questions about these terms? Contact us at <a href="mailto:ronavigator@outlook.com" className="text-primary hover:underline">ronavigator@outlook.com</a>.</p>
+            <p>Questions about these terms? Contact us at <a href="mailto:support@ronavigator.com" className="text-primary hover:underline">support@ronavigator.com</a>.</p>
           </section>
         </div>
       </main>
