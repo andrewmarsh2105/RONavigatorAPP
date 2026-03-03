@@ -59,7 +59,6 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
   );
 
-  // Service-role client for pro_overrides lookup (bypasses RLS)
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -81,7 +80,7 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check pro_overrides table first
+    // 1) Check pro_overrides table first
     const { data: overrideRow } = await supabaseAdmin
       .from("pro_overrides")
       .select("id")
@@ -97,50 +96,83 @@ serve(async (req) => {
       }), { headers, status: 200 });
     }
 
+    // 2) Try cached stripe_customer_id from user_settings first
+    const { data: settings } = await supabaseAdmin
+      .from("user_settings")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const cachedCustomerId = settings?.stripe_customer_id;
+    logStep("Cached stripe_customer_id", { cachedCustomerId: cachedCustomerId || "none" });
+
     const stripe = new Stripe(stripeKey);
-    // Log whether this is a test or live key
     logStep("Stripe key prefix", { prefix: stripeKey.substring(0, 7) });
 
-    // Search up to 10 customers sharing this email
-    logStep("Searching Stripe customers by email", { email: user.email });
-    const customers = await stripe.customers.list({ email: user.email, limit: 10 });
-
-    if (customers.data.length === 0) {
-      logStep("No Stripe customer found for email", { email: user.email });
-      return new Response(JSON.stringify({
-        subscribed: false,
-        debug: { step: "no_customer", email: user.email, stripeKeyPrefix: stripeKey.substring(0, 7) },
-      }), { headers, status: 200 });
-    }
-
-    logStep("Found Stripe customers", {
-      count: customers.data.length,
-      ids: customers.data.map(c => c.id),
-      emails: customers.data.map(c => c.email),
-    });
-
-    // Search all customers for an active or trialing subscription
     let validSub: any = null;
     let allSubStatuses: string[] = [];
-    for (const customer of customers.data) {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customer.id,
-        limit: 10,
+
+    // 3a) If we have a cached customer ID, try that first
+    if (cachedCustomerId) {
+      logStep("Querying Stripe by cached customer ID", { cachedCustomerId });
+      try {
+        const subscriptions = await stripe.subscriptions.list({
+          customer: cachedCustomerId,
+          limit: 10,
+        });
+        allSubStatuses.push(...subscriptions.data.map((s: any) => `${cachedCustomerId}:${s.status}`));
+        validSub = subscriptions.data.find(
+          (s: any) => s.status === "active" || s.status === "trialing"
+        );
+        if (validSub) {
+          logStep("Valid sub found via cached customer ID", { subId: validSub.id, status: validSub.status });
+        }
+      } catch (err) {
+        logStep("Cached customer ID lookup failed, falling back to email", { error: String(err) });
+      }
+    }
+
+    // 3b) Fallback: search by email if no valid sub found
+    if (!validSub) {
+      logStep("Searching Stripe customers by email", { email: user.email });
+      const customers = await stripe.customers.list({ email: user.email, limit: 10 });
+
+      if (customers.data.length === 0) {
+        logStep("No Stripe customer found for email", { email: user.email });
+        return new Response(JSON.stringify({
+          subscribed: false,
+          debug: { step: "no_customer", email: user.email, stripeKeyPrefix: stripeKey.substring(0, 7) },
+        }), { headers, status: 200 });
+      }
+
+      logStep("Found Stripe customers", {
+        count: customers.data.length,
+        ids: customers.data.map(c => c.id),
       });
-      logStep("Subscriptions for customer", {
-        customerId: customer.id,
-        count: subscriptions.data.length,
-        statuses: subscriptions.data.map((s: any) => s.status),
-        productIds: subscriptions.data.map((s: any) => s.items.data[0]?.price?.product),
-      });
-      allSubStatuses.push(...subscriptions.data.map((s: any) => `${customer.id}:${s.status}`));
-      const found = subscriptions.data.find(
-        (s: any) => s.status === "active" || s.status === "trialing"
-      );
-      if (found) {
-        validSub = found;
-        logStep("Valid subscription found on customer", { customerId: customer.id, subId: found.id, status: found.status });
-        break;
+
+      for (const customer of customers.data) {
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customer.id,
+          limit: 10,
+        });
+        allSubStatuses.push(...subscriptions.data.map((s: any) => `${customer.id}:${s.status}`));
+        const found = subscriptions.data.find(
+          (s: any) => s.status === "active" || s.status === "trialing"
+        );
+        if (found) {
+          validSub = found;
+          // Persist customer ID for future fast lookups
+          const foundCustomerId = customer.id;
+          logStep("Persisting stripe_customer_id from email fallback", { customerId: foundCustomerId });
+          await supabaseAdmin
+            .from("user_settings")
+            .update({
+              stripe_customer_id: foundCustomerId,
+              stripe_subscription_id: found.id,
+            })
+            .eq("user_id", user.id);
+          break;
+        }
       }
     }
 
@@ -159,9 +191,25 @@ serve(async (req) => {
         }
       } catch { /* non-fatal */ }
       productId = validSub.items.data[0]?.price?.product ?? null;
-      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd, rawEnd: validSub.current_period_end });
+      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
+
+      // Sync cache
+      await supabaseAdmin
+        .from("user_settings")
+        .update({
+          is_pro: true,
+          plan: subStatus === "trialing" ? "trial" : "pro",
+          pro_expires_at: subscriptionEnd,
+          stripe_subscription_id: validSub.id,
+        })
+        .eq("user_id", user.id);
     } else {
       logStep("RESULT: NOT subscribed", { allSubStatuses });
+      // Clear stale cache
+      await supabaseAdmin
+        .from("user_settings")
+        .update({ is_pro: false, plan: null, pro_expires_at: null, stripe_subscription_id: null })
+        .eq("user_id", user.id);
     }
 
     return new Response(JSON.stringify({
@@ -169,8 +217,7 @@ serve(async (req) => {
       status: subStatus,
       product_id: productId,
       subscription_end: subscriptionEnd,
-      debug: { step: subscribed ? "subscribed" : "no_active_sub", allSubStatuses, stripeKeyPrefix: stripeKey.substring(0, 7) },
-      version: "2025-03-02a",
+      version: "2025-03-03b",
     }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -180,7 +227,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       subscribed: false,
       debug: { step: "exception", message: errorMessage, stripeKeyPrefix: stripeKey.substring(0, 7) },
-      version: "2025-03-02a",
+      version: "2025-03-03b",
     }), { headers, status: 200 });
   }
 });

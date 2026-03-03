@@ -471,13 +471,18 @@ export type Database = {
           flag_inbox_types: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals: boolean | null
           id: string
+          is_pro: boolean
           keyword_autofill: boolean
           pay_period_end_dates: number[] | null
           pay_period_type: string
+          plan: string | null
+          pro_expires_at: string | null
           show_scan_confidence: boolean | null
           show_vehicle_chips: boolean | null
           spreadsheet_density: string | null
           spreadsheet_view_mode: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -491,13 +496,18 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals?: boolean | null
           id?: string
+          is_pro?: boolean
           keyword_autofill?: boolean
           pay_period_end_dates?: number[] | null
           pay_period_type?: string
+          plan?: string | null
+          pro_expires_at?: string | null
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
           spreadsheet_view_mode?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -511,13 +521,18 @@ export type Database = {
           flag_inbox_types?: Database["public"]["Enums"]["flag_type"][] | null
           hide_totals?: boolean | null
           id?: string
+          is_pro?: boolean
           keyword_autofill?: boolean
           pay_period_end_dates?: number[] | null
           pay_period_type?: string
+          plan?: string | null
+          pro_expires_at?: string | null
           show_scan_confidence?: boolean | null
           show_vehicle_chips?: boolean | null
           spreadsheet_density?: string | null
           spreadsheet_view_mode?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
