@@ -55,8 +55,12 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    );
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
     );
 
     const authHeader = req.headers.get("Authorization");
@@ -69,11 +73,28 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
     const stripe = new Stripe(stripeKey);
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+
+    // Try cached customer ID first
+    const { data: settings } = await supabaseAdmin
+      .from("user_settings")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    let customerId = settings?.stripe_customer_id;
+
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (customers.data.length === 0) {
+        throw new Error("No Stripe customer found for this user");
+      }
+      customerId = customers.data[0].id;
+      // Persist for next time
+      await supabaseAdmin
+        .from("user_settings")
+        .update({ stripe_customer_id: customerId })
+        .eq("user_id", user.id);
     }
-    const customerId = customers.data[0].id;
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
