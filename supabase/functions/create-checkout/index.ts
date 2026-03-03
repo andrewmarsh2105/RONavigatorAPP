@@ -83,8 +83,26 @@ serve(async (req) => {
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+
+      // Prevent duplicate subscriptions — if already active/trialing, redirect to portal instead
+      const existing = await stripe.subscriptions.list({
+        customer: customerId,
+        limit: 5,
+      });
+      const activeSub = existing.data.find(
+        (s: any) => s.status === "active" || s.status === "trialing"
+      );
+      if (activeSub) {
+        console.log("[CREATE-CHECKOUT] User already has active/trialing sub, redirecting to portal", {
+          customerId, subId: activeSub.id, status: activeSub.status,
+        });
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: `${safeOrigin}/`,
+        });
+        return new Response(JSON.stringify({ url: portalSession.url, already_subscribed: true, version: "2025-03-03a" }), { headers, status: 200 });
+      }
     } else {
-      // Create customer explicitly so email is always stored on the customer object
       const newCustomer = await stripe.customers.create({ email: user.email });
       customerId = newCustomer.id;
       console.log("[CREATE-CHECKOUT] Created new Stripe customer", { customerId, email: user.email });
@@ -109,7 +127,7 @@ serve(async (req) => {
       cancel_url: `${safeOrigin}/?checkout=cancel`,
     });
 
-    return new Response(JSON.stringify({ url: session.url, version: "2025-03-02a" }), { headers, status: 200 });
+    return new Response(JSON.stringify({ url: session.url, version: "2025-03-03a" }), { headers, status: 200 });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const isAuthError = errorMessage.includes("not authenticated") ||
