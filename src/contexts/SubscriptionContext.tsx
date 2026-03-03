@@ -48,11 +48,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
       if (error) {
         console.error('[SUB] invoke error:', error.message);
-        if (error.message?.includes('non-2xx')) {
-          setIsPro(false);
-          return;
-        }
-        throw error;
+        // On transient errors, keep current Pro state instead of resetting
+        console.log('[SUB] Keeping current isPro state due to error');
+        return;
       }
 
       const subStatus = data?.status as string | null;
@@ -67,6 +65,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setSubscriptionEnd(data?.subscription_end || null);
     } catch (err) {
       console.error('Failed to check subscription:', err);
+      // Don't reset isPro on errors — preserve current state
     } finally {
       setLoading(false);
     }
