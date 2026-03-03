@@ -152,9 +152,14 @@ serve(async (req) => {
     if (validSub) {
       subscribed = true;
       subStatus = validSub.status;
-      subscriptionEnd = new Date(validSub.current_period_end * 1000).toISOString();
-      productId = validSub.items.data[0].price.product;
-      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd });
+      try {
+        const endTs = validSub.current_period_end;
+        if (endTs && typeof endTs === "number") {
+          subscriptionEnd = new Date(endTs * 1000).toISOString();
+        }
+      } catch { /* non-fatal */ }
+      productId = validSub.items.data[0]?.price?.product ?? null;
+      logStep("RESULT: subscribed", { subscriptionId: validSub.id, status: subStatus, productId, endDate: subscriptionEnd, rawEnd: validSub.current_period_end });
     } else {
       logStep("RESULT: NOT subscribed", { allSubStatuses });
     }
