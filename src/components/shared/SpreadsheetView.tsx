@@ -75,9 +75,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
+  const [dateRange, setDateRange] = useState<DateRange>('week');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
+
+  const hasCustomPayPeriod = userSettings.payPeriodType === 'custom' &&
+    Array.isArray(userSettings.payPeriodEndDates) &&
+    (userSettings.payPeriodEndDates as number[]).length > 0;
 
   useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
   useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
@@ -121,8 +126,57 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     [activeColIds],
   );
 
+  /* ─── Filter ROs by selected date range ─── */
+  const { filteredROs, computedRangeLabel } = useMemo(() => {
+    const now = new Date();
+    const localDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (isCloseout || dateRange === 'all') {
+      return { filteredROs: ros, computedRangeLabel: rangeLabel || 'All ROs' };
+    }
+
+    let startStr: string;
+    let endStr: string;
+
+    if (dateRange === 'week') {
+      const ws = startOfWeek(now, { weekStartsOn: 0 });
+      const we = endOfWeek(now, { weekStartsOn: 0 });
+      startStr = localDate(ws);
+      endStr = localDate(we);
+    } else if (dateRange === 'month') {
+      const ms = startOfMonth(now);
+      const me = endOfMonth(now);
+      startStr = localDate(ms);
+      endStr = localDate(me);
+    } else {
+      // pay_period
+      const ppDates = (userSettings.payPeriodEndDates || []) as number[];
+      const { start, end } = getCustomPayPeriodRange(ppDates, now);
+      startStr = start;
+      endStr = end;
+    }
+
+    const filtered = ros.filter(ro => {
+      const d = ro.paidDate || ro.date;
+      return d >= startStr && d <= endStr;
+    });
+
+    const fmtLabel = (s: string, e: string) => {
+      try {
+        const [sy, sm, sd] = s.split('-').map(Number);
+        const [ey, em, ed] = e.split('-').map(Number);
+        const sf = format(new Date(sy, sm - 1, sd), 'MMM d');
+        const ef = format(new Date(ey, em - 1, ed), 'MMM d');
+        return `${sf} – ${ef}`;
+      } catch { return `${s} – ${e}`; }
+    };
+
+    return { filteredROs: filtered, computedRangeLabel: fmtLabel(startStr, endStr) };
+  }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
+
   /* ─── Build rows using shared model ─── */
-  const allRows = useMemo(() => buildSpreadsheetRows({ ros, periodLabel: rangeLabel }), [ros, rangeLabel]);
+  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel }), [filteredROs, computedRangeLabel]);
 
   /* ─── Compute totals from the period subtotal row ─── */
   const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;
