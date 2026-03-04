@@ -735,13 +735,15 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 return (
                   <tr key={`rosub-${row.roNumber}-${i}`} className="bg-muted/20 border-t border-border/50">
                     {activeCols.map(col => {
+                      const sticky = stickyStyles[col.id];
+                      const stickyClass = sticky ? 'bg-muted/20' : '';
                       if (col.id === 'roNumber')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground')}>#{row.roNumber}</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground', stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined}>#{row.roNumber}</td>;
                       if (col.id === 'description')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground')}>RO Total</td>;
                       if (col.id === 'hours')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>{maskHours(row.roTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy)} />;
+                      return <td key={col.id} className={cn(cellPx, cellPy, stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
                     })}
                   </tr>
                 );
@@ -751,11 +753,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 return (
                   <tr key={`dtot-${row.date}`} className="bg-muted/40 border-t-2 border-border">
                     {activeCols.map(col => {
+                      const sticky = stickyStyles[col.id];
+                      const stickyClass = sticky ? 'bg-muted' : '';
                       if (col.id === 'description')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
                       if (col.id === 'hours')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy)} />;
+                      return <td key={col.id} className={cn(cellPx, cellPy, stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
                     })}
                   </tr>
                 );
@@ -792,11 +796,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                           col.align === 'center' && 'text-center',
                           col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
-                          'align-top bg-card',
-                          row.dateIndex % 2 === 1 && 'bg-muted/20',
+                          'align-top',
+                          sticky ? 'bg-card' : (row.dateIndex % 2 === 1 ? 'bg-muted/20' : 'bg-card'),
                         )}
                         style={{
-                          ...(sticky ? { ...sticky, zIndex: 1 } : {}),
+                          ...(sticky ? { ...sticky, zIndex: 2 } : {}),
                         }}
                       >
                         {renderCellValue(col.id, row.ro, row.lineIndex)}
