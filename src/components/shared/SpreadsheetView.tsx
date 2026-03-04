@@ -5,12 +5,15 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select';
 import { maskHours } from '@/lib/maskHours';
 import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
