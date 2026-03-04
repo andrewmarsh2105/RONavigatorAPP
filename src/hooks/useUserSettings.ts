@@ -20,6 +20,7 @@ interface UserSettings {
   hideTotals: boolean;
   spreadsheetViewMode: string;
   spreadsheetDensity: string;
+  spreadsheetGroupBy: string;
 }
 
 const defaults: UserSettings = {
