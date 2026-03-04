@@ -94,6 +94,7 @@ export function useUserSettings() {
       : key === 'hideTotals' ? 'hide_totals'
       : key === 'spreadsheetViewMode' ? 'spreadsheet_view_mode'
       : key === 'spreadsheetDensity' ? 'spreadsheet_density'
+      : key === 'spreadsheetGroupBy' ? 'spreadsheet_group_by'
       : key;
     
     const { error } = await supabase
