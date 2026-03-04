@@ -708,7 +708,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               if (row.type === 'date-header') {
                 const isCollapsed = collapsed.has(row.date);
                 return (
-                  <tr key={`dh-${row.date}`} className="bg-muted/60">
+                  <tr key={`dh-${row.date}`} className="bg-muted/40">
                     <td
                       colSpan={activeCols.length}
                       className={cn(cellPx, 'py-1.5 font-bold text-foreground text-xs uppercase tracking-wider cursor-pointer select-none')}
