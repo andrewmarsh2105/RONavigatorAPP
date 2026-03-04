@@ -23,7 +23,7 @@ export function ColumnChooser({ activeColumns, onToggle }: ColumnChooserProps) {
       </PopoverTrigger>
       <PopoverContent className="w-44 p-1.5" align="end">
         <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Toggle columns</p>
-        {ALL_COLUMNS.map(col => {
+        {ALL_COLUMNS.filter(col => col.id !== 'roTotal').map(col => {
           const locked = LOCKED.includes(col.id);
           const checked = activeColumns.includes(col.id);
           return (
