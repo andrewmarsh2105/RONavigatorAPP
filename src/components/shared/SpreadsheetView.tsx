@@ -328,10 +328,41 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     groupIndex % 2 === 1 ? 'bg-muted/30' : 'bg-card';
 
   /* ─── Empty state ─── */
-  if (ros.length === 0) {
+  if (filteredROs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p className="text-lg font-medium">No ROs to display</p>
+      <div className="h-full flex flex-col">
+        {/* Still show toolbar so user can change range */}
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card">
+          {!isCloseout && (
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {([
+                { value: 'week' as DateRange, label: 'Week' },
+                { value: 'month' as DateRange, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
+                { value: 'all' as DateRange, label: 'All' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDateRange(opt.value)}
+                  className={cn(
+                    'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
+                    dateRange === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {computedRangeLabel && (
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+          )}
+        </div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <p className="text-lg font-medium">No ROs in this range</p>
+        </div>
       </div>
     );
   }
