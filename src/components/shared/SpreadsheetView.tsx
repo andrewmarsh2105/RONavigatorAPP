@@ -597,7 +597,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Footer ─── */}
       <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2 flex items-center justify-between text-sm">
         <div className="flex gap-4 text-muted-foreground">
-          <span><strong className="text-foreground">{ros.length}</strong> ROs</span>
+          <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
         <div className="flex items-center gap-3 tabular-nums">
