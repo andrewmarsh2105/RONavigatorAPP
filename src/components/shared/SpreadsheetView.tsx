@@ -333,7 +333,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       <div className="h-full flex flex-col">
         {/* Still show toolbar so user can change range */}
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card">
-          {!isCloseout && (
+        {!isCloseout && !isMobile && (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
                 { value: 'week' as DateRange, label: 'Week' },
