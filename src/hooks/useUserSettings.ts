@@ -20,6 +20,7 @@ interface UserSettings {
   hideTotals: boolean;
   spreadsheetViewMode: string;
   spreadsheetDensity: string;
+  spreadsheetGroupBy: string;
 }
 
 const defaults: UserSettings = {
@@ -37,6 +38,7 @@ const defaults: UserSettings = {
   hideTotals: false,
   spreadsheetViewMode: 'payroll',
   spreadsheetDensity: 'comfortable',
+  spreadsheetGroupBy: 'date',
 };
 
 export function useUserSettings() {
@@ -67,6 +69,7 @@ export function useUserSettings() {
         hideTotals: (data as any).hide_totals ?? false,
         spreadsheetViewMode: (data as any).spreadsheet_view_mode || 'payroll',
         spreadsheetDensity: (data as any).spreadsheet_density || 'comfortable',
+        spreadsheetGroupBy: (data as any).spreadsheet_group_by || 'date',
       });
     }
     setLoaded(true);
@@ -91,6 +94,7 @@ export function useUserSettings() {
       : key === 'hideTotals' ? 'hide_totals'
       : key === 'spreadsheetViewMode' ? 'spreadsheet_view_mode'
       : key === 'spreadsheetDensity' ? 'spreadsheet_density'
+      : key === 'spreadsheetGroupBy' ? 'spreadsheet_group_by'
       : key;
     
     const { error } = await supabase

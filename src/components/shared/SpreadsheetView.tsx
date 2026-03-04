@@ -5,12 +5,15 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select';
 import { maskHours } from '@/lib/maskHours';
 import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -32,6 +35,8 @@ interface SpreadsheetViewProps {
   rangeLabel?: string;
   isCloseout?: boolean;
 }
+
+type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
 
 /* ─── Columns (no roTotal) ─── */
 const DISPLAY_COLUMNS: ColumnId[] = [
@@ -105,22 +110,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   const persistedViewMode = ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll';
   const persistedDensity = ((userSettings as any).spreadsheetDensity as Density) || 'compact';
+  const persistedGroupBy = ((userSettings as any).spreadsheetGroupBy as GroupBy) || 'date';
 
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
+  const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
 
   // Sync local state with persisted settings (handles async load & remount)
-  useEffect(() => {
-    setViewMode(persistedViewMode);
-  }, [persistedViewMode]);
-
-  useEffect(() => {
-    setDensity(persistedDensity);
-  }, [persistedDensity]);
-
+  useEffect(() => { setViewMode(persistedViewMode); }, [persistedViewMode]);
+  useEffect(() => { setDensity(persistedDensity); }, [persistedDensity]);
+  useEffect(() => { setGroupBy(persistedGroupBy); }, [persistedGroupBy]);
   useEffect(() => {
     setActiveColIds(viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS);
   }, [viewMode]);
@@ -128,6 +130,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const handleViewModeChange = (m: ViewMode) => {
     setViewMode(m);
     updateUserSetting('spreadsheetViewMode' as any, m);
+  };
+  const handleGroupByChange = (g: GroupBy) => {
+    setGroupBy(g);
+    updateUserSetting('spreadsheetGroupBy' as any, g);
   };
   const handleDensityChange = () => {
     const next: Density = density === 'comfortable' ? 'compact' : 'comfortable';
@@ -236,48 +242,81 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const { rows, hasMore } = useMemo(() => {
     const allRows: TableRow[] = [];
 
-    groupedDates.forEach((group, dateIndex) => {
-      // Date header
-      allRows.push({
-        type: 'date-header',
-        date: group.date,
-        dayTotal: group.dayTotal,
-        roCount: group.ros.length,
-      });
-
-      if (!collapsed.has(group.date)) {
-        group.ros.forEach((gro) => {
-          gro.lines.forEach((gl, i) => {
-            allRows.push({
-              type: 'line',
-              ro: gl.ro,
-              lineIndex: gl.lineIndex,
-              isFirstOfRO: i === 0,
-              roLineCount: gro.lines.length,
-              dateIndex,
-            });
-          });
-          // RO subtotal (only if RO has >1 line or always for clarity)
-          allRows.push({
-            type: 'ro-subtotal',
-            roNumber: gro.roNumber,
-            roTotal: gro.roTotal,
-            dateIndex,
-          });
-        });
-
-        // Day total
+    if (groupBy === 'none') {
+      // Flat list — no headers, no subtotals
+      const allLines: GroupedLine[] = [];
+      groupedDates.forEach(g => g.ros.forEach(gro => allLines.push(...gro.lines)));
+      allLines.forEach((gl, i) => {
         allRows.push({
-          type: 'day-total',
-          date: group.date,
-          dayTotal: group.dayTotal,
+          type: 'line',
+          ro: gl.ro,
+          lineIndex: gl.lineIndex,
+          isFirstOfRO: false,
+          roLineCount: 1,
+          dateIndex: 0,
         });
+      });
+    } else if (groupBy === 'ro') {
+      // Group by RO only — RO subtotals, no date headers
+      const roMap = new Map<string, GroupedRO>();
+      groupedDates.forEach(g => g.ros.forEach(gro => {
+        const existing = roMap.get(gro.roNumber);
+        if (existing) {
+          existing.lines.push(...gro.lines);
+          existing.roTotal += gro.roTotal;
+        } else {
+          roMap.set(gro.roNumber, { ...gro, lines: [...gro.lines] });
+        }
+      }));
+      let idx = 0;
+      for (const gro of roMap.values()) {
+        gro.lines.forEach((gl, i) => {
+          allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex: idx });
+        });
+        allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex: idx });
+        idx++;
       }
-    });
+    } else if (groupBy === 'advisor') {
+      // Group by advisor
+      const advMap = new Map<string, { lines: GroupedLine[]; total: number }>();
+      groupedDates.forEach(g => g.ros.forEach(gro => {
+        const adv = gro.ro.advisor || 'Unassigned';
+        if (!advMap.has(adv)) advMap.set(adv, { lines: [], total: 0 });
+        const entry = advMap.get(adv)!;
+        entry.lines.push(...gro.lines);
+        entry.total += gro.roTotal;
+      }));
+      let idx = 0;
+      for (const [adv, data] of advMap) {
+        allRows.push({ type: 'date-header', date: adv, dayTotal: data.total, roCount: data.lines.length });
+        if (!collapsed.has(adv)) {
+          data.lines.forEach((gl, i) => {
+            allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: false, roLineCount: 1, dateIndex: idx });
+          });
+          allRows.push({ type: 'day-total', date: adv, dayTotal: data.total });
+        }
+        idx++;
+      }
+    } else {
+      // groupBy === 'date' (default) — full Date → RO grouping
+      groupedDates.forEach((group, dateIndex) => {
+        allRows.push({ type: 'date-header', date: group.date, dayTotal: group.dayTotal, roCount: group.ros.length });
+
+        if (!collapsed.has(group.date)) {
+          group.ros.forEach((gro) => {
+            gro.lines.forEach((gl, i) => {
+              allRows.push({ type: 'line', ro: gl.ro, lineIndex: gl.lineIndex, isFirstOfRO: i === 0, roLineCount: gro.lines.length, dateIndex });
+            });
+            allRows.push({ type: 'ro-subtotal', roNumber: gro.roNumber, roTotal: gro.roTotal, dateIndex });
+          });
+          allRows.push({ type: 'day-total', date: group.date, dayTotal: group.dayTotal });
+        }
+      });
+    }
 
     const sliced = allRows.slice(0, visibleCount);
     return { rows: sliced, hasMore: visibleCount < allRows.length };
-  }, [groupedDates, collapsed, visibleCount]);
+  }, [groupedDates, collapsed, visibleCount, groupBy]);
 
   /* ─── Cell value renderer ─── */
   const renderCellValue = useCallback((colId: ColumnId, ro: RepairOrder, lineIndex: number): ReactNode => {
@@ -567,6 +606,20 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               </button>
             ))}
           </div>
+
+          {/* Group By */}
+          <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] font-semibold">
+              <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+              <SelectValue placeholder="Group by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">By Date</SelectItem>
+              <SelectItem value="ro">By RO</SelectItem>
+              <SelectItem value="advisor">By Advisor</SelectItem>
+              <SelectItem value="none">No Grouping</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1">
@@ -667,7 +720,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                             ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                             : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                           }
-                          {formatDateLabel(row.date)}
+                          {groupBy === 'advisor' ? row.date : formatDateLabel(row.date)}
                         </span>
                         <span className="text-muted-foreground font-medium normal-case tracking-normal">
                           {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayTotal, hideTotals)}h
@@ -699,7 +752,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   <tr key={`dtot-${row.date}`} className="bg-muted/40 border-t-2 border-border">
                     {activeCols.map(col => {
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>Day Total</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>{groupBy === 'advisor' ? 'Advisor Total' : 'Day Total'}</td>;
                       if (col.id === 'hours')
                         return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
                       return <td key={col.id} className={cn(cellPx, cellPy)} />;
