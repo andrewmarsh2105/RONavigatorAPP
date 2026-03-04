@@ -38,6 +38,7 @@ const defaults: UserSettings = {
   hideTotals: false,
   spreadsheetViewMode: 'payroll',
   spreadsheetDensity: 'comfortable',
+  spreadsheetGroupBy: 'date',
 };
 
 export function useUserSettings() {
