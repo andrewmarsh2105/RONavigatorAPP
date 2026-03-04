@@ -5,15 +5,12 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, Layers, FileText,
+  Rows3, Rows4, FileSpreadsheet, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
-} from '@/components/ui/select';
 import { maskHours } from '@/lib/maskHours';
 import { csvCell, typeCode, downloadCSVFile, buildCSV } from '@/lib/csvUtils';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -21,7 +18,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { LineTextModal } from '@/components/shared/LineTextModal';
 import { ColumnChooser } from '@/components/shared/spreadsheet/ColumnChooser';
 import {
-  ALL_COLUMNS, PAYROLL_COLUMNS, AUDIT_COLUMNS,
+  ALL_COLUMNS,
   type ColumnId, type ViewMode, type Density,
 } from '@/components/shared/spreadsheet/types';
 import type { RepairOrder } from '@/types/ro';
@@ -33,41 +30,68 @@ interface SpreadsheetViewProps {
   ros: RepairOrder[];
   onSelectRO: (ro: RepairOrder) => void;
   rangeLabel?: string;
-  /** When true, default group-by-date with all groups expanded */
   isCloseout?: boolean;
 }
 
-/* ─── Grouping ─── */
-type GroupBy = 'none' | 'date' | 'ro' | 'advisor';
+/* ─── Columns (no roTotal) ─── */
+const DISPLAY_COLUMNS: ColumnId[] = [
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type',
+];
 
-/* ─── Row types ─── */
-interface FlatRow {
-  type: 'data';
+const AUDIT_DISPLAY_COLUMNS: ColumnId[] = [
+  'roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin',
+];
+
+/* ─── Grouped data structure ─── */
+interface GroupedLine {
+  ro: RepairOrder;
+  lineIndex: number; // -1 for legacy single-line ROs
+}
+
+interface GroupedRO {
+  ro: RepairOrder;
+  roNumber: string;
+  roTotal: number;
+  lines: GroupedLine[];
+}
+
+interface GroupedDate {
+  date: string;
+  dayTotal: number;
+  ros: GroupedRO[];
+}
+
+/* ─── Row types for rendering ─── */
+interface LineRow {
+  type: 'line';
   ro: RepairOrder;
   lineIndex: number;
   isFirstOfRO: boolean;
   roLineCount: number;
+  dateIndex: number; // for zebra
+}
+
+interface ROSubtotalRow {
+  type: 'ro-subtotal';
+  roNumber: string;
   roTotal: number;
-  groupKey: string;     // key for the current group
-  groupIndex: number;   // alternating index for zebra
+  dateIndex: number;
 }
 
-interface GroupHeaderRow {
-  type: 'group-header';
-  groupKey: string;
-  label: string;
+interface DayTotalRow {
+  type: 'day-total';
+  date: string;
+  dayTotal: number;
+}
+
+interface DateHeaderRow {
+  type: 'date-header';
+  date: string;
+  dayTotal: number;
   roCount: number;
-  groupHours: number;
 }
 
-interface GroupTotalRow {
-  type: 'group-total';
-  groupKey: string;
-  label: string;
-  groupHours: number;
-}
-
-type TableRow = FlatRow | GroupHeaderRow | GroupTotalRow;
+type TableRow = LineRow | ROSubtotalRow | DayTotalRow | DateHeaderRow;
 
 const ROW_BATCH = 120;
 
@@ -79,21 +103,18 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const isMobile = useIsMobile();
   const hideTotals = userSettings.hideTotals ?? false;
 
-  // Persisted prefs
   const [viewMode, setViewMode] = useState<ViewMode>(
     ((userSettings as any).spreadsheetViewMode as ViewMode) || 'payroll'
   );
   const [density, setDensity] = useState<Density>(
     ((userSettings as any).spreadsheetDensity as Density) || 'compact'
   );
-  const [groupBy, setGroupBy] = useState<GroupBy>(isCloseout ? 'date' : 'none');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
-    viewMode === 'payroll' ? PAYROLL_COLUMNS : AUDIT_COLUMNS
+    viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
 
-  // Sync viewMode → columns
   useEffect(() => {
-    setActiveColIds(viewMode === 'payroll' ? PAYROLL_COLUMNS : AUDIT_COLUMNS);
+    setActiveColIds(viewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS);
   }, [viewMode]);
 
   const handleViewModeChange = (m: ViewMode) => {
@@ -106,12 +127,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     updateUserSetting('spreadsheetDensity' as any, next);
   };
   const handleToggleCol = (id: ColumnId) => {
+    if (id === 'roTotal') return; // no longer a column
     setActiveColIds(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   };
 
-  // Collapsible groups
+  // Collapsible date groups
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const toggleCollapse = (key: string) =>
     setCollapsed(prev => {
@@ -131,11 +153,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Active column defs ─── */
   const activeCols = useMemo(
-    () => activeColIds.map(id => ALL_COLUMNS.find(c => c.id === id)!).filter(Boolean),
+    () => activeColIds.filter(id => id !== 'roTotal').map(id => ALL_COLUMNS.find(c => c.id === id)!).filter(Boolean),
     [activeColIds],
   );
 
-  /* ─── Sticky styles for first 2 columns ─── */
+  /* ─── Sticky styles ─── */
   const stickyStyles = useMemo(() => {
     if (isMobile) return {} as Record<string, React.CSSProperties>;
     const map: Record<string, React.CSSProperties> = {};
@@ -149,175 +171,125 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     return map;
   }, [activeCols, isMobile]);
 
-  /* ─── Helpers ─── */
-  const getGroupKey = useCallback((ro: RepairOrder): string => {
-    switch (groupBy) {
-      case 'date': return (ro.paidDate || ro.date).slice(0, 10);
-      case 'ro': return ro.id;
-      case 'advisor': return ro.advisor || 'Unknown';
-      default: return '__all__';
-    }
-  }, [groupBy]);
-
-  const getGroupLabel = useCallback((key: string, sampleRO: RepairOrder): string => {
-    switch (groupBy) {
-      case 'date': {
-        const [y, m, d] = key.split('-').map(Number);
-        return format(new Date(y, m - 1, d), 'EEE, MMM d');
-      }
-      case 'ro': return `#${sampleRO.roNumber}`;
-      case 'advisor': return key;
-      default: return '';
-    }
-  }, [groupBy]);
-
-  /* ─── Data processing ─── */
-  const { rows, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
-    const allRows: TableRow[] = [];
+  /* ─── Build grouped data ─── */
+  const { groupedDates, totalHours, totalLines, warrantyHours, cpHours, internalHours } = useMemo(() => {
     let hours = 0, lines = 0, wH = 0, cH = 0, iH = 0;
 
-    // Sort ROs
     const sorted = [...ros].sort((a, b) => {
       const aD = a.paidDate || a.date, bD = b.paidDate || b.date;
       return bD.localeCompare(aD) || a.roNumber.localeCompare(b.roNumber);
     });
 
-    if (groupBy === 'none') {
-      // Flat: no grouping
-      let groupIdx = 0;
-      for (const ro of sorted) {
-        const hasL = ro.lines?.length > 0;
-        const roTotal = hasL
-          ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
-          : ro.paidHours;
+    const dateMap = new Map<string, GroupedRO[]>();
+    for (const ro of sorted) {
+      const dateKey = (ro.paidDate || ro.date).slice(0, 10);
+      if (!dateMap.has(dateKey)) dateMap.set(dateKey, []);
 
-        if (hasL) {
-          ro.lines.forEach((line, i) => {
-            if (!line.isTbd) {
-              hours += line.hoursPaid;
-              const lt = line.laborType ?? ro.laborType;
-              if (lt === 'warranty') wH += line.hoursPaid;
-              else if (lt === 'customer-pay') cH += line.hoursPaid;
-              else iH += line.hoursPaid;
-            }
-            lines++;
-            allRows.push({
-              type: 'data', ro, lineIndex: i, isFirstOfRO: i === 0,
-              roLineCount: ro.lines.length, groupIndex: groupIdx, roTotal, groupKey: '__all__',
-            });
-          });
-        } else {
-          hours += ro.paidHours;
-          if (ro.laborType === 'warranty') wH += ro.paidHours;
-          else if (ro.laborType === 'customer-pay') cH += ro.paidHours;
-          else iH += ro.paidHours;
-          lines++;
-          allRows.push({
-            type: 'data', ro, lineIndex: -1, isFirstOfRO: true,
-            roLineCount: 1, groupIndex: groupIdx, roTotal, groupKey: '__all__',
-          });
-        }
-        groupIdx++;
-      }
-    } else {
-      // Grouped
-      const groups = new Map<string, RepairOrder[]>();
-      for (const ro of sorted) {
-        const key = getGroupKey(ro);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(ro);
-      }
+      const hasL = ro.lines?.length > 0;
+      let roTotal = 0;
+      const groupedLines: GroupedLine[] = [];
 
-      let groupIdx = 0;
-      for (const [key, groupROs] of groups) {
-        let groupHours = 0;
-        const label = getGroupLabel(key, groupROs[0]);
-
-        // Compute group hours
-        for (const ro of groupROs) {
-          const hasL = ro.lines?.length > 0;
-          groupHours += hasL ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0) : ro.paidHours;
-        }
-
-        allRows.push({
-          type: 'group-header', groupKey: key, label,
-          roCount: groupROs.length, groupHours,
-        });
-
-        for (const ro of groupROs) {
-          const hasL = ro.lines?.length > 0;
-          const roTotal = hasL
-            ? ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
-            : ro.paidHours;
-
-          if (hasL) {
-            ro.lines.forEach((line, i) => {
-              if (!line.isTbd) {
-                hours += line.hoursPaid;
-                const lt = line.laborType ?? ro.laborType;
-                if (lt === 'warranty') wH += line.hoursPaid;
-                else if (lt === 'customer-pay') cH += line.hoursPaid;
-                else iH += line.hoursPaid;
-              }
-              lines++;
-              allRows.push({
-                type: 'data', ro, lineIndex: i, isFirstOfRO: i === 0,
-                roLineCount: ro.lines.length, groupIndex: groupIdx, roTotal, groupKey: key,
-              });
-            });
-          } else {
-            hours += ro.paidHours;
-            if (ro.laborType === 'warranty') wH += ro.paidHours;
-            else if (ro.laborType === 'customer-pay') cH += ro.paidHours;
-            else iH += ro.paidHours;
-            lines++;
-            allRows.push({
-              type: 'data', ro, lineIndex: -1, isFirstOfRO: true,
-              roLineCount: 1, groupIndex: groupIdx, roTotal, groupKey: key,
-            });
+      if (hasL) {
+        ro.lines.forEach((line, i) => {
+          if (!line.isTbd) {
+            roTotal += line.hoursPaid;
+            hours += line.hoursPaid;
+            const lt = line.laborType ?? ro.laborType;
+            if (lt === 'warranty') wH += line.hoursPaid;
+            else if (lt === 'customer-pay') cH += line.hoursPaid;
+            else iH += line.hoursPaid;
           }
-          groupIdx++;
-        }
-
-        // Group total row
-        allRows.push({ type: 'group-total', groupKey: key, label, groupHours });
+          lines++;
+          groupedLines.push({ ro, lineIndex: i });
+        });
+      } else {
+        roTotal = ro.paidHours;
+        hours += ro.paidHours;
+        if (ro.laborType === 'warranty') wH += ro.paidHours;
+        else if (ro.laborType === 'customer-pay') cH += ro.paidHours;
+        else iH += ro.paidHours;
+        lines++;
+        groupedLines.push({ ro, lineIndex: -1 });
       }
+
+      dateMap.get(dateKey)!.push({ ro, roNumber: ro.roNumber, roTotal, lines: groupedLines });
     }
 
-    return { rows: allRows, totalHours: hours, totalLines: lines, warrantyHours: wH, cpHours: cH, internalHours: iH };
-  }, [ros, groupBy, getGroupKey, getGroupLabel]);
+    const result: GroupedDate[] = [];
+    for (const [date, rosGroup] of dateMap) {
+      const dayTotal = rosGroup.reduce((s, r) => s + r.roTotal, 0);
+      result.push({ date, dayTotal, ros: rosGroup });
+    }
 
-  /* ─── Visible rows (collapsed + pagination) ─── */
-  const visibleRows = useMemo(() => {
-    const filtered = rows.filter(r => {
-      if (r.type === 'group-header') return true;
-      if (collapsed.has(r.groupKey)) return false;
-      return true;
+    return { groupedDates: result, totalHours: hours, totalLines: lines, warrantyHours: wH, cpHours: cH, internalHours: iH };
+  }, [ros]);
+
+  /* ─── Flatten to renderable rows ─── */
+  const { rows, hasMore } = useMemo(() => {
+    const allRows: TableRow[] = [];
+
+    groupedDates.forEach((group, dateIndex) => {
+      // Date header
+      allRows.push({
+        type: 'date-header',
+        date: group.date,
+        dayTotal: group.dayTotal,
+        roCount: group.ros.length,
+      });
+
+      if (!collapsed.has(group.date)) {
+        group.ros.forEach((gro) => {
+          gro.lines.forEach((gl, i) => {
+            allRows.push({
+              type: 'line',
+              ro: gl.ro,
+              lineIndex: gl.lineIndex,
+              isFirstOfRO: i === 0,
+              roLineCount: gro.lines.length,
+              dateIndex,
+            });
+          });
+          // RO subtotal (only if RO has >1 line or always for clarity)
+          allRows.push({
+            type: 'ro-subtotal',
+            roNumber: gro.roNumber,
+            roTotal: gro.roTotal,
+            dateIndex,
+          });
+        });
+
+        // Day total
+        allRows.push({
+          type: 'day-total',
+          date: group.date,
+          dayTotal: group.dayTotal,
+        });
+      }
     });
-    return filtered.slice(0, visibleCount);
-  }, [rows, collapsed, visibleCount]);
 
-  const hasMore = visibleCount < rows.length;
+    const sliced = allRows.slice(0, visibleCount);
+    return { rows: sliced, hasMore: visibleCount < allRows.length };
+  }, [groupedDates, collapsed, visibleCount]);
 
   /* ─── Cell value renderer ─── */
-  const renderCellValue = useCallback((colId: ColumnId, row: FlatRow): ReactNode => {
-    const line = row.lineIndex >= 0 ? row.ro.lines[row.lineIndex] : null;
-    const laborType = line?.laborType ?? row.ro.laborType;
+  const renderCellValue = useCallback((colId: ColumnId, ro: RepairOrder, lineIndex: number): ReactNode => {
+    const line = lineIndex >= 0 ? ro.lines[lineIndex] : null;
+    const laborType = line?.laborType ?? ro.laborType;
 
     switch (colId) {
       case 'roNumber':
-        return <span className="font-bold">#{row.ro.roNumber}</span>;
+        return <span className="font-bold">#{ro.roNumber}</span>;
       case 'date': {
-        const ed = row.ro.paidDate || row.ro.date;
+        const ed = ro.paidDate || ro.date;
         const [y, m, d] = ed.split('-').map(Number);
         return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
-      case 'advisor': return row.ro.advisor || '—';
-      case 'customer': return row.ro.customerName || '—';
-      case 'vehicle': return formatVehicleChip(row.ro.vehicle) || <span className="italic text-muted-foreground">—</span>;
+      case 'advisor': return ro.advisor || '—';
+      case 'customer': return ro.customerName || '—';
+      case 'vehicle': return formatVehicleChip(ro.vehicle) || <span className="italic text-muted-foreground">—</span>;
       case 'lineNo': return line ? line.lineNo : 1;
       case 'description': {
-        const desc = line ? line.description : row.ro.workPerformed;
+        const desc = line ? line.description : ro.workPerformed;
         return (
           <button
             className="text-left truncate max-w-full hover:text-primary transition-colors"
@@ -332,7 +304,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         );
       }
       case 'hours': {
-        const hrs = line ? line.hoursPaid : row.ro.paidHours;
+        const hrs = line ? line.hoursPaid : ro.paidHours;
         const isTbd = line?.isTbd ?? false;
         return (
           <span className={cn('tabular-nums font-medium', isTbd && 'line-through text-amber-500')}>
@@ -350,24 +322,31 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             : 'text-[hsl(var(--status-internal))]';
         return <span className={cn('font-semibold text-xs', tc)}>{tl}</span>;
       }
-      case 'roTotal':
-        return <span className="tabular-nums font-bold text-primary">{maskHours(row.roTotal, hideTotals)}h</span>;
       case 'tbd':
         return line?.isTbd ? <span className="text-amber-500 text-xs font-semibold">⏳</span> : '';
       case 'notes':
-        return <span className="text-xs text-muted-foreground truncate">{row.ro.notes || ''}</span>;
+        return <span className="text-xs text-muted-foreground truncate">{ro.notes || ''}</span>;
       case 'mileage':
-        return <span className="text-xs tabular-nums">{row.ro.mileage || ''}</span>;
+        return <span className="text-xs tabular-nums">{ro.mileage || ''}</span>;
       case 'vin':
-        return <span className="text-[11px] font-mono text-muted-foreground">{row.ro.vehicle?.vin || ''}</span>;
+        return <span className="text-[11px] font-mono text-muted-foreground">{ro.vehicle?.vin || ''}</span>;
       default: return '';
     }
-  }, [hideTotals]);
+  }, []);
 
   /* ─── Export helpers ─── */
   const buildExportRows = useCallback((columns: ColumnId[]) => {
-    const headers = columns.map(id => ALL_COLUMNS.find(c => c.id === id)!.label);
-    const dataRows = rows.filter((r): r is FlatRow => r.type === 'data');
+    const exportCols = columns.filter(id => id !== 'roTotal');
+    const headers = exportCols.map(id => ALL_COLUMNS.find(c => c.id === id)!.label);
+    const dataRows: { ro: RepairOrder; lineIndex: number }[] = [];
+
+    for (const group of groupedDates) {
+      for (const gro of group.ros) {
+        for (const gl of gro.lines) {
+          dataRows.push({ ro: gl.ro, lineIndex: gl.lineIndex });
+        }
+      }
+    }
 
     const csvRows: string[][] = [];
     let currentDate = '';
@@ -384,7 +363,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       const dateKey = (row.ro.paidDate || row.ro.date).slice(0, 10);
 
       if (currentDate && dateKey !== currentDate) {
-        const totalRow = columns.map(id => {
+        const totalRow = exportCols.map(id => {
           if (id === 'date') return csvCell(currentDate);
           if (id === 'description') return csvCell('DAY TOTAL');
           if (id === 'hours') return csvCell(dayTotal.toFixed(2));
@@ -398,8 +377,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       const hrs = line ? line.hoursPaid : row.ro.paidHours;
       dayTotal += hrs;
 
-      // ALWAYS repeat RO-level fields on every row
-      const vals = columns.map(id => {
+      const vals = exportCols.map(id => {
         const laborType = line?.laborType ?? row.ro.laborType;
         switch (id) {
           case 'roNumber': return csvCell(row.ro.roNumber);
@@ -411,7 +389,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           case 'description': return csvCell(line ? line.description : row.ro.workPerformed);
           case 'hours': return csvCell(hrs.toFixed(2));
           case 'type': return csvCell(typeCode(laborType));
-          case 'roTotal': return csvCell(row.roTotal.toFixed(2));
           case 'tbd': return csvCell(line?.isTbd ? 'Y' : 'N');
           case 'notes': return csvCell(row.ro.notes || '');
           case 'mileage': return csvCell(row.ro.mileage || '');
@@ -422,9 +399,8 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       csvRows.push(vals);
     }
 
-    // Final day total
     if (currentDate) {
-      const totalRow = columns.map(id => {
+      const totalRow = exportCols.map(id => {
         if (id === 'date') return csvCell(currentDate);
         if (id === 'description') return csvCell('DAY TOTAL');
         if (id === 'hours') return csvCell(dayTotal.toFixed(2));
@@ -433,13 +409,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       csvRows.push(totalRow);
     }
 
-    // Period total
     const periodTotal = sorted.reduce((sum, r) => {
       const line = r.lineIndex >= 0 ? r.ro.lines[r.lineIndex] : null;
       if (line?.isTbd) return sum;
       return sum + (line ? line.hoursPaid : r.ro.paidHours);
     }, 0);
-    const periodRow = columns.map(id => {
+    const periodRow = exportCols.map(id => {
       if (id === 'description') return csvCell('PERIOD TOTAL');
       if (id === 'hours') return csvCell(periodTotal.toFixed(2));
       return csvCell('');
@@ -447,7 +422,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     csvRows.push(periodRow);
 
     return { headers, csvRows };
-  }, [rows]);
+  }, [groupedDates]);
 
   const handleExportPayroll = useCallback(() => {
     const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'description', 'hours', 'type'];
@@ -458,7 +433,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [buildExportRows]);
 
   const handleExportFull = useCallback(() => {
-    const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'roTotal', 'tbd', 'notes', 'mileage', 'vin'];
+    const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'tbd', 'notes', 'mileage', 'vin'];
     const { headers, csvRows } = buildExportRows(cols);
     const csv = buildCSV(headers, csvRows);
     downloadCSVFile(csv, `audit-${format(new Date(), 'yyyy-MM-dd')}.csv`);
@@ -468,7 +443,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const handleExportXLSX = useCallback(async () => {
     try {
       const XLSX = await import('xlsx');
-      const cols: ColumnId[] = activeColIds;
+      const cols: ColumnId[] = activeColIds.filter(id => id !== 'roTotal');
       const { headers, csvRows } = buildExportRows(cols);
 
       const parseCell = (c: string) => {
@@ -512,7 +487,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const handleExportAuditPDF = useCallback(async () => {
     try {
       const { exportPDF } = await import('@/lib/pdfExport');
-      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'roTotal', 'notes', 'mileage', 'vin'];
+      const cols: ColumnId[] = ['roNumber', 'date', 'advisor', 'customer', 'vehicle', 'lineNo', 'description', 'hours', 'type', 'notes', 'mileage', 'vin'];
       exportPDF(ros, cols, `audit-${format(new Date(), 'yyyy-MM-dd')}.pdf`, `Audit Report${rangeLabel ? ' — ' + rangeLabel : ''}`);
       toast.success('Audit PDF downloaded');
     } catch (err) {
@@ -538,6 +513,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     w.focus();
     w.print();
   }, []);
+
+  /* ─── Helpers ─── */
+  const formatDateLabel = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return format(new Date(y, m - 1, d), 'EEE, MMM d');
+  };
 
   /* ─── Density classes ─── */
   const cellPy = density === 'compact' ? 'py-1' : 'py-2';
@@ -578,20 +559,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               </button>
             ))}
           </div>
-
-          {/* Group by */}
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-            <SelectTrigger className="h-7 w-[120px] text-xs border-border">
-              <Layers className="h-3 w-3 mr-1 flex-shrink-0" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No grouping</SelectItem>
-              <SelectItem value="date">By Date</SelectItem>
-              <SelectItem value="ro">By RO</SelectItem>
-              <SelectItem value="advisor">By Advisor</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="flex items-center gap-1">
@@ -644,14 +611,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto sm:pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
+      <div className="flex-1 overflow-auto pr-3 sm:pr-5" ref={tableRef} style={{ scrollbarGutter: 'stable' }}>
         <table className={cn('min-w-full border-collapse table-fixed', textSize)}>
           <colgroup>
             {activeCols.map((col) => {
-              // Description gets remaining space via auto; others get fixed widths
-              if (col.id === 'description') {
-                return <col key={col.id} />;
-              }
+              if (col.id === 'description') return <col key={col.id} />;
               return <col key={col.id} style={{ width: col.minWidth }} />;
             })}
           </colgroup>
@@ -667,7 +631,6 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                       'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
-                      col.id === 'roTotal' && 'bg-primary/5',
                     )}
                     style={{
                       ...(sticky ? { ...sticky, zIndex: 11 } : {}),
@@ -680,15 +643,15 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map((row, i) => {
-              if (row.type === 'group-header') {
-                const isCollapsed = collapsed.has(row.groupKey);
+            {rows.map((row, i) => {
+              if (row.type === 'date-header') {
+                const isCollapsed = collapsed.has(row.date);
                 return (
-                  <tr key={`hdr-${row.groupKey}`} className="bg-muted/60">
+                  <tr key={`dh-${row.date}`} className="bg-muted/60">
                     <td
                       colSpan={activeCols.length}
                       className={cn(cellPx, 'py-1.5 font-bold text-foreground text-xs uppercase tracking-wider cursor-pointer select-none')}
-                      onClick={() => toggleCollapse(row.groupKey)}
+                      onClick={() => toggleCollapse(row.date)}
                     >
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
@@ -696,10 +659,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                             ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                             : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                           }
-                          {row.label}
+                          {formatDateLabel(row.date)}
                         </span>
                         <span className="text-muted-foreground font-medium normal-case tracking-normal">
-                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.groupHours, hideTotals)}h
+                          {row.roCount} RO{row.roCount !== 1 ? 's' : ''} · {maskHours(row.dayTotal, hideTotals)}h
                         </span>
                       </div>
                     </td>
@@ -707,16 +670,30 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 );
               }
 
-              if (row.type === 'group-total') {
+              if (row.type === 'ro-subtotal') {
                 return (
-                  <tr key={`gtot-${row.groupKey}`} className="bg-muted/30 border-t border-border">
+                  <tr key={`rosub-${row.roNumber}-${i}`} className="bg-muted/20 border-t border-border/50">
+                    {activeCols.map(col => {
+                      if (col.id === 'roNumber')
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground')}>#{row.roNumber}</td>;
+                      if (col.id === 'description')
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground')}>RO Total</td>;
+                      if (col.id === 'hours')
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>{maskHours(row.roTotal, hideTotals)}h</td>;
+                      return <td key={col.id} className={cn(cellPx, cellPy)} />;
+                    })}
+                  </tr>
+                );
+              }
+
+              if (row.type === 'day-total') {
+                return (
+                  <tr key={`dtot-${row.date}`} className="bg-muted/40 border-t-2 border-border">
                     {activeCols.map(col => {
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground uppercase')}>
-                          {groupBy === 'date' ? 'Day Total' : 'Group Total'}
-                        </td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-foreground uppercase')}>Day Total</td>;
                       if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.groupHours, hideTotals)}h</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>{maskHours(row.dayTotal, hideTotals)}h</td>;
                       return <td key={col.id} className={cn(cellPx, cellPy)} />;
                     })}
                   </tr>
@@ -733,11 +710,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
               return (
                 <tr
-                  key={`${row.ro.id}-${row.lineIndex}`}
+                  key={`${row.ro.id}-${row.lineIndex}-${i}`}
                   className={cn(
                     'cursor-pointer hover:bg-accent/50 transition-colors',
                     row.isFirstOfRO ? 'border-t border-border' : 'border-t border-border/30',
-                    row.groupIndex % 2 === 1 && 'bg-muted/20',
+                    row.dateIndex % 2 === 1 && 'bg-muted/20',
                   )}
                   onClick={() => onSelectRO(row.ro)}
                 >
@@ -753,16 +730,15 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                           col.align === 'right' && 'text-right',
                           col.align === 'center' && 'text-center',
                           col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
-                          col.id === 'roTotal' && 'bg-primary/5',
                           isFirstCol && `border-l-[3px] ${borderColorClass}`,
                           'align-top bg-card',
-                          row.groupIndex % 2 === 1 && 'bg-muted/20',
+                          row.dateIndex % 2 === 1 && 'bg-muted/20',
                         )}
                         style={{
                           ...(sticky ? { ...sticky, zIndex: 1 } : {}),
                         }}
                       >
-                        {renderCellValue(col.id, row)}
+                        {renderCellValue(col.id, row.ro, row.lineIndex)}
                       </td>
                     );
                   })}
@@ -788,7 +764,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     onClick={() => setVisibleCount(c => c + ROW_BATCH)}
                     className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                   >
-                    Show more ({rows.length - visibleCount} remaining)
+                    Show more
                   </button>
                 </td>
               </tr>
