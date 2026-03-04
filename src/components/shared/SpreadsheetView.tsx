@@ -733,17 +733,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
               if (row.type === 'ro-subtotal') {
                 return (
-                  <tr key={`rosub-${row.roNumber}-${i}`} className="bg-muted/20 border-t border-border/50">
+                  <tr key={`rosub-${row.roNumber}-${i}`} className="border-t border-border/50">
                     {activeCols.map(col => {
                       const sticky = stickyStyles[col.id];
-                      const stickyClass = sticky ? 'bg-muted/20' : '';
                       if (col.id === 'roNumber')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground', stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined}>#{row.roNumber}</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined}>#{row.roNumber}</td>;
                       if (col.id === 'description')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground')}>RO Total</td>;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-xs font-bold text-muted-foreground bg-card')}>RO Total</td>;
                       if (col.id === 'hours')
-                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>{maskHours(row.roTotal, hideTotals)}h</td>;
-                      return <td key={col.id} className={cn(cellPx, cellPy, stickyClass)} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
+                        return <td key={col.id} className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary bg-card')}>{maskHours(row.roTotal, hideTotals)}h</td>;
+                      return <td key={col.id} className={cn(cellPx, cellPy, 'bg-card')} style={sticky ? { ...sticky, zIndex: 2 } : undefined} />;
                     })}
                   </tr>
                 );
