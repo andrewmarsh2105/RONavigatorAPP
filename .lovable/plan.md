@@ -1,34 +1,14 @@
 
 
-## Fix: Spreadsheet Grouping
+# Fix: White Screen When Leaving Flag Inbox
 
-### Problem
-The `groupBy` dropdown (Date / RO / Advisor / None) in the spreadsheet toolbar is ignored. `buildSpreadsheetRows` on line 179 always groups rows by date regardless of selection.
+## Root Cause
+The Flag Inbox uses `navigate(-1)` (browser history back) for the back button. If the user navigated directly to `/flag-inbox` (e.g., via a bookmark, refresh, or the preview iframe), there is no previous history entry. `navigate(-1)` navigates to an empty/blank page outside the app, resulting in a white screen.
 
-### Solution
-Modify `buildSpreadsheetRows` in `src/lib/buildSpreadsheetRows.ts` to accept a `groupBy` option and re-sort/group accordingly:
+## Fix
 
-- **`date`** (current default): Group by date → day subtotals + RO subtotals within each day.
-- **`ro`**: Group by RO number only — each RO gets a subtotal, no day subtotals.
-- **`advisor`**: Group by advisor → advisor subtotals, with RO subtotals nested inside.
-- **`none`**: Flat list of lines, no RO or day subtotals — only the period subtotal at the end.
+### `src/pages/FlagInboxPage.tsx`
+- Change the back button's `onClick` from `navigate(-1)` to `navigate('/')` so it always returns to the home/RO list screen regardless of browser history state.
 
-### Files Changed
-
-1. **`src/lib/buildSpreadsheetRows.ts`**
-   - Add `groupBy?: 'date' | 'ro' | 'advisor' | 'none'` to `BuildRowsOptions`
-   - Implement grouping logic for each mode:
-     - `date`: existing behavior (no change)
-     - `ro`: sort by RO number, emit lines + roSubtotal per RO, skip daySubtotal
-     - `advisor`: sort by advisor then RO, emit lines + roSubtotal per RO + advisor subtotal rows
-     - `none`: sort by date/RO, emit only line rows + period subtotal
-
-2. **`src/components/shared/SpreadsheetView.tsx`** (line 179)
-   - Pass `groupBy` to `buildSpreadsheetRows`:
-     ```ts
-     buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy })
-     ```
-   - Add `groupBy` to the `useMemo` dependency array
-
-No UI changes needed — the dropdown and all rendering already exist.
+This is a one-line change on the back button handler.
 

@@ -176,7 +176,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, [ros, dateRange, isCloseout, rangeLabel, userSettings.payPeriodEndDates, userSettings.payPeriodType]);
 
   /* ─── Build rows using shared model ─── */
-  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel }), [filteredROs, computedRangeLabel]);
+  const allRows = useMemo(() => buildSpreadsheetRows({ ros: filteredROs, periodLabel: computedRangeLabel, groupBy }), [filteredROs, computedRangeLabel, groupBy]);
 
   /* ─── Compute totals from the period subtotal row ─── */
   const periodRow = allRows.find(r => r.rowType === 'periodSubtotal') as SpreadsheetSubtotalRow | undefined;
@@ -542,6 +542,25 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
                 return (
                   <tr key={`daysub-${i}`} className="border-t-2 border-border bg-muted/40">
+                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                      {sub.label}
+                    </td>
+                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
+                      {maskHours(sub.hours, hideTotals)}h
+                    </td>
+                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                  </tr>
+                );
+              }
+
+              if (row.rowType === 'advisorSubtotal') {
+                const sub = row as SpreadsheetSubtotalRow;
+                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                const afterCols = activeCols.length - spanCols - 1;
+
+                return (
+                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-muted/40">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
                       {sub.label}
                     </td>
