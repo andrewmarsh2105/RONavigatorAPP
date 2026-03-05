@@ -72,7 +72,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
