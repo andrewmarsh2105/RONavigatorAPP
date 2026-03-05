@@ -48,6 +48,7 @@ export type SpreadsheetRow = SpreadsheetLineRow | SpreadsheetSubtotalRow;
 export interface BuildRowsOptions {
   ros: RepairOrder[];
   periodLabel?: string; // e.g. "Feb 23–Mar 8"
+  groupBy?: GroupByMode;
 }
 
 export function buildSpreadsheetRows({ ros, periodLabel }: BuildRowsOptions): SpreadsheetRow[] {
