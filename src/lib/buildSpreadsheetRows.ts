@@ -31,7 +31,7 @@ export interface SpreadsheetLineRow {
 }
 
 export interface SpreadsheetSubtotalRow {
-  rowType: 'roSubtotal' | 'daySubtotal' | 'periodSubtotal';
+  rowType: 'roSubtotal' | 'daySubtotal' | 'advisorSubtotal' | 'periodSubtotal';
   groupIndex: number;
   label: string; // e.g. "RO #12345 total", "Day total (Feb 27)", "Period total (Feb 23–Mar 8)"
   hours: number;
