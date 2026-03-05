@@ -553,7 +553,26 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 );
               }
 
-              if (row.rowType === 'periodSubtotal') {
+              if (row.rowType === 'advisorSubtotal') {
+                const sub = row as SpreadsheetSubtotalRow;
+                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                const afterCols = activeCols.length - spanCols - 1;
+
+                return (
+                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-muted/40">
+                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                      {sub.label}
+                    </td>
+                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
+                      {maskHours(sub.hours, hideTotals)}h
+                    </td>
+                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                  </tr>
+                );
+              }
+
+
                 const sub = row as SpreadsheetSubtotalRow;
                 const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
                 const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
