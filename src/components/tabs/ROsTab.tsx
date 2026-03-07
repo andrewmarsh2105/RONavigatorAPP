@@ -47,16 +47,7 @@ interface ROCardProps {
   hideTotals: boolean;
 }
 
-function calcHours(ro: RepairOrder): number {
-  if (ro.lines?.length) return ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
-  return ro.paidHours || 0;
-}
 
-function formatDateShort(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const local = new Date(y, m - 1, d);
-  return local.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-}
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
