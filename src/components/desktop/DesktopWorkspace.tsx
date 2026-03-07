@@ -136,6 +136,7 @@ export function DesktopWorkspace() {
   };
 
   const showEditor = rightPanel === "editor" && (selectedRO || isAddingNew);
+  const isListExpanded = rightPanel === "none";
 
   return (
     <div className="h-screen flex flex-col bg-background">
