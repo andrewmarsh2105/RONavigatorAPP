@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
@@ -16,7 +16,6 @@ import { FlagBadge } from '@/components/flags/FlagBadge';
 import { FlagInbox } from '@/components/flags/FlagInbox';
 import { ReviewIndicator } from '@/components/flags/ReviewIndicator';
 import { AddFlagDialog } from '@/components/flags/AddFlagDialog';
-import { SpreadsheetView } from '@/components/shared/SpreadsheetView';
 import { EmptyState } from '@/components/states/EmptyState';
 import { toast } from 'sonner';
 import type { LaborType, RepairOrder } from '@/types/ro';
@@ -24,6 +23,12 @@ import type { FlagType } from '@/types/flags';
 import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
+import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { effectiveDate, formatDateShort, calcHours } from '@/lib/roDisplay';
+
+const SpreadsheetView = lazy(() =>
+  import('@/components/shared/SpreadsheetView').then((m) => ({ default: m.SpreadsheetView })),
+);
 
 /* ── ROCard ─────────────────────────────────────── */
 
@@ -42,22 +47,13 @@ interface ROCardProps {
   hideTotals: boolean;
 }
 
-function calcHours(ro: RepairOrder): number {
-  if (ro.lines?.length) return ro.lines.filter(l => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
-  return ro.paidHours || 0;
-}
 
-function formatDateShort(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const local = new Date(y, m - 1, d);
-  return local.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-}
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDuplicate, onDelete, onFlag, onViewDetails,
   flags, onClearFlag, reviewIssues, onConvertToFlag, existingRONumbers, hideTotals,
 }: ROCardProps) {
-  const effectiveDate = ro.paidDate || ro.date;
+  const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
   const hasLines = ro.lines && ro.lines.length > 0;
 
@@ -68,7 +64,7 @@ const ROCard = memo(function ROCard({
           {/* Row 1: RO#, date, advisor */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-bold tabular-nums">#{ro.roNumber}</span>
-            <span className="text-[11px] text-muted-foreground">{formatDateShort(effectiveDate)}</span>
+            <span className="text-[11px] text-muted-foreground">{formatDateShort(roEffectiveDate)}</span>
             <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
             {hasLines && (
               <span className="text-[10px] font-medium text-muted-foreground bg-muted border px-1.5 py-0 rounded">
@@ -142,19 +138,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useLocalStorageState('ui.mobile.roTab.search.v1', '');
+  const deferredSearch = useDeferredValue(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'spreadsheet'>('cards');
+  const [viewMode, setViewMode] = useLocalStorageState<'cards' | 'spreadsheet'>('ui.mobile.roTab.viewMode.v1', 'cards');
   const [visibleCount, setVisibleCount] = useState(50);
 
   useEffect(() => {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useLocalStorageState<FilterState>('ui.mobile.roTab.filters.v1', {
     advisors: [],
     laborTypes: [],
     dateRange: 'all',
@@ -166,9 +163,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const filteredROs = useMemo(() => {
     let result = ros;
 
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    // Search (deferred)
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       result = result.filter(ro => {
         const vehicleStr = [ro.vehicle?.year?.toString(), ro.vehicle?.make, ro.vehicle?.model].filter(Boolean).join(' ').toLowerCase();
         return (
@@ -343,11 +340,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* List content */}
       {viewMode === 'spreadsheet' ? (
         <div className="flex-1 overflow-hidden">
-          <SpreadsheetView
-            ros={filteredROs}
-            rangeLabel={filters.dateRange === 'all' ? 'All Time' : filters.dateRange}
-            onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+            <SpreadsheetView
+              ros={filteredROs}
+              rangeLabel={filters.dateRange === 'all' ? 'All Time' : filters.dateRange}
+              onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
+            />
+          </Suspense>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto pb-32">

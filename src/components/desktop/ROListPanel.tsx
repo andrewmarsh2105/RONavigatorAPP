@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Plus, Search, ArrowUpDown, ClipboardCheck, Wrench, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ import { getReviewIssues } from "@/lib/reviewRules";
 import { cn } from "@/lib/utils";
 import { getCustomPayPeriodRange } from "@/lib/payPeriodUtils";
 import { maskHours } from "@/lib/maskHours";
+import { useLocalStorageState } from "@/hooks/useLocalStorageState";
+import { effectiveDate, formatDateShort, vehicleLabel, calcHours } from "@/lib/roDisplay";
 
 interface ROListPanelProps {
   selectedROId: string | null;
@@ -53,32 +55,6 @@ function getTwoWeekStart(weekStartDay: number): string {
   const start = new Date(now);
   start.setDate(now.getDate() - diff - 7);
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
-}
-
-function effectiveDate(ro: RepairOrder): string {
-  return ro.paidDate || ro.date;
-}
-
-function formatDateShort(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const local = new Date(y, m - 1, d);
-  return local.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
-}
-
-function vehicleLabel(ro: RepairOrder): string {
-  const v = ro.vehicle;
-  if (!v) return "—";
-  const parts = [v.year?.toString(), v.make, v.model].filter(Boolean);
-  return parts.length ? parts.join(" ") : "—";
-}
-
-function calcHours(ro: RepairOrder): number {
-  if (ro.lines?.length) {
-    return ro.lines
-      .filter((l) => !l.isTbd)
-      .reduce((s, l) => s + (l.hoursPaid || 0), 0);
-  }
-  return ro.paidHours || 0;
 }
 
 function SortHeader(props: {
@@ -115,11 +91,12 @@ export const ROListPanel = memo(function ROListPanel({
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const [advisorFilter, setAdvisorFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [searchQuery, setSearchQuery] = useLocalStorageState("ui.desktop.roTable.search.v1", "");
+  const deferredSearch = useDeferredValue(searchQuery);
+  const [dateFilter, setDateFilter] = useLocalStorageState<DateFilter>("ui.desktop.roTable.dateFilter.v1", "all");
+  const [advisorFilter, setAdvisorFilter] = useLocalStorageState("ui.desktop.roTable.advisorFilter.v1", "all");
+  const [sortKey, setSortKey] = useLocalStorageState<SortKey>("ui.desktop.roTable.sortKey.v1", "date");
+  const [sortDir, setSortDir] = useLocalStorageState<SortDir>("ui.desktop.roTable.sortDir.v1", "desc");
   const [visibleCount, setVisibleCount] = useState(80);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
 
@@ -143,8 +120,8 @@ export const ROListPanel = memo(function ROListPanel({
       result = result.filter((ro) => ro.advisor === advisorFilter);
     }
 
-    // Search
-    const q = searchQuery.trim().toLowerCase();
+    // Search (deferred for smoother typing)
+    const q = deferredSearch.trim().toLowerCase();
     if (q) {
       result = result.filter((ro) => {
         const v = vehicleLabel(ro).toLowerCase();

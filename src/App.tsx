@@ -13,6 +13,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 
 // Lazy-loaded heavy routes
 const AddRO = lazy(() => import("./pages/AddRO"));
@@ -101,6 +102,7 @@ const App = () => (
             <Sonner />
             
             <BrowserRouter>
+              <ErrorBoundary>
               <Suspense fallback={<LazyFallback />}>
                 <Routes>
                   <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
@@ -114,6 +116,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
+              </ErrorBoundary>
             </BrowserRouter>
           </TooltipProvider>
         </FlagProvider>
