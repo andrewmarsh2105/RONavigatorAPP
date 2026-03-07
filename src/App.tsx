@@ -13,6 +13,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 
 // Lazy-loaded heavy routes
 const AddRO = lazy(() => import("./pages/AddRO"));
