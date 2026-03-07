@@ -340,11 +340,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* List content */}
       {viewMode === 'spreadsheet' ? (
         <div className="flex-1 overflow-hidden">
-          <SpreadsheetView
-            ros={filteredROs}
-            rangeLabel={filters.dateRange === 'all' ? 'All Time' : filters.dateRange}
-            onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+            <SpreadsheetView
+              ros={filteredROs}
+              rangeLabel={filters.dateRange === 'all' ? 'All Time' : filters.dateRange}
+              onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
+            />
+          </Suspense>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto pb-32">
