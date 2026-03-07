@@ -350,7 +350,7 @@ export default function AddRO() {
             </div>
           ) : (
             <button
-              onClick={() => setPaidDate(localDateStr())}
+              onClick={() => { setPaidDate(localDateStr()); setShowMoreFields(true); }}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
             >
               <CalendarCheck className="h-3.5 w-3.5" />
