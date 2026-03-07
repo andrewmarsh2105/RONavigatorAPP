@@ -216,13 +216,15 @@ export function DesktopWorkspace() {
 
       {viewMode === "spreadsheet" ? (
         <div className="flex-1 min-h-0">
-          <SpreadsheetView
-            ros={filteredROs}
-            onSelectRO={(ro) => {
-              setViewMode("split");
-              handleSelectRO(ro);
-            }}
-          />
+          <Suspense fallback={<PanelFallback />}>
+            <SpreadsheetView
+              ros={filteredROs}
+              onSelectRO={(ro) => {
+                setViewMode("split");
+                handleSelectRO(ro);
+              }}
+            />
+          </Suspense>
         </div>
       ) : (
         <div className="flex-1 flex min-h-0">
