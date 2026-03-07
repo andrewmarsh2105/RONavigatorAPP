@@ -64,11 +64,12 @@ export const ROListPanel = memo(function ROListPanel({
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const [advisorFilter, setAdvisorFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [searchQuery, setSearchQuery] = useLocalStorageState("ui.desktop.roTable.search.v1", "");
+  const deferredSearch = useDeferredValue(searchQuery);
+  const [dateFilter, setDateFilter] = useLocalStorageState<DateFilter>("ui.desktop.roTable.dateFilter.v1", "all");
+  const [advisorFilter, setAdvisorFilter] = useLocalStorageState("ui.desktop.roTable.advisorFilter.v1", "all");
+  const [sortKey, setSortKey] = useLocalStorageState<SortKey>("ui.desktop.roTable.sortKey.v1", "date");
+  const [sortDir, setSortDir] = useLocalStorageState<SortDir>("ui.desktop.roTable.sortDir.v1", "desc");
   const [visibleCount, setVisibleCount] = useState(80);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
 
