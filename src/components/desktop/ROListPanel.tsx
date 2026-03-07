@@ -35,6 +35,7 @@ interface ROListPanelProps {
   onSelectRO: (ro: RepairOrder) => void;
   onAddNew: () => void;
   onFilteredROsChange?: (ros: RepairOrder[]) => void;
+  compact?: boolean;
 }
 
 type DateFilter = "all" | "today" | "week" | "month" | "pay_period";
@@ -87,8 +88,10 @@ export const ROListPanel = memo(function ROListPanel({
   onSelectRO,
   onAddNew,
   onFilteredROsChange,
+  compact = false,
 }: ROListPanelProps) {
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
+  const isCompact = compact;
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useLocalStorageState("ui.desktop.roTable.search.v1", "");
@@ -338,7 +341,7 @@ export const ROListPanel = memo(function ROListPanel({
               </p>
             </div>
           ) : (
-            <Table>
+            <Table className={cn(isCompact ? "min-w-[720px]" : "min-w-[980px]")}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="h-8 px-3">
@@ -357,14 +360,16 @@ export const ROListPanel = memo(function ROListPanel({
                       onClick={() => toggleSort("ro")}
                     />
                   </TableHead>
-                  <TableHead className="h-8 px-2">
-                    <SortHeader
-                      label="Advisor"
-                      active={sortKey === "advisor"}
-                      dir={sortDir}
-                      onClick={() => toggleSort("advisor")}
-                    />
-                  </TableHead>
+                  {!isCompact && (
+                    <TableHead className="h-8 px-2">
+                      <SortHeader
+                        label="Advisor"
+                        active={sortKey === "advisor"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("advisor")}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="h-8 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Info
                   </TableHead>
@@ -406,14 +411,26 @@ export const ROListPanel = memo(function ROListPanel({
                       <TableCell className="px-2 py-2 font-medium whitespace-nowrap">
                         #{ro.roNumber}
                       </TableCell>
-                      <TableCell className="px-2 py-2 text-muted-foreground whitespace-nowrap">
-                        {ro.advisor}
-                      </TableCell>
-                      <TableCell className="px-2 py-2 max-w-[120px]">
+                      {!isCompact && (
+                        <TableCell className="px-2 py-2 text-muted-foreground whitespace-nowrap">
+                          {ro.advisor}
+                        </TableCell>
+                      )}
+                      <TableCell className={cn("px-2 py-2", isCompact ? "max-w-[240px]" : "max-w-[220px]")}>
                         <p className="text-[11px] font-medium truncate">
-                          {vehicleLabel(ro)}
+                          {isCompact ? ro.advisor : vehicleLabel(ro)}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
+                        {isCompact && (
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {vehicleLabel(ro)}
+                          </p>
+                        )}
+                        <p
+                          className={cn(
+                            "text-[10px] text-muted-foreground truncate",
+                            isCompact && "mt-0.5",
+                          )}
+                        >
                           {(ro.lines?.length
                             ? ro.lines
                                 .map((l) => l.description)
