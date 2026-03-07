@@ -248,9 +248,9 @@ export function RODetailSheet({
               </div>
 
               <div className="flex items-center gap-1.5 flex-wrap">
-                {flags.map((f) => (
-                  <FlagBadge key={f.id} flag={f} onClear={() => clearFlag(f.id)} />
-                ))}
+                {flags.length > 0 && (
+                  <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
+                )}
                 {issues.length > 0 ? (
                   <Badge variant="destructive" className="text-[10px]">
                     <AlertTriangle className="h-3 w-3 mr-1" />
