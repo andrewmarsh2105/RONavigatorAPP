@@ -64,7 +64,7 @@ const ROCard = memo(function ROCard({
           {/* Row 1: RO#, date, advisor */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-bold tabular-nums">#{ro.roNumber}</span>
-            <span className="text-[11px] text-muted-foreground">{formatDateShort(effectiveDate)}</span>
+            <span className="text-[11px] text-muted-foreground">{formatDateShort(roEffectiveDate)}</span>
             <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
             {hasLines && (
               <span className="text-[10px] font-medium text-muted-foreground bg-muted border px-1.5 py-0 rounded">
