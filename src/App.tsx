@@ -102,6 +102,7 @@ const App = () => (
             <Sonner />
             
             <BrowserRouter>
+              <ErrorBoundary>
               <Suspense fallback={<LazyFallback />}>
                 <Routes>
                   <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
