@@ -1,64 +1,78 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { OfflineStatusBar } from '@/components/shared/OfflineStatusBar';
-import { BottomTabBar } from '@/components/mobile/BottomTabBar';
-import { FloatingActionButton } from '@/components/mobile/FloatingActionButton';
-import { ROsTab } from '@/components/tabs/ROsTab';
-import { SummaryTab } from '@/components/tabs/SummaryTab';
-import { SettingsTab } from '@/components/tabs/SettingsTab';
-import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
-import { useIsMobile } from '@/hooks/use-mobile';
-import type { RepairOrder } from '@/types/ro';
+import { lazy, Suspense } from "react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, Plus } from "lucide-react";
+
+import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
+import { BottomTabBar } from "@/components/mobile/BottomTabBar";
+import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
+import { ROsTab } from "@/components/tabs/ROsTab";
+import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocalStorageState } from "@/hooks/useLocalStorageState";
+import type { RepairOrder } from "@/types/ro";
+
+const SummaryTab = lazy(() =>
+  import("@/components/tabs/SummaryTab").then((m) => ({ default: m.SummaryTab })),
+);
+const SettingsTab = lazy(() =>
+  import("@/components/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })),
+);
+
+function TabFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center py-20">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm">Loading…</span>
+      </div>
+    </div>
+  );
+}
 
 function MobileApp() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'ros' | 'summary' | 'settings'>('ros');
-  const [roViewMode, setRoViewMode] = useState<'cards' | 'spreadsheet'>('cards');
+
+  const [activeTab, setActiveTab] = useLocalStorageState<"ros" | "summary" | "settings">(
+    "ui.mobile.activeTab.v1",
+    "ros",
+  );
+  const [roViewMode, setRoViewMode] = useLocalStorageState<"cards" | "spreadsheet">(
+    "ui.mobile.roViewMode.v1",
+    "cards",
+  );
 
   const handleEditRO = (ro: RepairOrder) => {
-    navigate('/add-ro', { state: { editingROId: ro.id } });
+    navigate("/add-ro", { state: { editingROId: ro.id } });
   };
 
   const handleAddRO = () => {
-    navigate('/add-ro');
+    navigate("/add-ro");
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <OfflineStatusBar />
-      {/* Main Content Area */}
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
-        {activeTab === 'ros' && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
-        {activeTab === 'summary' && <SummaryTab />}
-        {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}
+
+        {activeTab !== "ros" && (
+          <Suspense fallback={<TabFallback />}>
+            {activeTab === "summary" && <SummaryTab />}
+            {activeTab === "settings" && <SettingsTab />}
+          </Suspense>
+        )}
       </main>
 
-      {/* Floating Action Button - only on ROs tab in card view */}
-      {activeTab === 'ros' && roViewMode !== 'spreadsheet' && (
-        <FloatingActionButton
-          onClick={handleAddRO}
-          icon={<Plus className="h-6 w-6" />}
-          label="Quick Add"
-        />
+      {activeTab === "ros" && roViewMode !== "spreadsheet" && (
+        <FloatingActionButton onClick={handleAddRO} icon={<Plus className="h-6 w-6" />} label="Quick Add" />
       )}
 
-      {/* Bottom Tab Bar */}
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
 
-const Index = () => {
+export default function Index() {
   const isMobile = useIsMobile();
-  
-  // Desktop: Use the full Xtime-style workspace
-  if (!isMobile) {
-    return <DesktopWorkspace />;
-  }
-  
-  // Mobile: Use the tab-based app
-  return <MobileApp />;
-};
-
-export default Index;
+  return isMobile ? <MobileApp /> : <DesktopWorkspace />;
+}

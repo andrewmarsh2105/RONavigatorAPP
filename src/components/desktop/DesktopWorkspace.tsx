@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
-import { SettingsTab } from "@/components/tabs/SettingsTab";
-import { SummaryTab } from "@/components/tabs/SummaryTab";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import { Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
@@ -11,10 +10,27 @@ import roLogo from "@/assets/ro-logo.jpeg";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
-import { SpreadsheetView } from "@/components/shared/SpreadsheetView";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
 import { toast } from "sonner";
+
+const SettingsTab = lazy(() =>
+  import("@/components/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })),
+);
+const SummaryTab = lazy(() =>
+  import("@/components/tabs/SummaryTab").then((m) => ({ default: m.SummaryTab })),
+);
+const SpreadsheetView = lazy(() =>
+  import("@/components/shared/SpreadsheetView").then((m) => ({ default: m.SpreadsheetView })),
+);
+
+function PanelFallback() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 const panelVariants = {
   initial: { opacity: 0, y: 6 },
