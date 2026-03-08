@@ -160,28 +160,16 @@ export const ROListPanel = memo(function ROListPanel({
       });
     }
 
-    const today = localDateStr(new Date());
-
-    if (dateFilter === "today") {
-      result = result.filter((ro) => effectiveDate(ro) === today);
-    } else if (dateFilter === "week") {
-      const useTwoWeeks = userSettings.defaultSummaryRange === "two_weeks";
-      const start = useTwoWeeks
-        ? getTwoWeekStart(userSettings.weekStartDay ?? 0)
-        : getWeekStart(userSettings.weekStartDay ?? 0);
-      result = result.filter((ro) => effectiveDate(ro) >= start);
-    } else if (dateFilter === "month") {
-      const monthAgo = new Date();
-      monthAgo.setDate(monthAgo.getDate() - 30);
-      const start = localDateStr(monthAgo);
-      result = result.filter((ro) => effectiveDate(ro) >= start);
-    } else if (dateFilter === "pay_period" && hasCustomPayPeriod) {
-      const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
-      result = result.filter((ro) => {
-        const d = effectiveDate(ro);
-        return d >= start && d <= end;
-      });
-    }
+    const bounds = computeDateRangeBounds({
+      filter: dateFilter,
+      weekStartDay: userSettings.weekStartDay ?? 0,
+      defaultSummaryRange: userSettings.defaultSummaryRange,
+      payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
+      hasCustomPayPeriod,
+      customStart,
+      customEnd,
+    });
+    result = filterROsByDateRange(result, bounds);
 
     const dir = sortDir === "asc" ? 1 : -1;
 
@@ -197,6 +185,7 @@ export const ROListPanel = memo(function ROListPanel({
   }, [
     ros, advisorFilter, deferredQuery, dateFilter, hasCustomPayPeriod,
     sortKey, sortDir, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, userSettings.weekStartDay,
+    customStart, customEnd,
   ]);
 
   useEffect(() => {
