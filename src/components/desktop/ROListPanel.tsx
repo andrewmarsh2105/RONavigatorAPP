@@ -198,6 +198,18 @@ export const ROListPanel = memo(function ROListPanel({
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
 
+  const rangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
+    hasCustomPayPeriod,
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+
+  const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
+
   const totals = useMemo(() => {
     const totalHours = filteredROs.reduce((sum, ro) => sum + calcHours(ro), 0);
     return { totalHours, totalAll: filteredROs.length, totalVisible: visible.length };
