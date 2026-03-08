@@ -77,7 +77,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
-  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange('week');
+  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange('week', 'spreadsheet');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
@@ -312,7 +312,32 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       <div className="h-full flex flex-col">
         {/* Still show toolbar so user can change range */}
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card">
-        {!isCloseout && !isMobile && (
+        {!isCloseout && (
+            isMobile ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]">
+                    <CalendarRange className="h-3 w-3" />
+                    {dateRange === 'all' ? 'All' : dateRange === 'custom' ? 'Custom' : dateRange === 'pay_period' ? 'Pay Period' : dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {([
+                    { value: 'today' as DateFilterKey, label: 'Today' },
+                    { value: 'week' as DateFilterKey, label: 'Week' },
+                    { value: 'month' as DateFilterKey, label: 'Month' },
+                    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+                    { value: 'all' as DateFilterKey, label: 'All' },
+                    { value: 'custom' as DateFilterKey, label: 'Custom…' },
+                  ]).map(opt => (
+                    <DropdownMenuItem key={opt.value} onClick={() => setDateRange(opt.value)}>
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
@@ -336,6 +361,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </button>
               ))}
             </div>
+            )
           )}
           {computedRangeLabel && (
             <Badge variant="outline" className="gap-1">
@@ -357,7 +383,32 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-card flex-wrap">
         <div className="flex items-center gap-2">
           {/* Date range selector */}
-          {!isCloseout && !isMobile && (
+          {!isCloseout && (
+            isMobile ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]">
+                    <CalendarRange className="h-3 w-3" />
+                    {dateRange === 'all' ? 'All' : dateRange === 'custom' ? 'Custom' : dateRange === 'pay_period' ? 'Pay Period' : dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {([
+                    { value: 'today' as DateFilterKey, label: 'Today' },
+                    { value: 'week' as DateFilterKey, label: 'Week' },
+                    { value: 'month' as DateFilterKey, label: 'Month' },
+                    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+                    { value: 'all' as DateFilterKey, label: 'All' },
+                    { value: 'custom' as DateFilterKey, label: 'Custom…' },
+                  ]).map(opt => (
+                    <DropdownMenuItem key={opt.value} onClick={() => setDateRange(opt.value)}>
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
@@ -381,6 +432,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </button>
               ))}
             </div>
+            )
           )}
 
           {computedRangeLabel && (
