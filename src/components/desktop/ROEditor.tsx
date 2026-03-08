@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2 } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, ClipboardPaste } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
@@ -13,6 +13,8 @@ import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
+import { haptics } from '@/lib/haptics';
+import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -176,6 +178,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         await addRO(roData);
         toast.success('RO created');
       }
+      haptics.success();
       if (addAnother) {
         setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
         setLines([createEmptyLine(1)]); setShowDetails(false);
@@ -187,6 +190,34 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasteLines = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = parsePastedLines(text, laborType);
+      if (!parsed.length) {
+        toast.error('No lines found in clipboard');
+        return;
+      }
+      haptics.light();
+      const newLines: ROLine[] = parsed.map((p, i) => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9) + i,
+        lineNo: i + 1,
+        description: p.description,
+        hoursPaid: p.hoursPaid,
+        isTbd: p.isTbd,
+        laborType: p.laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+      const updatedLines = [...newLines, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+      setLines(updatedLines);
+      setHighlightedLineIds(newLines.map(l => l.id));
+      toast.success(`Pasted ${newLines.length} lines`);
+    } catch (err) {
+      toast.error('Failed to read clipboard');
     }
   };
 
@@ -237,6 +268,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           </select>
 
           <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={handlePasteLines}
+              className="h-8 px-3 flex items-center justify-center gap-1.5 bg-secondary rounded-md border border-border hover:bg-accent transition-colors text-sm"
+              title="Paste lines from clipboard"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              Paste
+            </button>
             {isPro && (
               <button
                 onClick={() => setShowScanFlow(true)}

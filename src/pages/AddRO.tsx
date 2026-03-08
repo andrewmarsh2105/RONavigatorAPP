@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, CalendarCheck, User, FileText, X } from 'lucide-react';
+import { Camera, Plus, Loader2, CalendarCheck, User, FileText, X, ClipboardPaste } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { CompactLinesGrid, createEmptyLine } from '@/components/mobile/CompactLinesGrid';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
+import { PresetHoursSheet } from '@/components/mobile/PresetHoursSheet';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SectionCard } from '@/components/layout/SectionCard';
@@ -13,7 +14,10 @@ import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
-import type { LaborType, ROLine, VehicleInfo } from '@/types/ro';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { haptics } from '@/lib/haptics';
+import { parsePastedLines } from '@/lib/parseLines';
+import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
@@ -48,6 +52,9 @@ export default function AddRO() {
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showCapSheet, setShowCapSheet] = useState(false);
+
+  // Long-press preset hours sheet
+  const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
 
   // RO cap
   const monthlyROCount = useMemo(() => {
@@ -89,6 +96,25 @@ export default function AddRO() {
     }
     return [createEmptyLine(1)];
   });
+
+  // Unsaved changes guard
+  const initialSnapshotRef = useRef<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const currentSnapshot = useMemo(() => JSON.stringify({
+    roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines
+  }), [roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines]);
+
+  useEffect(() => {
+    // Set initial snapshot once data is ready
+    if (initialSnapshotRef.current === null && !loadingROs) {
+      initialSnapshotRef.current = currentSnapshot;
+    }
+  }, [currentSnapshot, loadingROs]);
+
+  const isDirty = initialSnapshotRef.current !== null && currentSnapshot !== initialSnapshotRef.current;
+
+  useUnsavedChangesGuard(isDirty && !isSaving, "Discard unsaved changes?");
 
   // Lock body scroll on mobile
   useEffect(() => {
@@ -151,7 +177,7 @@ export default function AddRO() {
   };
 
   const handleAddLine = () => {
-    if ('vibrate' in navigator) navigator.vibrate(10);
+    haptics.light();
     const newLine = createEmptyLine(1);
     const updatedLines = [newLine, ...lines].map((line, i) => ({ ...line, lineNo: i + 1 }));
     setLines(updatedLines);
@@ -163,7 +189,53 @@ export default function AddRO() {
     setRecentlyAddedPresets(prev => [presetId, ...prev.filter(id => id !== presetId)].slice(0, 3));
   };
 
-  const [isSaving, setIsSaving] = useState(false);
+  const addPresetLine = useCallback((preset: Preset, overrideHours?: number) => {
+    haptics.medium();
+    const newLineId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    const newLine: ROLine = {
+      id: newLineId,
+      lineNo: 1,
+      description: preset.workTemplate || preset.name,
+      hoursPaid: overrideHours !== undefined ? overrideHours : (preset.defaultHours || 0),
+      laborType: preset.laborType,
+      matchedReferenceId: preset.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+    setLines(updatedLines);
+    setHighlightedLineIds([newLineId]);
+    handlePresetAdd(preset.id);
+    toast.success(`Added: ${preset.name} (${overrideHours !== undefined ? overrideHours : (preset.defaultHours || 0)}h)`);
+  }, [lines]);
+
+  const handlePasteLines = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = parsePastedLines(text, laborType);
+      if (!parsed.length) {
+        toast.error('No lines found in clipboard');
+        return;
+      }
+      haptics.light();
+      const newLines: ROLine[] = parsed.map((p, i) => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9) + i,
+        lineNo: i + 1,
+        description: p.description,
+        hoursPaid: p.hoursPaid,
+        isTbd: p.isTbd,
+        laborType: p.laborType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+      const updatedLines = [...newLines, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
+      setLines(updatedLines);
+      setHighlightedLineIds(newLines.map(l => l.id));
+      toast.success(`Pasted ${newLines.length} lines`);
+    } catch (err) {
+      toast.error('Failed to read clipboard');
+    }
+  };
 
   const handleSave = async (addAnother: boolean = false) => {
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
@@ -192,9 +264,13 @@ export default function AddRO() {
         await addRO(roData);
         toast.success('RO created');
       }
+      haptics.success();
+      // Reset snapshot so guard doesn't block
+      initialSnapshotRef.current = currentSnapshot;
       if (addAnother) {
         setRoNumber(''); setCustomerName(''); setNotes(''); setPaidDate('');
         setLines([createEmptyLine(1)]);
+        initialSnapshotRef.current = null; // will be set on next render
       } else {
         navigate(-1);
       }
@@ -255,22 +331,22 @@ export default function AddRO() {
             {isPro && (
               <button
                 onClick={() => setShowScanFlow(true)}
-                className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-5 w-5" />
               </button>
             )}
             <button
               onClick={() => handleSave(false)}
               disabled={!isValid || isSaving}
               className={cn(
-                'h-8 px-3 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors',
+                'h-11 px-4 rounded-md text-sm font-semibold flex items-center gap-1.5 transition-colors',
                 isValid && !isSaving
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               )}
             >
-              {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingRO ? 'Update' : 'Save'}
             </button>
           </div>
@@ -288,18 +364,18 @@ export default function AddRO() {
               value={roNumber}
               onChange={e => setRoNumber(e.target.value)}
               placeholder="RO #"
-              className="w-20 h-8 px-2 bg-muted rounded-md border border-input text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-20 h-11 px-2 bg-muted rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
           <button
             onClick={() => setShowAdvisorList(true)}
             className={cn(
-              'flex-1 h-8 px-2 rounded-md border border-input text-xs text-left flex items-center gap-1.5 min-w-0 truncate',
+              'flex-1 h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 min-w-0 truncate',
               advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
             )}
           >
-            <User className="h-3.5 w-3.5 flex-shrink-0" />
+            <User className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{advisor || 'Advisor'}</span>
           </button>
 
@@ -307,13 +383,13 @@ export default function AddRO() {
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="h-8 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring w-[100px] flex-shrink-0"
+            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring w-[110px] flex-shrink-0"
           />
 
           <select
             value={laborType}
             onChange={e => setLaborType(e.target.value as LaborType)}
-            className="h-8 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
@@ -336,24 +412,24 @@ export default function AddRO() {
         <div className="px-3 py-1.5 border-t border-border/50">
           {paidDate ? (
             <div className="flex items-center gap-2">
-              <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-              <span className="text-xs font-medium text-foreground">Paid:</span>
+              <CalendarCheck className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-sm font-medium text-foreground">Paid:</span>
               <input
                 type="date"
                 value={paidDate}
                 onChange={e => setPaidDate(e.target.value)}
-                className="h-7 px-1.5 bg-muted rounded-md border border-input text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <button onClick={() => setPaidDate('')} className="p-1 rounded hover:bg-muted text-muted-foreground">
-                <X className="h-3.5 w-3.5" />
+              <button onClick={() => setPaidDate('')} className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[44px] min-h-[44px] flex items-center justify-center">
+                <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
             <button
               onClick={() => { setPaidDate(localDateStr()); setShowMoreFields(true); }}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors py-2 min-h-[44px]"
             >
-              <CalendarCheck className="h-3.5 w-3.5" />
+              <CalendarCheck className="h-4 w-4" />
               <span>Set paid date</span>
             </button>
           )}
@@ -364,13 +440,13 @@ export default function AddRO() {
           <CollapsibleContent>
             <div className="px-3 py-2 bg-muted/20">
               <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-12 pt-2">Notes</span>
+                <span className="text-sm text-muted-foreground w-12 pt-2">Notes</span>
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Additional notes..."
                   rows={2}
-                  className="flex-1 p-2 bg-muted rounded-md border border-input text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="flex-1 p-3 bg-muted rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
@@ -380,7 +456,7 @@ export default function AddRO() {
 
       {/* Lines */}
       <main ref={linesContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="p-3 pb-48">
+        <div className="p-3 pb-56">
           <CompactLinesGrid
             lines={lines}
             onLinesChange={setLines}
@@ -395,7 +471,7 @@ export default function AddRO() {
       {/* Bottom action bar */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
         <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground">
             Total ({lines.length} lines)
             {tbdCount > 0 && <span className="ml-1 text-destructive">· {tbdCount} TBD</span>}
           </span>
@@ -406,7 +482,7 @@ export default function AddRO() {
             onClick={() => handleSave(false)}
             disabled={!isValid || isSaving}
             className={cn(
-              'flex-1 py-2.5 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center justify-center gap-2',
+              'flex-1 py-3 rounded-md font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98] flex items-center justify-center gap-2',
               isValid && !isSaving ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
             )}
           >
@@ -418,7 +494,7 @@ export default function AddRO() {
               onClick={() => handleSave(true)}
               disabled={!isValid || isSaving}
               className={cn(
-                'py-2.5 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
+                'py-3 px-4 rounded-md font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
                 isValid && !isSaving ? 'border-primary text-primary' : 'border-muted text-muted-foreground'
               )}
             >
@@ -427,15 +503,23 @@ export default function AddRO() {
           )}
         </div>
 
-        {/* Sticky quick actions: one-tap add line + quick presets */}
+        {/* Sticky quick actions: one-tap add line + paste + quick presets */}
         <div className="px-3 pb-3 pt-1 border-t border-border/50">
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddLine}
-              className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+              className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               Line
+            </button>
+
+            <button
+              onClick={handlePasteLines}
+              className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
+              title="Paste lines from clipboard"
+            >
+              <ClipboardPaste className="h-4 w-4" />
             </button>
 
             {quickPresets.length > 0 ? (
@@ -443,16 +527,16 @@ export default function AddRO() {
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
                   {recentlyAddedPresets.length > 0 && (
                     <>
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0">Recent:</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">Recent:</span>
                       {recentlyAddedPresets.map(id => {
                         const preset = settings.presets.find(p => p.id === id);
                         return preset ? (
-                          <span key={id} className="flex-shrink-0 px-1.5 py-0.5 bg-primary/15 rounded-md text-[10px] text-primary font-medium border border-primary/20">
+                          <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/15 rounded-md text-xs text-primary font-medium border border-primary/20">
                             {preset.name}
                           </span>
                         ) : null;
                       })}
-                      <div className="w-px h-4 bg-border flex-shrink-0 mx-1" />
+                      <div className="w-px h-5 bg-border flex-shrink-0 mx-1" />
                     </>
                   )}
 
@@ -460,35 +544,33 @@ export default function AddRO() {
                     <PresetButton
                       key={preset.id}
                       preset={preset}
-                      onAdd={newLineId => {
-                        const newLine: ROLine = {
-                          id: newLineId,
-                          lineNo: 1,
-                          description: preset.workTemplate || preset.name,
-                          hoursPaid: preset.defaultHours || 0,
-                          laborType: preset.laborType,
-                          matchedReferenceId: preset.id,
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                        };
-                        const updatedLines = [newLine, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
-                        setLines(updatedLines);
-                        setHighlightedLineIds([newLineId]);
-                        handlePresetAdd(preset.id);
-                        toast.success(`Added: ${preset.name} (${preset.defaultHours || 0}h)`);
-                      }}
+                      onTap={() => addPresetLine(preset)}
+                      onLongPress={() => setLongPressPreset(preset)}
                     />
                   ))}
                 </div>
               </div>
             ) : (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 No presets yet — add some in Settings.
               </span>
             )}
           </div>
         </div>
       </footer>
+
+      {/* Long-press preset hours sheet */}
+      <PresetHoursSheet
+        open={!!longPressPreset}
+        onClose={() => setLongPressPreset(null)}
+        preset={longPressPreset}
+        onConfirm={(hours) => {
+          if (longPressPreset) {
+            addPresetLine(longPressPreset, hours);
+          }
+          setLongPressPreset(null);
+        }}
+      />
 
       {/* Advisor Sheet */}
       <BottomSheet isOpen={showAdvisorList} onClose={() => setShowAdvisorList(false)} title="Select Advisor">
@@ -498,7 +580,7 @@ export default function AddRO() {
             placeholder="Search or add new advisor..."
             value={advisorSearch}
             onChange={e => setAdvisorSearch(e.target.value)}
-            className="w-full h-10 px-3 bg-secondary rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
             autoFocus
           />
           {filteredAdvisors.map(adv => (
@@ -506,7 +588,7 @@ export default function AddRO() {
               key={adv.id}
               onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
               className={cn(
-                'w-full p-2.5 rounded-md text-left text-sm font-medium min-h-[44px] border',
+                'w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] border',
                 advisor === adv.name ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'
               )}
             >
@@ -521,7 +603,7 @@ export default function AddRO() {
                 setAdvisor(name); setShowAdvisorList(false); setAdvisorSearch('');
                 toast.success(`Advisor "${name}" created`);
               }}
-              className="w-full p-2.5 rounded-md text-left text-sm font-medium min-h-[44px] bg-primary/10 text-primary border border-dashed border-primary/30 flex items-center gap-2"
+              className="w-full p-3 rounded-md text-left text-sm font-medium min-h-[44px] bg-primary/10 text-primary border border-dashed border-primary/30 flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Add: "{advisorSearch.trim()}"
@@ -548,11 +630,11 @@ export default function AddRO() {
           </p>
           <button
             onClick={() => { setShowCapSheet(false); startCheckout(); }}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm"
+            className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm min-h-[44px]"
           >
             Upgrade to Pro — $8.99/mo
           </button>
-          <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm">
+          <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
             Maybe later
           </button>
         </div>
@@ -561,28 +643,61 @@ export default function AddRO() {
   );
 }
 
-// Preset button
+// Preset button with long-press support
 function PresetButton({
-  preset, onAdd,
+  preset,
+  onTap,
+  onLongPress,
 }: {
-  preset: { id: string; name: string; defaultHours?: number; workTemplate?: string; laborType?: LaborType };
-  onAdd: (newLineId: string) => void;
+  preset: Preset;
+  onTap: () => void;
+  onLongPress: () => void;
 }) {
   const [isPressed, setIsPressed] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPressRef = useRef(false);
 
-  const handleClick = () => {
-    if ('vibrate' in navigator) navigator.vibrate(10);
-    setIsPressed(true);
-    const newLineId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-    onAdd(newLineId);
-    setTimeout(() => setIsPressed(false), 600);
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
   };
+
+  const handlePointerDown = () => {
+    didLongPressRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+      haptics.medium();
+      onLongPress();
+    }, 450);
+  };
+
+  const handlePointerUp = () => {
+    clearLongPress();
+    if (!didLongPressRef.current) {
+      setIsPressed(true);
+      onTap();
+      setTimeout(() => setIsPressed(false), 600);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    clearLongPress();
+  };
+
+  useEffect(() => {
+    return () => clearLongPress();
+  }, []);
 
   return (
     <button
-      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
       className={cn(
-        'flex-shrink-0 px-2.5 py-1.5 border rounded-md text-xs font-medium flex items-center gap-1 transition-all duration-150 min-h-[32px]',
+        'flex-shrink-0 px-3 h-11 border rounded-md text-sm font-medium flex items-center gap-1.5 transition-all duration-150 min-h-[44px] select-none touch-manipulation',
         isPressed
           ? 'bg-primary text-primary-foreground border-primary scale-95'
           : 'bg-card border-border hover:bg-primary/10 hover:border-primary/30 active:scale-95'
@@ -591,7 +706,7 @@ function PresetButton({
       {isPressed ? (
         <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex">✓</motion.span>
       ) : (
-        <Plus className="h-3 w-3" />
+        <Plus className="h-3.5 w-3.5" />
       )}
       {preset.name}
       {preset.defaultHours !== undefined && (

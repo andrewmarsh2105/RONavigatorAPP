@@ -148,30 +148,30 @@ export function CompactLinesGrid({
                         setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
                       }
                     }}
-                    className="flex-1 h-10 px-3 bg-card border border-input rounded-[10px] text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
+                    className="flex-1 h-11 px-3 bg-card border border-input rounded-[10px] text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
                   />
                   {/* Expand button */}
                   <button
                     onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
-                    className="p-1.5 text-muted-foreground hover:text-foreground rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                    className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
                     title="View full description"
                     aria-label="View full description"
                   >
-                    <Maximize2 className="h-3.5 w-3.5" />
+                    <Maximize2 className="h-4 w-4" />
                   </button>
                   {!readOnly && (
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => handleDuplicateLine(index)}
-                        className="p-1.5 text-muted-foreground hover:text-foreground rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
+                        className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform"
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleRemoveLine(index)}
-                        className="p-1.5 text-destructive/60 hover:text-destructive rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
+                        className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -183,7 +183,7 @@ export function CompactLinesGrid({
                     value={line.laborType || ''}
                     onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
                     disabled={readOnly}
-                    className="h-8 px-2 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
+                    className="h-11 px-3 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
                   >
                     <option value="">Default</option>
                     {LABOR_TYPES.map((t) => (
@@ -196,7 +196,7 @@ export function CompactLinesGrid({
                     <button
                       onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
                       className={cn(
-                        'px-2 py-1 rounded-md text-[10px] font-bold transition-all flex-shrink-0 border',
+                        'h-11 px-3 rounded-md text-xs font-bold transition-all flex-shrink-0 border min-w-[44px]',
                         line.isTbd
                           ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
                           : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -206,7 +206,7 @@ export function CompactLinesGrid({
                     </button>
                   )}
                   {readOnly && line.isTbd && (
-                    <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700">TBD</span>
+                    <span className="h-11 px-3 bg-amber-50 text-amber-600 text-xs font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700 flex items-center">TBD</span>
                   )}
 
                   <div className="flex-1" />
@@ -218,12 +218,12 @@ export function CompactLinesGrid({
                       placeholder={line.isTbd ? '—' : '0.0'}
                       disabled={readOnly}
                       className={cn(
-                        'w-16 h-8 px-2 bg-secondary border border-border rounded-md text-sm font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
+                        'w-20 h-11 px-2 bg-secondary border border-border rounded-md text-base font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
                         isHighlighted && 'ring-2 ring-primary border-primary',
                         line.isTbd && 'line-through text-muted-foreground'
                       )}
                     />
-                    <span className="text-[11px] text-muted-foreground font-medium">hrs</span>
+                    <span className="text-xs text-muted-foreground font-medium">hrs</span>
                   </div>
                 </div>
 
