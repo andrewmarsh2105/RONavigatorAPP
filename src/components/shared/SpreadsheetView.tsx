@@ -47,7 +47,6 @@ interface SpreadsheetViewProps {
   isCloseout?: boolean;
 }
 
-type DateRange = 'all' | 'week' | 'month' | 'pay_period';
 type GroupBy = 'date' | 'ro' | 'advisor' | 'none';
 
 /* ─── Columns (no roTotal) ─── */
