@@ -556,6 +556,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         onSubmit={(flagType, note) => { if (flaggingRO) addFlag(flaggingRO.id, flagType, note); }}
         title={flaggingRO ? `Flag RO #${flaggingRO.roNumber}` : 'Add Flag'}
       />
+
+      <CustomDateRangeDialog
+        open={showCustomDialog}
+        onClose={cancelCustom}
+        onApply={applyCustom}
+        initialStart={customStart}
+        initialEnd={customEnd}
+      />
     </div>
   );
 }
