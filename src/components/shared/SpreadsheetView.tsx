@@ -647,6 +647,14 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         lineNo={textModal.lineNo}
         description={textModal.description}
       />
+
+      <CustomDateRangeDialog
+        open={showCustomDialog}
+        onClose={cancelCustom}
+        onApply={applyCustom}
+        initialStart={customStart}
+        initialEnd={customEnd}
+      />
     </div>
   );
 }
