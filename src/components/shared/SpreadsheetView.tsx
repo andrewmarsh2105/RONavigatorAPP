@@ -76,7 +76,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
-  const [dateRange, setDateRange] = useState<DateRange>('week');
+  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange('week');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
