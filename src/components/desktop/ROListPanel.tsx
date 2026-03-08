@@ -435,6 +435,14 @@ export const ROListPanel = memo(function ROListPanel({
         }}
         title={flaggingRO ? `Flag RO #${flaggingRO.roNumber}` : "Add Flag"}
       />
+
+      <CustomDateRangeDialog
+        open={showCustomDialog}
+        onClose={cancelCustom}
+        onApply={applyCustom}
+        initialStart={customStart}
+        initialEnd={customEnd}
+      />
     </>
   );
 });
