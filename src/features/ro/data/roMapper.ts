@@ -64,7 +64,7 @@ export function dbToRepairOrder(row: RoRow, lines: RoLineRow[]): RepairOrder {
     roNumber: row.ro_number,
     date: row.date,
     paidDate: row.paid_date ?? undefined,
-    advisor: row.advisor_name,
+    advisor: normalizeAdvisorName(row.advisor_name),
     customerName: row.customer_name ?? undefined,
     mileage: row.mileage ?? undefined,
     vehicle,
