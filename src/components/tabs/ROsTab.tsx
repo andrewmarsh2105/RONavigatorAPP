@@ -185,7 +185,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     sortBy: 'date',
   });
 
-  const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } =
+  const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } =
     useSharedDateRange('week', 'mobile-ro-tab');
 
   const rangeBounds = useMemo(() => computeDateRangeBounds({
