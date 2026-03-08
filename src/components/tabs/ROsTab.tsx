@@ -179,12 +179,26 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
-  const [filters, setFilters] = useLocalStorageState<FilterState>('ui.mobile.roTab.filters.v1', {
+  const [filters, setFilters] = useLocalStorageState<FilterState>('ui.mobile.roTab.filters.v2', {
     advisors: [],
     laborTypes: [],
-    dateRange: 'all',
     sortBy: 'date',
   });
+
+  const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } =
+    useSharedDateRange('week', 'mobile-ro-tab');
+
+  const rangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+    hasCustomPayPeriod,
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+
+  const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
 
   const uniqueAdvisors = useMemo(() => [...new Set(ros.map(r => r.advisor))].sort(), [ros]);
 
