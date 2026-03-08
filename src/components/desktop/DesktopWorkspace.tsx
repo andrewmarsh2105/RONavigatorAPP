@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
+import { Loader2, Settings, BarChart3, X, Table2, Crown } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
 import { ROEditor } from "./ROEditor";
+import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
 import roLogo from "@/assets/ro-logo.jpeg";
@@ -33,20 +34,20 @@ function PanelFallback() {
 }
 
 const panelVariants = {
-  initial: { opacity: 0, y: 6 },
+  initial: { opacity: 0, y: 4 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] as const },
   },
   exit: {
     opacity: 0,
     y: -4,
-    transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.12, ease: [0.25, 0.1, 0.25, 1] as const },
   },
 };
 
-type RightPanel = "editor" | "settings" | "summary" | "none";
+type RightPanel = "details" | "editor" | "settings" | "summary" | "none";
 type ViewMode = "split" | "spreadsheet";
 
 function IconButton(props: {
@@ -59,7 +60,7 @@ function IconButton(props: {
     <button
       onClick={props.onClick}
       className={cn(
-        "h-8 w-8 flex items-center justify-center rounded-md transition-colors",
+        "h-8 w-8 flex items-center justify-center rounded-md quiet-transition",
         props.active
           ? "bg-primary text-primary-foreground"
           : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -72,7 +73,7 @@ function IconButton(props: {
 }
 
 export function DesktopWorkspace() {
-  const { ros } = useRO();
+  const { ros, deleteRO, duplicateRO } = useRO();
   const { isPro } = useSubscription();
   const splitter = useSplitterWidth();
 
@@ -111,13 +112,15 @@ export function DesktopWorkspace() {
     setIsDragging(false);
   }, []);
 
+  // Row click → details (safe, read-only)
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
     setIsAddingNew(false);
-    setRightPanel("editor");
+    setRightPanel("details");
     setFocusLineId(null);
   };
 
+  // Flag inbox navigation → editor with focus
   const handleSelectROWithFocus = (roId: string, lineId?: string | null) => {
     const ro = ros.find((r) => r.id === roId);
     if (!ro) {
@@ -134,6 +137,11 @@ export function DesktopWorkspace() {
     setFocusLineId(lineId ?? null);
   };
 
+  // Explicit edit action
+  const handleEditRO = () => {
+    setRightPanel("editor");
+  };
+
   const handleAddNew = () => {
     setSelectedRO(null);
     setIsAddingNew(true);
@@ -146,12 +154,31 @@ export function DesktopWorkspace() {
   };
 
   const handleCancel = () => {
+    // If we were editing an existing RO, go back to details
+    if (selectedRO && !isAddingNew) {
+      setRightPanel("details");
+      return;
+    }
     setSelectedRO(null);
     setIsAddingNew(false);
     setRightPanel("none");
   };
 
   const handleSaveAndAddAnother = () => {};
+
+  const handleDeleteFromDetails = () => {
+    if (!selectedRO) return;
+    deleteRO(selectedRO.id);
+    toast.success(`Deleted RO #${selectedRO.roNumber}`);
+    setSelectedRO(null);
+    setRightPanel("none");
+  };
+
+  const handleDuplicateFromDetails = (newRONumber: string) => {
+    if (!selectedRO) return;
+    duplicateRO(selectedRO.id, newRONumber);
+    toast.success(`Duplicated RO #${selectedRO.roNumber} → #${newRONumber}`);
+  };
 
   const togglePanel = (panel: "settings" | "summary") => {
     if (rightPanel === panel) {
@@ -165,7 +192,9 @@ export function DesktopWorkspace() {
   };
 
   const showEditor = rightPanel === "editor" && (selectedRO || isAddingNew);
-  const isWideList = rightPanel === "none" && !showEditor;
+  const showDetails = rightPanel === "details" && selectedRO;
+  const hasRightPanel = rightPanel !== "none" && (showEditor || showDetails || rightPanel === "settings" || rightPanel === "summary");
+  const isWideList = !hasRightPanel;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -205,7 +234,7 @@ export function DesktopWorkspace() {
                 setIsAddingNew(false);
               }}
             >
-              <Table2 className="h-4 w-4" />
+              <Table2 className="icon-toolbar" />
             </IconButton>
           )}
 
@@ -214,7 +243,7 @@ export function DesktopWorkspace() {
             active={rightPanel === "summary"}
             onClick={() => togglePanel("summary")}
           >
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="icon-toolbar" />
           </IconButton>
 
           <IconButton
@@ -222,13 +251,13 @@ export function DesktopWorkspace() {
             active={rightPanel === "settings"}
             onClick={() => togglePanel("settings")}
           >
-            {rightPanel === "settings" ? <X className="h-4 w-4" /> : <Settings className="h-4 w-4" />}
+            {rightPanel === "settings" ? <X className="icon-toolbar" /> : <Settings className="icon-toolbar" />}
           </IconButton>
 
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1 h-9 px-3 rounded-md border bg-background text-[11px] font-semibold text-primary hover:bg-accent transition-colors flex items-center gap-2"
+              className="ml-1 h-9 px-3 rounded-md border bg-background text-[11px] font-semibold text-primary hover:bg-accent quiet-transition flex items-center gap-2"
               title="Upgrade to Pro"
             >
               <Crown className="h-3 w-3" />
@@ -252,7 +281,7 @@ export function DesktopWorkspace() {
         </div>
       ) : (
         <div className={cn("flex-1 flex min-h-0", isDragging && "select-none")}>
-          {/* Left Panel: expands when no editor is open */}
+          {/* Left Panel */}
           <div
             className="min-w-0 flex-shrink-0 overflow-hidden"
             style={isWideList ? { flex: "1 1 0%" } : { width: splitter.width }}
@@ -271,7 +300,7 @@ export function DesktopWorkspace() {
             <>
               <div
                 className={cn(
-                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border bg-card hover:bg-accent transition-colors",
+                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border bg-card hover:bg-accent quiet-transition",
                   isDragging && "bg-accent",
                 )}
                 onPointerDown={handlePointerDown}
@@ -280,7 +309,7 @@ export function DesktopWorkspace() {
                 onPointerCancel={handlePointerUp}
               >
                 <div className={cn(
-                  "w-0.5 h-8 rounded-full bg-border group-hover:bg-muted-foreground/40 transition-colors",
+                  "w-0.5 h-8 rounded-full bg-border group-hover:bg-muted-foreground/40 quiet-transition",
                   isDragging && "bg-muted-foreground/40",
                 )} />
               </div>
@@ -331,30 +360,23 @@ export function DesktopWorkspace() {
                         onSaveAndAddAnother={handleSaveAndAddAnother}
                       />
                     </motion.div>
-                  ) : (
+                  ) : showDetails ? (
                     <motion.div
-                      key="empty"
+                      key={`details-${selectedRO?.id}`}
                       variants={panelVariants}
                       initial="initial"
                       animate="animate"
                       exit="exit"
-                      className="h-full flex items-center justify-center bg-muted/10 absolute inset-0"
+                      className="h-full absolute inset-0"
                     >
-                      <div className="text-center text-muted-foreground space-y-4">
-                        <div className="mx-auto w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center">
-                          <FileText className="h-8 w-8 text-muted-foreground/30" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold tracking-tight text-foreground/70">
-                            Select an RO or create a new one
-                          </p>
-                          <p className="text-xs mt-1 text-muted-foreground">
-                            Choose from the list on the left to get started
-                          </p>
-                        </div>
-                      </div>
+                      <RODetailsPanel
+                        ro={selectedRO}
+                        onEdit={handleEditRO}
+                        onDuplicate={handleDuplicateFromDetails}
+                        onDelete={handleDeleteFromDetails}
+                      />
                     </motion.div>
-                  )}
+                  ) : null}
                 </AnimatePresence>
               </div>
             </>
