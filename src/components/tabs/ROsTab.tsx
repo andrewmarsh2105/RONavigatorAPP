@@ -146,7 +146,7 @@ const ROCard = memo(function ROCard({
 interface FilterState {
   advisors: string[];
   laborTypes: LaborType[];
-  sortBy: 'date' | 'hours' | 'ro' | 'advisor';
+  sortBy: 'date' | 'hours' | 'ro' | 'advisor' | 'customer' | 'laborType';
 }
 
 interface ROsTabProps {
@@ -185,7 +185,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     sortBy: 'date',
   });
 
-  const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } =
+  const { dateFilter, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } =
     useSharedDateRange('week', 'mobile-ro-tab');
 
   const rangeBounds = useMemo(() => computeDateRangeBounds({
@@ -234,6 +234,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
       if (filters.sortBy === 'ro') return a.roNumber.localeCompare(b.roNumber);
       if (filters.sortBy === 'advisor') return a.advisor.localeCompare(b.advisor);
+      if (filters.sortBy === 'customer') return (a.customerName || '').localeCompare(b.customerName || '');
+      if (filters.sortBy === 'laborType') return a.laborType.localeCompare(b.laborType);
       return 0;
     });
 
@@ -288,10 +290,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <p className="page-subtitle tabular-nums">
               {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </p>
-            <Badge variant="outline" className="gap-1 mt-0.5">
-              <CalendarRange className="h-2.5 w-2.5" />
-              {rangeChipLabel}
-            </Badge>
+             <Badge
+                variant="outline"
+                className={cn("gap-1 mt-0.5", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+              >
+               <CalendarRange className="h-2.5 w-2.5" />
+               {rangeChipLabel}
+             </Badge>
           </div>
           <div className="flex items-center gap-1">
             <FlagInbox />
@@ -344,7 +350,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           ] as const).map(({ value, label }) => (
             <button
               key={value}
-              onClick={() => setDateRange(value as DateFilterKey)}
+              onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
                 'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border quiet-transition',
                 dateFilter === value
@@ -466,10 +472,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <label className="section-title block mb-2">Sort By</label>
             <div className="flex flex-wrap gap-1.5">
               {([
-                { value: 'date', label: 'Date' },
-                { value: 'hours', label: 'Hours' },
+                { value: 'date', label: 'Most recent' },
                 { value: 'ro', label: 'RO #' },
-                { value: 'advisor', label: 'Advisor' },
+                { value: 'advisor', label: 'Advisor A-Z' },
+                { value: 'customer', label: 'Customer A-Z' },
+                { value: 'laborType', label: 'Labor type' },
+                { value: 'hours', label: 'Hours' },
               ] as const).map(o => (
                 <button
                   key={o.value}
@@ -485,22 +493,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div>
-            <label className="section-title block mb-2">Date Range</label>
-            <SegmentedControl
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : '1 Wk' },
-                { value: 'month', label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period', label: 'Pay Period' }] : []),
-                { value: 'custom', label: 'Custom' },
-              ]}
-              value={dateFilter}
-              onChange={value => setDateRange(value as DateFilterKey)}
-            />
           </div>
 
           <div>

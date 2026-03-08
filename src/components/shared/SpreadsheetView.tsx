@@ -77,7 +77,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const [viewMode, setViewMode] = useState<ViewMode>(persistedViewMode);
   const [density, setDensity] = useState<Density>(persistedDensity);
   const [groupBy, setGroupBy] = useState<GroupBy>(persistedGroupBy);
-  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog } = useSharedDateRange('week', 'spreadsheet');
+  const { dateFilter: dateRange, setFilter: setDateRange, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } = useSharedDateRange('week', 'spreadsheet');
   const [activeColIds, setActiveColIds] = useState<ColumnId[]>(
     persistedViewMode === 'payroll' ? DISPLAY_COLUMNS : AUDIT_DISPLAY_COLUMNS
   );
@@ -331,7 +331,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     { value: 'all' as DateFilterKey, label: 'All' },
                     { value: 'custom' as DateFilterKey, label: 'Custom…' },
                   ]).map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => setDateRange(opt.value)}>
+                    <DropdownMenuItem key={opt.value} onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}>
                       {opt.label}
                     </DropdownMenuItem>
                   ))}
@@ -349,7 +349,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               ]).map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setDateRange(opt.value)}
+                  onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
                   className={cn(
                     'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
@@ -364,7 +364,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             )
           )}
           {computedRangeLabel && (
-            <Badge variant="outline" className="gap-1">
+            <Badge
+              variant="outline"
+              className={cn("gap-1", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
+              onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
+            >
               <CalendarRange className="h-3 w-3" />
               {computedRangeLabel}
             </Badge>
@@ -402,7 +406,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     { value: 'all' as DateFilterKey, label: 'All' },
                     { value: 'custom' as DateFilterKey, label: 'Custom…' },
                   ]).map(opt => (
-                    <DropdownMenuItem key={opt.value} onClick={() => setDateRange(opt.value)}>
+                    <DropdownMenuItem key={opt.value} onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}>
                       {opt.label}
                     </DropdownMenuItem>
                   ))}
@@ -420,7 +424,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               ]).map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setDateRange(opt.value)}
+                  onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
                   className={cn(
                     'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
@@ -436,7 +440,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {computedRangeLabel && (
-            <Badge variant="outline" className="gap-1">
+            <Badge
+              variant="outline"
+              className={cn("gap-1", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
+              onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
+            >
               <CalendarRange className="h-3 w-3" />
               {computedRangeLabel}
             </Badge>

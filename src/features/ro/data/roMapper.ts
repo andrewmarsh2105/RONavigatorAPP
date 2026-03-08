@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import type { LaborType, RepairOrder, VehicleInfo } from "@/types/ro";
+import { normalizeAdvisorName } from "@/lib/nameUtils";
 
 export type RoRow = Database["public"]["Tables"]["ros"]["Row"];
 export type RoInsert = Database["public"]["Tables"]["ros"]["Insert"];
@@ -63,7 +64,7 @@ export function dbToRepairOrder(row: RoRow, lines: RoLineRow[]): RepairOrder {
     roNumber: row.ro_number,
     date: row.date,
     paidDate: row.paid_date ?? undefined,
-    advisor: row.advisor_name,
+    advisor: normalizeAdvisorName(row.advisor_name),
     customerName: row.customer_name ?? undefined,
     mileage: row.mileage ?? undefined,
     vehicle,
@@ -127,7 +128,7 @@ export function toRosInsert(
     user_id: userId,
     ro_number: ro.roNumber,
     date: ro.date,
-    advisor_name: ro.advisor,
+    advisor_name: normalizeAdvisorName(ro.advisor),
     customer_name: ro.customerName ?? null,
     mileage: ro.mileage ?? null,
     notes: ro.notes ?? null,
@@ -148,7 +149,7 @@ export function toRosUpdate(updates: Partial<RepairOrder>): RoUpdate {
 
   if (updates.roNumber !== undefined) payload.ro_number = updates.roNumber;
   if (updates.date !== undefined) payload.date = updates.date;
-  if (updates.advisor !== undefined) payload.advisor_name = updates.advisor;
+  if (updates.advisor !== undefined) payload.advisor_name = normalizeAdvisorName(updates.advisor);
   if (updates.customerName !== undefined)
     payload.customer_name = updates.customerName ?? null;
   if (updates.mileage !== undefined) payload.mileage = updates.mileage ?? null;
