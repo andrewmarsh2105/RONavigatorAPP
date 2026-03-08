@@ -254,7 +254,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <label className="section-title mb-0.5 block">Date filter</label>
                 <select
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                  onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
                   className="h-7 w-full rounded-md border border-input bg-background px-2 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
@@ -262,8 +262,9 @@ export const ROListPanel = memo(function ROListPanel({
                   <option value="week">
                     {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "1 Week"}
                   </option>
-                  <option value="month">Last 30 days</option>
+                  <option value="month">This month</option>
                   {hasCustomPayPeriod && <option value="pay_period">Pay period</option>}
+                  <option value="custom">Custom…</option>
                 </select>
               </div>
               <div className="flex-1 min-w-0">
