@@ -27,8 +27,9 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
-import {
+import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
   buildSpreadsheetRows,
   PAYROLL_EXPORT_HEADERS,
   AUDIT_EXPORT_HEADERS,
