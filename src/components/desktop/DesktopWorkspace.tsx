@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Settings, BarChart3, X, Table2, Crown, FileText } from "lucide-react";
 import { ROListPanel } from "./ROListPanel";
@@ -11,6 +11,7 @@ import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
+import { useSplitterWidth } from "@/hooks/useSplitterWidth";
 import { toast } from "sonner";
 
 const SettingsTab = lazy(() =>
@@ -73,6 +74,7 @@ function IconButton(props: {
 export function DesktopWorkspace() {
   const { ros } = useRO();
   const { isPro } = useSubscription();
+  const splitter = useSplitterWidth();
 
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -81,6 +83,33 @@ export function DesktopWorkspace() {
   const [focusLineId, setFocusLineId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [filteredROs, setFilteredROs] = useState<RepairOrder[]>(ros);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      dragRef.current = { startX: e.clientX, startWidth: splitter.width };
+      setIsDragging(true);
+    },
+    [splitter.width],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragRef.current) return;
+      const delta = e.clientX - dragRef.current.startX;
+      splitter.setWidth(dragRef.current.startWidth + delta);
+    },
+    [splitter],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    dragRef.current = null;
+    setIsDragging(false);
+  }, []);
 
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
@@ -222,13 +251,11 @@ export function DesktopWorkspace() {
           </Suspense>
         </div>
       ) : (
-        <div className="flex-1 flex min-h-0">
+        <div className={cn("flex-1 flex min-h-0", isDragging && "select-none")}>
           {/* Left Panel: expands when no editor is open */}
           <div
-            className={cn(
-              "min-w-0 transition-all duration-200 ease-out",
-              isWideList ? "flex-1" : "w-[520px] flex-shrink-0",
-            )}
+            className="min-w-0 flex-shrink-0 overflow-hidden"
+            style={isWideList ? { flex: "1 1 0%" } : { width: splitter.width }}
           >
             <ROListPanel
               selectedROId={selectedRO?.id || null}
@@ -239,80 +266,98 @@ export function DesktopWorkspace() {
             />
           </div>
 
-          {/* Right Panel: hidden when list is expanded */}
+          {/* Draggable splitter + Right Panel */}
           {!isWideList && (
-            <div className="flex-1 min-w-0 relative">
-              <AnimatePresence mode="wait">
-                {rightPanel === "settings" ? (
-                  <motion.div
-                    key="settings"
-                    variants={panelVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full overflow-y-auto absolute inset-0"
-                  >
-                    <Suspense fallback={<PanelFallback />}>
-                      <SettingsTab />
-                    </Suspense>
-                  </motion.div>
-                ) : rightPanel === "summary" ? (
-                  <motion.div
-                    key="summary"
-                    variants={panelVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full overflow-y-auto absolute inset-0"
-                  >
-                    <Suspense fallback={<PanelFallback />}>
-                      <SummaryTab />
-                    </Suspense>
-                  </motion.div>
-                ) : showEditor ? (
-                  <motion.div
-                    key={`editor-${selectedRO?.id ?? "new"}`}
-                    variants={panelVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full absolute inset-0"
-                  >
-                    <ROEditor
-                      ro={selectedRO}
-                      isNew={isAddingNew}
-                      focusLineId={focusLineId}
-                      onSave={handleSave}
-                      onCancel={handleCancel}
-                      onSaveAndAddAnother={handleSaveAndAddAnother}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="empty"
-                    variants={panelVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    className="h-full flex items-center justify-center bg-muted/10 absolute inset-0"
-                  >
-                    <div className="text-center text-muted-foreground space-y-4">
-                      <div className="mx-auto w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center">
-                        <FileText className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold tracking-tight text-foreground/70">
-                          Select an RO or create a new one
-                        </p>
-                        <p className="text-xs mt-1 text-muted-foreground">
-                          Choose from the list on the left to get started
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
+            <>
+              <div
+                className={cn(
+                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border bg-card hover:bg-accent transition-colors",
+                  isDragging && "bg-accent",
                 )}
-              </AnimatePresence>
-            </div>
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              >
+                <div className={cn(
+                  "w-0.5 h-8 rounded-full bg-border group-hover:bg-muted-foreground/40 transition-colors",
+                  isDragging && "bg-muted-foreground/40",
+                )} />
+              </div>
+
+              <div className="flex-1 min-w-0 relative">
+                <AnimatePresence mode="wait">
+                  {rightPanel === "settings" ? (
+                    <motion.div
+                      key="settings"
+                      variants={panelVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="h-full overflow-y-auto absolute inset-0"
+                    >
+                      <Suspense fallback={<PanelFallback />}>
+                        <SettingsTab />
+                      </Suspense>
+                    </motion.div>
+                  ) : rightPanel === "summary" ? (
+                    <motion.div
+                      key="summary"
+                      variants={panelVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="h-full overflow-y-auto absolute inset-0"
+                    >
+                      <Suspense fallback={<PanelFallback />}>
+                        <SummaryTab />
+                      </Suspense>
+                    </motion.div>
+                  ) : showEditor ? (
+                    <motion.div
+                      key={`editor-${selectedRO?.id ?? "new"}`}
+                      variants={panelVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="h-full absolute inset-0"
+                    >
+                      <ROEditor
+                        ro={selectedRO}
+                        isNew={isAddingNew}
+                        focusLineId={focusLineId}
+                        onSave={handleSave}
+                        onCancel={handleCancel}
+                        onSaveAndAddAnother={handleSaveAndAddAnother}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      variants={panelVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="h-full flex items-center justify-center bg-muted/10 absolute inset-0"
+                    >
+                      <div className="text-center text-muted-foreground space-y-4">
+                        <div className="mx-auto w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center">
+                          <FileText className="h-8 w-8 text-muted-foreground/30" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold tracking-tight text-foreground/70">
+                            Select an RO or create a new one
+                          </p>
+                          <p className="text-xs mt-1 text-muted-foreground">
+                            Choose from the list on the left to get started
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </>
           )}
         </div>
       )}
