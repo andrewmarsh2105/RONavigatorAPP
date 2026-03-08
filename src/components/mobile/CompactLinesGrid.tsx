@@ -183,7 +183,7 @@ export function CompactLinesGrid({
                     value={line.laborType || ''}
                     onChange={(e) => handleLineChange(index, { laborType: e.target.value as LaborType || undefined })}
                     disabled={readOnly}
-                    className="h-8 px-2 bg-secondary border border-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
+                    className="h-11 px-3 bg-secondary border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 min-w-[80px]"
                   >
                     <option value="">Default</option>
                     {LABOR_TYPES.map((t) => (
@@ -196,7 +196,7 @@ export function CompactLinesGrid({
                     <button
                       onClick={() => handleLineChange(index, { isTbd: !line.isTbd })}
                       className={cn(
-                        'px-2 py-1 rounded-md text-[10px] font-bold transition-all flex-shrink-0 border',
+                        'h-11 px-3 rounded-md text-xs font-bold transition-all flex-shrink-0 border min-w-[44px]',
                         line.isTbd
                           ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
                           : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -206,7 +206,7 @@ export function CompactLinesGrid({
                     </button>
                   )}
                   {readOnly && line.isTbd && (
-                    <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700">TBD</span>
+                    <span className="h-11 px-3 bg-amber-50 text-amber-600 text-xs font-bold rounded-md border border-amber-300 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700 flex items-center">TBD</span>
                   )}
 
                   <div className="flex-1" />
@@ -218,12 +218,12 @@ export function CompactLinesGrid({
                       placeholder={line.isTbd ? '—' : '0.0'}
                       disabled={readOnly}
                       className={cn(
-                        'w-16 h-8 px-2 bg-secondary border border-border rounded-md text-sm font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
+                        'w-20 h-11 px-2 bg-secondary border border-border rounded-md text-base font-bold text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary/60 disabled:opacity-60 transition-shadow',
                         isHighlighted && 'ring-2 ring-primary border-primary',
                         line.isTbd && 'line-through text-muted-foreground'
                       )}
                     />
-                    <span className="text-[11px] text-muted-foreground font-medium">hrs</span>
+                    <span className="text-xs text-muted-foreground font-medium">hrs</span>
                   </div>
                 </div>
 

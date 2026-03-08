@@ -268,6 +268,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           </select>
 
           <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={handlePasteLines}
+              className="h-8 px-3 flex items-center justify-center gap-1.5 bg-secondary rounded-md border border-border hover:bg-accent transition-colors text-sm"
+              title="Paste lines from clipboard"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              Paste
+            </button>
             {isPro && (
               <button
                 onClick={() => setShowScanFlow(true)}
