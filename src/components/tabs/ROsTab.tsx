@@ -364,7 +364,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
             <SpreadsheetView
               ros={filteredROs}
-              rangeLabel={filters.dateRange === 'all' ? 'All Time' : filters.dateRange}
+              rangeLabel={rangeChipLabel}
               onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
             />
           </Suspense>
