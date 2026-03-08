@@ -290,10 +290,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <p className="page-subtitle tabular-nums">
               {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </p>
-            <Badge variant="outline" className="gap-1 mt-0.5">
-              <CalendarRange className="h-2.5 w-2.5" />
-              {rangeChipLabel}
-            </Badge>
+             <Badge
+                variant="outline"
+                className={cn("gap-1 mt-0.5", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+              >
+               <CalendarRange className="h-2.5 w-2.5" />
+               {rangeChipLabel}
+             </Badge>
           </div>
           <div className="flex items-center gap-1">
             <FlagInbox />
