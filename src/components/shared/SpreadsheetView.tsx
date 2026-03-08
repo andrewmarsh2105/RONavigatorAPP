@@ -440,7 +440,11 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {computedRangeLabel && (
-            <Badge variant="outline" className="gap-1">
+            <Badge
+              variant="outline"
+              className={cn("gap-1", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
+              onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
+            >
               <CalendarRange className="h-3 w-3" />
               {computedRangeLabel}
             </Badge>

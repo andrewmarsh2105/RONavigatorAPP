@@ -243,7 +243,11 @@ export const ROListPanel = memo(function ROListPanel({
                 {totals.totalAll} total •{" "}
                 {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
               </p>
-              <Badge variant="outline" className="gap-1 mt-1">
+              <Badge
+                variant="outline"
+                className={cn("gap-1 mt-1", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+              >
                 <CalendarRange className="h-3 w-3" />
                 {rangeChipLabel}
               </Badge>
