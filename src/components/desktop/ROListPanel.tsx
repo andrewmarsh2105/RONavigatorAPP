@@ -243,6 +243,10 @@ export const ROListPanel = memo(function ROListPanel({
                 {totals.totalAll} total •{" "}
                 {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
               </p>
+              <Badge variant="outline" className="gap-1 mt-1">
+                <CalendarRange className="h-3 w-3" />
+                {rangeChipLabel}
+              </Badge>
             </div>
             <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5">
               <Plus className="icon-row" />
