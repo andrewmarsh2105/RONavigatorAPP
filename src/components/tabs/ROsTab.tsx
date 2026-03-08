@@ -496,9 +496,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : '1 Wk' },
                 { value: 'month', label: 'Month' },
                 ...(hasCustomPayPeriod ? [{ value: 'pay_period', label: 'Pay Period' }] : []),
+                { value: 'custom', label: 'Custom' },
               ]}
-              value={filters.dateRange}
-              onChange={value => setFilters(prev => ({ ...prev, dateRange: value as FilterState['dateRange'] }))}
+              value={dateFilter}
+              onChange={value => setDateRange(value as DateFilterKey)}
             />
           </div>
 
