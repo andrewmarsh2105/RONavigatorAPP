@@ -227,26 +227,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
     }
 
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (filters.dateRange === 'today') {
-      result = result.filter(ro => (ro.paidDate || ro.date) === today);
-    } else if (filters.dateRange === 'week') {
-      const useTwoWeeks = userSettings.defaultSummaryRange === 'two_weeks';
-      const start = useTwoWeeks ? getTwoWeekStart(userSettings.weekStartDay ?? 0) : getWeekStart(userSettings.weekStartDay ?? 0);
-      result = result.filter(ro => (ro.paidDate || ro.date) >= start);
-    } else if (filters.dateRange === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      const start = `${monthAgo.getFullYear()}-${String(monthAgo.getMonth() + 1).padStart(2, '0')}-${String(monthAgo.getDate()).padStart(2, '0')}`;
-      result = result.filter(ro => (ro.paidDate || ro.date) >= start);
-    } else if (filters.dateRange === 'pay_period' && hasCustomPayPeriod) {
-      const { start, end } = getCustomPayPeriodRange(userSettings.payPeriodEndDates!, new Date());
-      result = result.filter(ro => {
-        const d = ro.paidDate || ro.date;
-        return d >= start && d <= end;
-      });
-    }
+    result = filterROsByDateRange(result, rangeBounds);
 
     const sorted = [...result].sort((a, b) => {
       if (filters.sortBy === 'date') return (b.paidDate || b.date).localeCompare(a.paidDate || a.date);
