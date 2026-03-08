@@ -242,7 +242,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   useEffect(() => {
     setVisibleCount(50);
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, dateFilter]);
 
   const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const hasMore = visibleCount < filteredROs.length;
