@@ -314,10 +314,12 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         {!isCloseout && !isMobile && (
             <div className="flex rounded-lg border border-border overflow-hidden">
               {([
-                { value: 'week' as DateRange, label: 'Week' },
-                { value: 'month' as DateRange, label: 'Month' },
-                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateRange, label: 'Pay Period' }] : []),
-                { value: 'all' as DateRange, label: 'All' },
+                { value: 'today' as DateFilterKey, label: 'Today' },
+                { value: 'week' as DateFilterKey, label: 'Week' },
+                { value: 'month' as DateFilterKey, label: 'Month' },
+                ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
+                { value: 'all' as DateFilterKey, label: 'All' },
+                { value: 'custom' as DateFilterKey, label: 'Custom' },
               ]).map(opt => (
                 <button
                   key={opt.value}
