@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock } from "lucide-react";
+import { ArrowUpDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, effectiveDate, formatDateShort, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
-import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from "@/lib/dateRangeFilter";
+import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from "@/lib/dateRangeFilter";
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
@@ -198,6 +198,18 @@ export const ROListPanel = memo(function ROListPanel({
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
 
+  const rangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: userSettings.payPeriodEndDates as number[] | undefined,
+    hasCustomPayPeriod,
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
+
+  const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
+
   const totals = useMemo(() => {
     const totalHours = filteredROs.reduce((sum, ro) => sum + calcHours(ro), 0);
     return { totalHours, totalAll: filteredROs.length, totalVisible: visible.length };
@@ -231,6 +243,10 @@ export const ROListPanel = memo(function ROListPanel({
                 {totals.totalAll} total •{" "}
                 {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
               </p>
+              <Badge variant="outline" className="gap-1 mt-1">
+                <CalendarRange className="h-3 w-3" />
+                {rangeChipLabel}
+              </Badge>
             </div>
             <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5">
               <Plus className="icon-row" />

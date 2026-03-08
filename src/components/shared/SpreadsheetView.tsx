@@ -5,8 +5,9 @@ import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
   Printer, Download, ChevronDown, ChevronRight,
-  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarDays,
+  Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -27,7 +28,7 @@ import {
 import type { RepairOrder } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
 import { toast } from 'sonner';
-import { computeDateRangeBounds, filterROsByDateRange, type DateFilterKey } from '@/lib/dateRangeFilter';
+import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type DateFilterKey } from '@/lib/dateRangeFilter';
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import {
@@ -337,7 +338,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             </div>
           )}
           {computedRangeLabel && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+            <Badge variant="outline" className="gap-1">
+              <CalendarRange className="h-3 w-3" />
+              {computedRangeLabel}
+            </Badge>
           )}
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -380,7 +384,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {computedRangeLabel && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{computedRangeLabel}</span>
+            <Badge variant="outline" className="gap-1">
+              <CalendarRange className="h-3 w-3" />
+              {computedRangeLabel}
+            </Badge>
           )}
 
           {/* View mode */}
