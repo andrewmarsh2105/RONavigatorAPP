@@ -256,7 +256,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const activeFiltersCount =
     filters.advisors.length +
     filters.laborTypes.length +
-    (filters.dateRange !== 'all' ? 1 : 0) +
+    (dateFilter !== 'all' ? 1 : 0) +
     (filters.sortBy !== 'date' ? 1 : 0);
 
   const toggleAdvisorFilter = (advisor: string) => {
