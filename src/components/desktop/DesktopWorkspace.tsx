@@ -74,6 +74,7 @@ function IconButton(props: {
 export function DesktopWorkspace() {
   const { ros } = useRO();
   const { isPro } = useSubscription();
+  const splitter = useSplitterWidth();
 
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedRO, setSelectedRO] = useState<RepairOrder | null>(null);
@@ -82,6 +83,33 @@ export function DesktopWorkspace() {
   const [focusLineId, setFocusLineId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [filteredROs, setFilteredROs] = useState<RepairOrder[]>(ros);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      dragRef.current = { startX: e.clientX, startWidth: splitter.width };
+      setIsDragging(true);
+    },
+    [splitter.width],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragRef.current) return;
+      const delta = e.clientX - dragRef.current.startX;
+      splitter.setWidth(dragRef.current.startWidth + delta);
+    },
+    [splitter],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    dragRef.current = null;
+    setIsDragging(false);
+  }, []);
 
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
