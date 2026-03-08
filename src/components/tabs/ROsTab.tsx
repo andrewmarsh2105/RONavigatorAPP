@@ -350,7 +350,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           ] as const).map(({ value, label }) => (
             <button
               key={value}
-              onClick={() => setDateRange(value as DateFilterKey)}
+              onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
                 'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border quiet-transition',
                 dateFilter === value
