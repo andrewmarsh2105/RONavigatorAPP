@@ -807,7 +807,8 @@ export function SettingsTab() {
         {/* Data Management */}
         <SettingsGroup title="Data">
           <SettingsRow
-            label="Export All Data"
+            label="Download Backup (JSON)"
+            description="Exports all ROs + lines as JSON"
             onClick={() => {
               if (ros.length === 0) {
                 toast.info('No ROs to export');
