@@ -148,30 +148,30 @@ export function CompactLinesGrid({
                         setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id });
                       }
                     }}
-                    className="flex-1 h-10 px-3 bg-card border border-input rounded-[10px] text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
+                    className="flex-1 h-11 px-3 bg-card border border-input rounded-[10px] text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary placeholder:text-muted-foreground/50 disabled:opacity-60 transition-shadow"
                   />
                   {/* Expand button */}
                   <button
                     onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
-                    className="p-1.5 text-muted-foreground hover:text-foreground rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+                    className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
                     title="View full description"
                     aria-label="View full description"
                   >
-                    <Maximize2 className="h-3.5 w-3.5" />
+                    <Maximize2 className="h-4 w-4" />
                   </button>
                   {!readOnly && (
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => handleDuplicateLine(index)}
-                        className="p-1.5 text-muted-foreground hover:text-foreground rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
+                        className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform"
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleRemoveLine(index)}
-                        className="p-1.5 text-destructive/60 hover:text-destructive rounded min-w-[32px] min-h-[32px] flex items-center justify-center active:scale-90 transition-transform"
+                        className="h-11 w-11 text-destructive/60 hover:text-destructive rounded flex items-center justify-center active:scale-90 transition-transform"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   )}
