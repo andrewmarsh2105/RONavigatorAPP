@@ -407,6 +407,34 @@ export function SummaryTab() {
       <div className={cn('flex-1 overflow-y-auto', isMobile && 'pb-32')}>
         {activeTab === 'summary' && (
           <div className="space-y-4">
+            {/* ── Pay Period Reminder Banner ──────── */}
+            {isPro && isNearEnd && !periodAlreadyClosed && (
+              <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-200 flex-1">
+                  ⚠️ Your pay period ends soon — close it out to lock in your hours.
+                </span>
+                <Button size="sm" variant="default" onClick={handleCloseOutClick} className="flex-shrink-0">
+                  Close Out Now
+                </Button>
+              </div>
+            )}
+
+            {/* ── Payroll Discrepancy Alert ───────── */}
+            {periodAlreadyClosed && existingCloseout && Math.abs(report.totalHours - existingCloseout.totals.totalHours) > 0.1 && (
+              <div className="mx-4 mt-3 rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                    <span className="font-medium">⚠️ Your hours have changed since this period was closed.</span>
+                    <span className="ml-1">
+                      Snapshot: {maskHours(existingCloseout.totals.totalHours, hideTotals)}h · Current: {maskHours(report.totalHours, hideTotals)}h · Difference: {hideTotals ? '±--.-' : `${(report.totalHours - existingCloseout.totals.totalHours) > 0 ? '+' : ''}${(report.totalHours - existingCloseout.totals.totalHours).toFixed(1)}`}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">

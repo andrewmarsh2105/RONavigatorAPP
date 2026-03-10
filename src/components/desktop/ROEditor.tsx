@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, ClipboardPaste } from 'lucide-react';
+import { Camera, Save, Plus, Calendar, Clock, FileText, Loader2, ClipboardPaste, AlertCircle } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { LinesGrid, createEmptyLine } from './LinesGrid';
