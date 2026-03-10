@@ -256,7 +256,8 @@ export default function AddRO() {
     setIsSaving(true);
     try {
       if (editingRO) {
-        await updateRO(editingRO.id, roData);
+        const success = await updateRO(editingRO.id, roData);
+        if (!success) return;
         toast.success('RO updated');
       } else {
         await addRO(roData);
