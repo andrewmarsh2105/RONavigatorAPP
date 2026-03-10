@@ -75,7 +75,15 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [showScanFlow, setShowScanFlow] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Duplicate RO check
+  function checkDuplicateRO(roNum: string) {
+    const trimmed = roNum.trim().toLowerCase();
+    if (!trimmed || !isNew) { setDuplicateWarning(false); return; }
+    setDuplicateWarning(ros.some(r => r.roNumber.trim().toLowerCase() === trimmed));
+  }
 
   // Sync with ro prop
   useEffect(() => {
