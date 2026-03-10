@@ -805,6 +805,8 @@ export function SummaryTab() {
           closeout={detailCloseout}
         />
       )}
+
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 }
