@@ -147,6 +147,8 @@ export default function AddRO() {
     return [...favorites, ...rest].slice(0, 8);
   }, [settings.presets]);
 
+  const presetsVisible = lines.length > 1 || lines.some(l => l.description.trim() || l.hoursPaid > 0);
+
   const handleScanApply = (data: ScanApplyData) => {
     if (data.roNumber) setRoNumber(data.roNumber);
     if (data.advisor) setAdvisor(data.advisor);
@@ -335,7 +337,7 @@ export default function AddRO() {
               onClick={() => handleSave(false)}
               disabled={!isValid || isSaving}
               className={cn(
-                'h-11 px-4 rounded-md text-sm font-semibold flex items-center gap-1.5 transition-colors',
+                'h-8 px-3 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors',
                 isValid && !isSaving
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -381,15 +383,6 @@ export default function AddRO() {
               onChange={e => setDate(e.target.value)}
               className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            {date !== localDateStr() && (
-              <button
-                onClick={() => setDate(localDateStr())}
-                className="h-11 w-11 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20 flex-shrink-0 active:scale-95 transition-all flex items-center justify-center"
-                title="Reset to today"
-              >
-                ↺
-              </button>
-            )}
           </div>
         </div>
 
@@ -464,57 +457,75 @@ export default function AddRO() {
 
         {/* Sticky quick actions: one-tap add line + paste + quick presets */}
         <div className="px-3 pb-3 pt-1 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleAddLine}
-              className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
-            >
-              <Plus className="h-4 w-4" />
-              Line
-            </button>
+          {presetsVisible ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddLine}
+                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
+              >
+                <Plus className="h-4 w-4" />
+                Line
+              </button>
 
-            <button
-              onClick={handlePasteLines}
-              className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
-              title="Paste lines from clipboard"
-            >
-              <ClipboardPaste className="h-4 w-4" />
-            </button>
+              <button
+                onClick={handlePasteLines}
+                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
+                title="Paste lines from clipboard"
+              >
+                <ClipboardPaste className="h-4 w-4" />
+              </button>
 
-            {quickPresets.length > 0 ? (
-              <div className="flex-1 overflow-hidden">
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-                  {recentlyAddedPresets.length > 0 && (
-                    <>
-                      <span className="text-xs text-muted-foreground flex-shrink-0">Recent:</span>
-                      {recentlyAddedPresets.map(id => {
-                        const preset = settings.presets.find(p => p.id === id);
-                        return preset ? (
-                          <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/15 rounded-md text-xs text-primary font-medium border border-primary/20">
-                            {preset.name}
-                          </span>
-                        ) : null;
-                      })}
-                      <div className="w-px h-5 bg-border flex-shrink-0 mx-1" />
-                    </>
-                  )}
-
-                  {quickPresets.map(preset => (
-                    <PresetButton
-                      key={preset.id}
-                      preset={preset}
-                      onTap={() => addPresetLine(preset)}
-                      onLongPress={() => setLongPressPreset(preset)}
-                    />
-                  ))}
+              {quickPresets.length > 0 ? (
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                    {recentlyAddedPresets.length > 0 && (
+                      <>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">Recent:</span>
+                        {recentlyAddedPresets.map(id => {
+                          const preset = settings.presets.find(p => p.id === id);
+                          return preset ? (
+                            <span key={id} className="flex-shrink-0 px-2 py-1 bg-primary/15 rounded-md text-xs text-primary font-medium border border-primary/20">
+                              {preset.name}
+                            </span>
+                          ) : null;
+                        })}
+                        <div className="w-px h-5 bg-border flex-shrink-0 mx-1" />
+                      </>
+                    )}
+                    {quickPresets.map(preset => (
+                      <PresetButton
+                        key={preset.id}
+                        preset={preset}
+                        onTap={() => addPresetLine(preset)}
+                        onLongPress={() => setLongPressPreset(preset)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                No presets yet — add some in Settings.
-              </span>
-            )}
-          </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  No presets yet — add some in Settings.
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddLine}
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-md text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                Add Line
+              </button>
+              <button
+                onClick={handlePasteLines}
+                className="flex-shrink-0 flex items-center gap-1 px-3 h-11 rounded-md text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all min-w-[44px]"
+                title="Paste lines from clipboard"
+              >
+                <ClipboardPaste className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </footer>
 

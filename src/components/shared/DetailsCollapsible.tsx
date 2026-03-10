@@ -233,6 +233,32 @@ export function DetailsCollapsible({
           ) : (
             /* Mobile: stacked layout */
             <div className="space-y-2">
+              {/* Paid Date — top section, separated from vehicle/customer info */}
+              {onPaidDateChange && (
+                <div className="pb-2 mb-1 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-16">Paid Date</span>
+                    <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <input
+                      type="date"
+                      value={paidDate || ''}
+                      onChange={(e) => onPaidDateChange(e.target.value)}
+                      className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    {paidDate && (
+                      <button
+                        onClick={() => onPaidDateChange('')}
+                        className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  {!paidDate && (
+                    <div className="pl-16 text-xs text-muted-foreground italic mt-1">Paid on a different day?</div>
+                  )}
+                </div>
+              )}
               {onLaborTypeChange && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-16">Labor Type</span>
@@ -246,29 +272,6 @@ export function DetailsCollapsible({
                     ))}
                   </select>
                 </div>
-              )}
-              {onPaidDateChange && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-16">Paid Date</span>
-                  <CalendarCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                  <input
-                    type="date"
-                    value={paidDate || ''}
-                    onChange={(e) => onPaidDateChange(e.target.value)}
-                    className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  {paidDate && (
-                    <button
-                      onClick={() => onPaidDateChange('')}
-                      className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              )}
-              {!paidDate && onPaidDateChange && (
-                <div className="pl-16 text-xs text-muted-foreground italic">Paid on a different day?</div>
               )}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-16">Customer</span>

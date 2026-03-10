@@ -104,7 +104,7 @@ const ROCard = memo(function ROCard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
             <span className="text-sm font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber}</span>
-            <span className="hours-pill text-[10px] flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
+            <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
             <div className="flex-shrink-0">
               <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
             </div>
@@ -288,16 +288,19 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex items-center justify-between px-4 py-2">
           <div className="min-w-0">
             <h2 className="page-title">Repair Orders</h2>
-            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-              <p className="page-subtitle tabular-nums">
-                {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-              </p>
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              <span className="text-xl font-bold tabular-nums text-primary leading-none">
+                {maskHours(totalHours, userSettings.hideTotals ?? false)}h
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums font-medium leading-none">
+                {filteredROs.length} ROs
+              </span>
               <Badge
                 variant="outline"
-                className={cn("gap-1 text-[10px] py-0", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                className={cn("gap-1 text-xs py-0.5 px-2 font-medium", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
-                <CalendarRange className="h-2.5 w-2.5" />
+                <CalendarRange className="h-3 w-3" />
                 {rangeChipLabel}
               </Badge>
             </div>
