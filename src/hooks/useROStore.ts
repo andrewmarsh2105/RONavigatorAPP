@@ -234,15 +234,17 @@ export function useROStore() {
     const dbUpdates = toRosUpdate(updates);
 
     if (Object.keys(dbUpdates).length > 0) {
-      const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id);
+      const { error } = await supabase.from('ros').update(dbUpdates).eq('id', id).eq('user_id', user.id);
       if (error) {
         const msg = error.message || '';
+        console.error('updateRO DB error:', error);
+        pushDebug({ action: 'updateRO FAIL', roId: id, error: msg, code: error.code });
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
           await queueAction('updateRO', { id, updates });
           toast.info('Network issue — update saved offline');
           return true;
         }
-        toast.error('Failed to update RO');
+        toast.error(`Failed to update RO: ${msg}`);
         return false;
       }
     }
