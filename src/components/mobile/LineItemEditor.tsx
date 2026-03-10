@@ -204,7 +204,7 @@ export function LineItemEditor({
                   </button>
                   <button
                     onClick={() => handleRemoveLine(index)}
-                    className="p-2 text-destructive tap-target touch-feedback rounded-lg"
+                    className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-destructive tap-target touch-feedback rounded-lg"
                     aria-label="Remove line"
                   >
                     <Trash2 className="h-4 w-4" />
