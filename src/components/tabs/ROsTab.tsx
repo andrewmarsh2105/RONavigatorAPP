@@ -97,28 +97,29 @@ const ROCard = memo(function ROCard({
   const hours = calcHours(ro);
 
   return (
-    <div className="card-mobile p-2.5 group row-hover quiet-transition">
+    <div className="card-mobile px-3 py-2.5 group row-hover quiet-transition">
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
-          {/* Row 1: date, RO#, hours, status chips */}
-          <div className="flex items-center gap-1.5">
+          {/* Row 1: date · RO# · hours · status */}
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="meta-text tabular-nums flex-shrink-0">{formatDateShort(roEffectiveDate)}</span>
-            <span className="text-xs font-bold tabular-nums flex-shrink-0">#{ro.roNumber}</span>
+            <span className="text-sm font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber}</span>
             <span className="hours-pill text-[10px] flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
             <div className="flex-shrink-0">
               <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
             </div>
           </div>
 
-          {/* Row 2: advisor · vehicle + work summary */}
-          <div className="flex items-center gap-1 mt-0.5">
+          {/* Row 2: labor type · advisor · vehicle */}
+          <div className="flex items-center gap-1 mt-1">
             <StatusPill type={ro.laborType} size="sm" />
             <p className="meta-text truncate">
-              {ro.advisor} · {vehicleLabel(ro)}
+              {ro.advisor}
+              {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
               {' — '}
               <span className="text-muted-foreground/70">
                 {ro.lines?.length
-                  ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 2).join(", ")
+                  ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
                   : ro.workPerformed || "—"}
               </span>
             </p>
@@ -285,21 +286,23 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 py-2">
-          <div>
+          <div className="min-w-0">
             <h2 className="page-title">Repair Orders</h2>
-            <p className="page-subtitle tabular-nums">
-              {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-            </p>
-             <Badge
+            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <p className="page-subtitle tabular-nums">
+                {filteredROs.length} ROs · {maskHours(totalHours, userSettings.hideTotals ?? false)}h
+              </p>
+              <Badge
                 variant="outline"
-                className={cn("gap-1 mt-0.5", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
+                className={cn("gap-1 text-[10px] py-0", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
-               <CalendarRange className="h-2.5 w-2.5" />
-               {rangeChipLabel}
-             </Badge>
+                <CalendarRange className="h-2.5 w-2.5" />
+                {rangeChipLabel}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <FlagInbox />
             {isPro && (
               <button
@@ -339,7 +342,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-hide">
+        <div className="flex flex-wrap gap-1.5 px-4 pb-2">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -352,7 +355,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               key={value}
               onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
               className={cn(
-                'px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap border quiet-transition',
+                'h-8 px-3 text-xs font-medium rounded-md border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
@@ -380,13 +383,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="card-mobile p-2.5">
+                <div key={i} className="card-mobile px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 space-y-1.5">
                       <div className="flex gap-2">
                         <Skeleton className="h-3.5 w-14" />
                         <Skeleton className="h-3.5 w-20" />
                       </div>
+                      <Skeleton className="h-3 w-40" />
                     </div>
                     <Skeleton className="h-5 w-10 rounded-md" />
                     <Skeleton className="h-5 w-12 rounded-md" />
@@ -438,9 +442,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full py-2.5 text-xs font-medium text-primary hover:text-primary/80 quiet-transition"
+                  className="w-full h-10 rounded-md border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
-                  Load more ({filteredROs.length - visibleCount} remaining)
+                  Load {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
               )}
             </div>
@@ -483,7 +487,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition',
+                    'px-3 py-1.5 text-xs font-medium rounded-md border quiet-transition min-h-[44px]',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-background text-muted-foreground border-border'
@@ -528,13 +532,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           <div className="flex gap-2 pt-2">
             <button
               onClick={clearFilters}
-              className="flex-1 py-2.5 bg-secondary rounded-md font-medium text-sm"
+              className="flex-1 h-12 bg-secondary rounded-md font-medium text-sm"
             >
               Clear All
             </button>
             <button
               onClick={() => setShowFilters(false)}
-              className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-md font-semibold text-sm"
+              className="flex-1 h-12 bg-primary text-primary-foreground rounded-md font-semibold text-sm"
             >
               Apply
             </button>

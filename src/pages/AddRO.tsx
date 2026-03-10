@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, CalendarCheck, User, FileText, X, ClipboardPaste } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, ClipboardPaste } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -9,7 +9,6 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { PresetHoursSheet } from '@/components/mobile/PresetHoursSheet';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -21,17 +20,12 @@ import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
 
-const LABOR_TYPES: { value: LaborType; label: string }[] = [
-  { value: 'warranty', label: 'Warranty' },
-  { value: 'customer-pay', label: 'Customer Pay' },
-  { value: 'internal', label: 'Internal' },
-];
 
 export default function AddRO() {
   const navigate = useNavigate();
@@ -39,7 +33,7 @@ export default function AddRO() {
   const isMobile = useIsMobile();
   const { settings, addRO, updateRO, updateAdvisors, ros, loadingROs } = useRO();
   const { userSettings } = useFlagContext();
-  const { isPro, startCheckout } = useSubscription();
+  const { isPro } = useSubscription();
 
   const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
   const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
@@ -52,6 +46,7 @@ export default function AddRO() {
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showCapSheet, setShowCapSheet] = useState(false);
+  const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
@@ -379,21 +374,51 @@ export default function AddRO() {
             <span className="truncate">{advisor || 'Advisor'}</span>
           </button>
 
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring w-[110px] flex-shrink-0"
-          />
-
-          <select
-            value={laborType}
-            onChange={e => setLaborType(e.target.value as LaborType)}
-            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {date !== localDateStr() && (
+              <button
+                onClick={() => setDate(localDateStr())}
+                className="h-11 px-2 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20 flex-shrink-0 active:scale-95 transition-all"
+              >
+                Today
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Quick advisor chips */}
+        {settings.advisors.length > 0 && (
+          <div className="px-3 pb-1.5 flex flex-wrap gap-1.5">
+            {[...settings.advisors].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5).map(adv => (
+              <button
+                key={adv.id}
+                onClick={() => setAdvisor(advisor === adv.name ? '' : adv.name)}
+                className={cn(
+                  'h-7 px-2.5 rounded-md text-xs font-medium border transition-colors active:scale-95',
+                  advisor === adv.name
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted text-muted-foreground border-border'
+                )}
+              >
+                {adv.name.split(' ')[0]}
+              </button>
+            ))}
+            {settings.advisors.length > 5 && (
+              <button
+                onClick={() => setShowAdvisorList(true)}
+                className="h-7 px-2.5 rounded-md text-xs font-medium border border-border bg-muted text-muted-foreground transition-colors active:scale-95"
+              >
+                More…
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Details collapsible */}
         <DetailsCollapsible
@@ -403,55 +428,16 @@ export default function AddRO() {
           onCustomerNameChange={setCustomerName}
           mileage={mileage}
           onMileageChange={setMileage}
+          paidDate={paidDate}
+          onPaidDateChange={setPaidDate}
+          laborType={laborType}
+          onLaborTypeChange={setLaborType}
+          notes={notes}
+          onNotesChange={setNotes}
           open={showMoreFields}
           onOpenChange={setShowMoreFields}
           layout="mobile"
         />
-
-        {/* Paid date */}
-        <div className="px-3 py-1.5 border-t border-border/50">
-          {paidDate ? (
-            <div className="flex items-center gap-2">
-              <CalendarCheck className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-sm font-medium text-foreground">Paid:</span>
-              <input
-                type="date"
-                value={paidDate}
-                onChange={e => setPaidDate(e.target.value)}
-                className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button onClick={() => setPaidDate('')} className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[44px] min-h-[44px] flex items-center justify-center">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => { setPaidDate(localDateStr()); setShowMoreFields(true); }}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors py-2 min-h-[44px]"
-            >
-              <CalendarCheck className="h-4 w-4" />
-              <span>Set paid date</span>
-            </button>
-          )}
-        </div>
-
-        {/* Notes in collapsible */}
-        <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
-          <CollapsibleContent>
-            <div className="px-3 py-2 bg-muted/20">
-              <div className="flex items-start gap-2">
-                <span className="text-sm text-muted-foreground w-12 pt-2">Notes</span>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Additional notes..."
-                  rows={2}
-                  className="flex-1 p-3 bg-muted rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       </div>
 
       {/* Lines */}
@@ -581,7 +567,6 @@ export default function AddRO() {
             value={advisorSearch}
             onChange={e => setAdvisorSearch(e.target.value)}
             className="w-full h-11 px-3 bg-secondary rounded-md border border-input text-base focus:outline-none focus:ring-2 focus:ring-ring"
-            autoFocus
           />
           {filteredAdvisors.map(adv => (
             <button
@@ -629,16 +614,18 @@ export default function AddRO() {
             You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
           </p>
           <button
-            onClick={() => { setShowCapSheet(false); startCheckout(); }}
+            onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
             className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm min-h-[44px]"
           >
-            Upgrade to Pro — $8.99/mo
+            Upgrade to Pro
           </button>
           <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
             Maybe later
           </button>
         </div>
       </BottomSheet>
+
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
     </div>
   );
 }

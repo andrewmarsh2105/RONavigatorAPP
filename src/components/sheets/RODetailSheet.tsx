@@ -217,19 +217,19 @@ export function RODetailSheet({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {flags.length > 0 && (
-                  <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
-                )}
-                {issues.length > 0 ? (
-                  <Badge variant="destructive" className="text-[10px]">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    {issues.length} check{issues.length === 1 ? "" : "s"}
-                  </Badge>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">No checks</span>
-                )}
-              </div>
+              {(flags.length > 0 || issues.length > 0) && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {flags.length > 0 && (
+                    <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
+                  )}
+                  {issues.length > 0 && (
+                    <Badge variant="destructive" className="text-[10px]">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {issues.length} check{issues.length === 1 ? "" : "s"}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ── Content ── */}
@@ -263,35 +263,37 @@ export function RODetailSheet({
                 </div>
               </SectionCard>
 
-              <SectionCard
-                title="Vehicle"
-                rightSlot={
-                  ro.vehicle?.vin ? (
-                    <button
-                      className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
-                      onClick={() => copyToClipboard("VIN", ro.vehicle?.vin || "")}
-                    >
-                      <Copy className="h-3 w-3" />
-                      Copy VIN
-                    </button>
-                  ) : null
-                }
-              >
-                <div className="grid grid-cols-3 gap-y-2 gap-x-4 text-sm">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Vehicle</p>
-                    <p className="font-medium">{vehicleLabel(ro)}</p>
+              {(ro.vehicle?.year || ro.vehicle?.make || ro.vehicle?.model || ro.vehicle?.trim || ro.vehicle?.vin) && (
+                <SectionCard
+                  title="Vehicle"
+                  rightSlot={
+                    ro.vehicle?.vin ? (
+                      <button
+                        className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                        onClick={() => copyToClipboard("VIN", ro.vehicle?.vin || "")}
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy VIN
+                      </button>
+                    ) : null
+                  }
+                >
+                  <div className="grid grid-cols-3 gap-y-2 gap-x-4 text-sm">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Vehicle</p>
+                      <p className="font-medium">{vehicleLabel(ro)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Trim</p>
+                      <p className="font-medium">{ro.vehicle?.trim || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">VIN</p>
+                      <p className="font-medium">{ro.vehicle?.vin || "—"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Trim</p>
-                    <p className="font-medium">{ro.vehicle?.trim || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">VIN</p>
-                    <p className="font-medium">{ro.vehicle?.vin || "—"}</p>
-                  </div>
-                </div>
-              </SectionCard>
+                </SectionCard>
+              )}
 
               <SectionCard
                 title="Lines"
@@ -356,23 +358,21 @@ export function RODetailSheet({
                 </SectionCard>
               ) : null}
 
-              <SectionCard title="Notes">
-                {ro.notes ? (
+              {ro.notes ? (
+                <SectionCard title="Notes">
                   <p className="text-sm whitespace-pre-wrap">{ro.notes}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">—</p>
-                )}
-              </SectionCard>
+                </SectionCard>
+              ) : null}
             </div>
 
             {/* ── Footer ── */}
             <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-card safe-area-bottom">
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-9" onClick={() => setShowDuplicateDialog(true)}>
+                <Button variant="outline" className="flex-1 h-12 text-sm" onClick={() => setShowDuplicateDialog(true)}>
                   <Copy className="h-4 w-4 mr-1.5" />
                   Duplicate
                 </Button>
-                <Button variant="destructive" className="flex-1 h-9" onClick={() => setShowDeleteConfirm(true)}>
+                <Button variant="destructive" className="flex-1 h-12 text-sm" onClick={() => setShowDeleteConfirm(true)}>
                   <Trash2 className="h-4 w-4 mr-1.5" />
                   Delete
                 </Button>
