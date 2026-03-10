@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 import { useROStore } from "@/hooks/useROStore";
 import { useAddROFormState } from "@/features/ro/hooks/useAddROFormState";
@@ -15,7 +16,14 @@ import { laborTypeOptions } from "@/features/ro/domain/constants";
 
 export default function AddROPage() {
   const navigate = useNavigate();
-  const { addRO, settings } = useROStore();
+  const { addRO, settings, ros } = useROStore();
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+
+  function checkDuplicateRO(roNum: string) {
+    const trimmed = roNum.trim().toLowerCase();
+    if (!trimmed) { setDuplicateWarning(false); return; }
+    setDuplicateWarning(ros.some(r => r.roNumber.trim().toLowerCase() === trimmed));
+  }
 
   const form = useAddROFormState({
     presets: settings.presets,
@@ -55,12 +63,20 @@ export default function AddROPage() {
     <div className="min-h-screen bg-background">
       <AddROHeader
         roNumber={form.roNumber}
-        setRoNumber={form.setRoNumber}
+        setRoNumber={(v) => { form.setRoNumber(v); checkDuplicateRO(v); }}
         date={form.date}
         setDate={form.setDate}
         onSave={onSave}
         onBack={() => navigate(-1)}
       />
+      {duplicateWarning && (
+        <div className="max-w-3xl mx-auto px-4 pt-2">
+          <div className="flex items-center gap-2 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            An RO with this number already exists.
+          </div>
+        </div>
+      )}
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <AdvisorPickerSheet
