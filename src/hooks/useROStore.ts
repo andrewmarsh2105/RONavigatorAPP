@@ -221,51 +221,14 @@ export function useROStore() {
     return newRO;
   }, [user, isOnline, queueAction]);
 
-  const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>) => {
-    if (!user) return;
+  const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>): Promise<boolean> => {
+    if (!user) return false;
 
     // Queue if offline
     if (!isOnline) {
       await queueAction('updateRO', { id, updates });
       toast.info('Update saved offline — will sync when back online');
-      return;
-    }
-
-    // Stale-edit detection: compare timestamps with tolerance
-    const localRO = ros.find(r => r.id === id);
-    if (localRO) {
-      try {
-        const { data: serverRow } = await supabase
-          .from('ros')
-          .select('updated_at')
-          .eq('id', id)
-          .single();
-        if (serverRow) {
-          const serverMs = new Date(serverRow.updated_at).getTime();
-          const localMs = new Date(localRO.updatedAt).getTime();
-          const diffMs = Math.abs(serverMs - localMs);
-          pushDebug({ action: 'stale-check', roId: id, error: `local=${localRO.updatedAt} server=${serverRow.updated_at} diff=${diffMs}ms` });
-          if (diffMs > 1500) {
-            // Truly stale — auto-refresh this RO instead of blocking
-            const { data: freshRow } = await supabase.from('ros').select('*').eq('id', id).single();
-            const { data: freshLines } = await supabase.from('ro_lines').select('*').eq('ro_id', id).order('line_no', { ascending: true });
-            if (freshRow) {
-              const refreshed = dbToRepairOrder(freshRow as RoRow, (freshLines || []) as RoLineRow[]);
-              setROs(prev => prev.map(r => r.id === id ? refreshed : r));
-            }
-            toast.warning('This RO was updated elsewhere — reloaded latest. Please re-apply your changes.');
-            return;
-          }
-        }
-      } catch (err) {
-        // If we can't check, fall back to offline queue on network error
-        const msg = errorMessage(err);
-        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          await queueAction('updateRO', { id, updates });
-          toast.info('Network issue — update saved offline');
-          return;
-        }
-      }
+      return true;
     }
 
     const dbUpdates = toRosUpdate(updates);
@@ -277,10 +240,10 @@ export function useROStore() {
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
           await queueAction('updateRO', { id, updates });
           toast.info('Network issue — update saved offline');
-          return;
+          return true;
         }
         toast.error('Failed to update RO');
-        return;
+        return false;
       }
     }
 
@@ -290,7 +253,7 @@ export function useROStore() {
       if (delErr) {
         console.error('Failed to delete old lines', delErr);
         toast.error(`Failed to update lines: ${delErr.message}`);
-        return;
+        return false;
       }
       if (updates.lines.length > 0) {
         const lineInserts = toRoLineInserts({
@@ -303,12 +266,13 @@ export function useROStore() {
         if (insErr) {
           console.error('Failed to insert lines', insErr);
           toast.error(`Lines failed to save: ${insErr.message}`);
+          return false;
         }
       }
     }
 
-    // Optimistic update: fetch only this RO's lines and update local state
-    const { data: updatedRow, error: rErr } = await supabase
+    // Fetch the updated row to sync local state with the DB's canonical version
+    const { data: updatedRow } = await supabase
       .from('ros')
       .select('*')
       .eq('id', id)
@@ -323,8 +287,23 @@ export function useROStore() {
     if (updatedRow) {
       const updated = dbToRepairOrder(updatedRow as RoRow, (updatedLines || []) as RoLineRow[]);
       setROs(prev => prev.map(r => r.id === id ? updated : r));
+    } else {
+      // Re-fetch failed — apply optimistic update from the data we sent
+      setROs(prev => prev.map(r => {
+        if (r.id !== id) return r;
+        return {
+          ...r,
+          ...updates,
+          lines: updates.lines ?? r.lines,
+          paidHours: updates.lines
+            ? updates.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
+            : r.paidHours,
+        };
+      }));
     }
-  }, [user, isOnline, queueAction, ros]);
+
+    return true;
+  }, [user, isOnline, queueAction]);
 
   const deleteRO = useCallback(async (id: string) => {
     if (!user) return;
