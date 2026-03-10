@@ -16,7 +16,14 @@ import { laborTypeOptions } from "@/features/ro/domain/constants";
 
 export default function AddROPage() {
   const navigate = useNavigate();
-  const { addRO, settings } = useROStore();
+  const { addRO, settings, ros } = useROStore();
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+
+  function checkDuplicateRO(roNum: string) {
+    const trimmed = roNum.trim().toLowerCase();
+    if (!trimmed) { setDuplicateWarning(false); return; }
+    setDuplicateWarning(ros.some(r => r.roNumber.trim().toLowerCase() === trimmed));
+  }
 
   const form = useAddROFormState({
     presets: settings.presets,
