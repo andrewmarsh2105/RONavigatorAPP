@@ -5,6 +5,7 @@ import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { LineItemEditor, createEmptyLine } from '@/components/mobile/LineItemEditor';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import type { LaborType, RepairOrder, ROLine, VehicleInfo } from '@/types/ro';
@@ -20,9 +21,10 @@ interface QuickAddSheetProps {
 
 export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: QuickAddSheetProps) {
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
-  const { isPro, startCheckout } = useSubscription();
+  const { isPro } = useSubscription();
   const [showAdvisorList, setShowAdvisorList] = useState(false);
   const [showCapSheet, setShowCapSheet] = useState(false);
+  const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   // Form state
   const [roNumber, setRoNumber] = useState(editingRO?.roNumber || '');
@@ -354,16 +356,18 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
           </p>
           <button
-            onClick={() => { setShowCapSheet(false); startCheckout(); }}
+            onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
             className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
           >
-            Upgrade to Pro — $8.99/mo
+            Upgrade to Pro
           </button>
           <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
             Maybe later
           </button>
         </div>
       </BottomSheet>
+
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
     </BottomSheet>
   );
 }

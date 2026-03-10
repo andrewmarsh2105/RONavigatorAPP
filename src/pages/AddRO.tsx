@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 
 // Desktop imports
 import { DesktopWorkspace } from '@/components/desktop/DesktopWorkspace';
@@ -32,7 +33,7 @@ export default function AddRO() {
   const isMobile = useIsMobile();
   const { settings, addRO, updateRO, updateAdvisors, ros, loadingROs } = useRO();
   const { userSettings } = useFlagContext();
-  const { isPro, startCheckout } = useSubscription();
+  const { isPro } = useSubscription();
 
   const editingROId = (location.state as { editingROId?: string; focusLineId?: string })?.editingROId;
   const focusLineId = (location.state as { editingROId?: string; focusLineId?: string })?.focusLineId;
@@ -45,6 +46,7 @@ export default function AddRO() {
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [recentlyAddedPresets, setRecentlyAddedPresets] = useState<string[]>([]);
   const [showCapSheet, setShowCapSheet] = useState(false);
+  const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   // Long-press preset hours sheet
   const [longPressPreset, setLongPressPreset] = useState<Preset | null>(null);
@@ -612,16 +614,18 @@ export default function AddRO() {
             You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
           </p>
           <button
-            onClick={() => { setShowCapSheet(false); startCheckout(); }}
+            onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
             className="w-full py-3 bg-primary text-primary-foreground rounded-md font-semibold text-sm min-h-[44px]"
           >
-            Upgrade to Pro — $8.99/mo
+            Upgrade to Pro
           </button>
           <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
             Maybe later
           </button>
         </div>
       </BottomSheet>
+
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
     </div>
   );
 }

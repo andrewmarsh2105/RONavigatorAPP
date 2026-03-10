@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { haptics } from '@/lib/haptics';
 import { parsePastedLines } from '@/lib/parseLines';
@@ -37,7 +38,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { userSettings } = useFlagContext();
-  const { isPro, startCheckout } = useSubscription();
+  const { isPro } = useSubscription();
 
   // RO cap
   const monthlyROCount = useMemo(() => {
@@ -73,6 +74,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   });
   const [showDetails, setShowDetails] = useState(!!(ro?.notes || ro?.customerName || ro?.mileage || ro?.vehicle?.year || ro?.vehicle?.make || ro?.vehicle?.model || ro?.paidDate));
   const [showScanFlow, setShowScanFlow] = useState(false);
+  const [showProUpgrade, setShowProUpgrade] = useState(false);
   const [highlightedLineIds, setHighlightedLineIds] = useState<string[]>([]);
   const [animatingPresetId, setAnimatingPresetId] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
@@ -160,8 +162,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
 
     if (isAtCap) {
-      toast.error(`Monthly limit reached (${RO_CAP} ROs). Upgrade to Pro for unlimited.`);
-      startCheckout();
+      setShowProUpgrade(true);
       return;
     }
 
@@ -412,6 +413,8 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         hasExistingLines={lines.some(l => l.description.trim() !== '' || l.hoursPaid > 0)}
         existingLineDescriptions={lines.map(l => l.description)}
       />
+
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
     </div>
   );
 }
