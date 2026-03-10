@@ -17,10 +17,18 @@ interface DetailsCollapsibleProps {
   onMileageChange: (mileage: string) => void;
   paidDate?: string;
   onPaidDateChange?: (date: string) => void;
+  laborType?: string;
+  onLaborTypeChange?: (type: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layout?: 'mobile' | 'desktop';
 }
+
+const LABOR_TYPE_OPTIONS = [
+  { value: 'warranty', label: 'Warranty' },
+  { value: 'customer-pay', label: 'Customer Pay' },
+  { value: 'internal', label: 'Internal' },
+];
 
 export function DetailsCollapsible({
   vehicle,
@@ -31,6 +39,8 @@ export function DetailsCollapsible({
   onMileageChange,
   paidDate,
   onPaidDateChange,
+  laborType,
+  onLaborTypeChange,
   open,
   onOpenChange,
   layout = 'mobile',
@@ -69,6 +79,14 @@ export function DetailsCollapsible({
           {/* Inline summaries when collapsed */}
           {!open && (
             <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+              {laborType && onLaborTypeChange && (
+                <>
+                  <span className="text-foreground font-medium truncate">
+                    {LABOR_TYPE_OPTIONS.find(t => t.value === laborType)?.label ?? laborType}
+                  </span>
+                  <span className="text-border">·</span>
+                </>
+              )}
               <span className={cn(
                 'truncate',
                 vehicleChip ? 'text-foreground' : 'text-muted-foreground'
@@ -218,6 +236,20 @@ export function DetailsCollapsible({
           ) : (
             /* Mobile: stacked layout */
             <div className="space-y-2">
+              {onLaborTypeChange && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-16">Labor Type</span>
+                  <select
+                    value={laborType || 'customer-pay'}
+                    onChange={(e) => onLaborTypeChange(e.target.value)}
+                    className="flex-1 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {LABOR_TYPE_OPTIONS.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {onPaidDateChange && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-16">Paid Date</span>

@@ -383,16 +383,8 @@ export default function AddRO() {
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring w-[110px] flex-shrink-0"
+            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring flex-shrink-0"
           />
-
-          <select
-            value={laborType}
-            onChange={e => setLaborType(e.target.value as LaborType)}
-            className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {LABOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
         </div>
 
         {/* Details collapsible */}
@@ -403,6 +395,8 @@ export default function AddRO() {
           onCustomerNameChange={setCustomerName}
           mileage={mileage}
           onMileageChange={setMileage}
+          laborType={laborType}
+          onLaborTypeChange={setLaborType}
           open={showMoreFields}
           onOpenChange={setShowMoreFields}
           layout="mobile"
