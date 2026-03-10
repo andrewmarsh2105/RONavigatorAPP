@@ -276,7 +276,7 @@ function MultiPeriodComparison({
 // ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
   const isMobile = useIsMobile();
-  const { userSettings } = useFlagContext();
+  const { userSettings, clearFlagsForPeriod } = useFlagContext();
   const { isPro } = useSubscription();
   const hideTotals = userSettings.hideTotals ?? false;
   const weekStartDay = userSettings.weekStartDay ?? 0;
@@ -376,10 +376,15 @@ export function SummaryTab() {
   const handleCloseOut = async () => {
     setCloseoutLoading(true);
     const ok = await closeOutPeriod(report, rangeTypeForCloseout);
+    if (ok) {
+      // Clear all active flags for ROs in this period (silently, in bulk)
+      await clearFlagsForPeriod(report.rosInRange.map(r => r.id));
+      toast.success('Closed out');
+    } else {
+      toast.error('Failed to close out');
+    }
     setCloseoutLoading(false);
     setShowCloseoutConfirm(false);
-    if (ok) toast.success('Closed out');
-    else toast.error('Failed to close out');
   };
 
   // Advisors: show top 5 by default, expand to all
@@ -437,9 +442,9 @@ export function SummaryTab() {
 
             {/* ── A) Top Controls ────────────────────── */}
             <div className="px-4 pt-3">
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
                 <Select value={rangeMode} onValueChange={(v) => { setRangeMode(v); setShowAllAdvisors(false); }}>
-                  <SelectTrigger className="w-[140px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0">
+                  <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent shadow-none focus:ring-0 px-0 flex-shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -451,7 +456,28 @@ export function SummaryTab() {
                     <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="font-semibold text-sm text-muted-foreground truncate">{viewModeLabel}</span>
+                <span className="font-semibold text-sm text-muted-foreground truncate flex-1">{viewModeLabel}</span>
+                {isPro && (
+                  periodAlreadyClosed ? (
+                    <button
+                      onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border hover:text-foreground transition-colors"
+                    >
+                      <Lock className="h-3 w-3" />
+                      Closed
+                    </button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant={isNearEnd ? 'default' : 'outline'}
+                      onClick={handleCloseOutClick}
+                      className="flex-shrink-0 h-7 px-2.5 text-xs cursor-pointer"
+                    >
+                      <Lock className="h-3 w-3" />
+                      {closeoutLabel}
+                    </Button>
+                  )
+                )}
               </div>
             </div>
 
@@ -684,36 +710,6 @@ export function SummaryTab() {
               </Accordion>
             </div>
 
-            {/* ── Close Out Button (Pro only) ──── */}
-            {isPro && (
-            <div className="px-4">
-              {periodAlreadyClosed ? (
-                <div className="flex items-center gap-2 py-2.5 px-3 bg-muted/50 rounded-lg border border-border">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">This period is closed</span>
-                  <button
-                    onClick={() => existingCloseout && setDetailCloseout(existingCloseout)}
-                    className="ml-auto text-xs font-semibold text-primary"
-                  >View</button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Button
-                    variant={isNearEnd ? 'default' : 'outline'}
-                    onClick={handleCloseOutClick}
-                    className="w-full h-11 cursor-pointer"
-                  >
-                    <Lock className="h-4 w-4" />
-                    {closeoutLabel}
-                  </Button>
-                  {isNearEnd && (
-                    <p className="text-[11px] text-muted-foreground text-center">period ending</p>
-                  )}
-                </div>
-              )}
-            </div>
-            )}
-
             {/* ── Closed Periods List ─────────────────── */}
             {isPro && (
             <ClosedPeriodsList
@@ -793,11 +789,34 @@ export function SummaryTab() {
       <Dialog open={showCloseoutConfirm} onOpenChange={setShowCloseoutConfirm}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Close out?</DialogTitle>
+            <DialogTitle>Close out {viewModeLabel}?</DialogTitle>
             <DialogDescription>
-              Close out {viewModeLabel}? This freezes totals as a snapshot — future edits to ROs in this range won't change it.
+              This freezes your totals as a snapshot — future edits to ROs in this range won't change it.
             </DialogDescription>
           </DialogHeader>
+
+          {/* Warnings: TBDs and Flags */}
+          {(report.tbdLineCount > 0 || report.flaggedCount > 0) && (
+            <div className="space-y-2">
+              {report.tbdLineCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2.5">
+                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                    <span className="font-semibold">{report.tbdLineCount} TBD {report.tbdLineCount === 1 ? 'line' : 'lines'}</span> in this period will be excluded from the snapshot. Consider resolving them first.
+                  </p>
+                </div>
+              )}
+              {report.flaggedCount > 0 && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 px-3 py-2.5">
+                  <Flag className="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-800 dark:text-red-200 leading-relaxed">
+                    <span className="font-semibold">{report.flaggedCount} active {report.flaggedCount === 1 ? 'flag' : 'flags'}</span> on ROs in this period will be cleared when you close out.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowCloseoutConfirm(false)}>Cancel</Button>
             <Button onClick={handleCloseOut} disabled={closeoutLoading}>
