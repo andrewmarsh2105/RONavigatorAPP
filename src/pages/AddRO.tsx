@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, CalendarCheck, User, FileText, X, ClipboardPaste } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, ClipboardPaste } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -9,7 +9,6 @@ import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { PresetHoursSheet } from '@/components/mobile/PresetHoursSheet';
 import { ScanFlow, type ScanApplyData } from '@/components/scan/ScanFlow';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SectionCard } from '@/components/layout/SectionCard';
 import { EmptyState } from '@/components/states/EmptyState';
 import { useRO } from '@/contexts/ROContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -21,7 +20,6 @@ import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Desktop imports
@@ -395,57 +393,16 @@ export default function AddRO() {
           onCustomerNameChange={setCustomerName}
           mileage={mileage}
           onMileageChange={setMileage}
+          paidDate={paidDate}
+          onPaidDateChange={setPaidDate}
           laborType={laborType}
           onLaborTypeChange={setLaborType}
+          notes={notes}
+          onNotesChange={setNotes}
           open={showMoreFields}
           onOpenChange={setShowMoreFields}
           layout="mobile"
         />
-
-        {/* Paid date */}
-        <div className="px-3 py-1.5 border-t border-border/50">
-          {paidDate ? (
-            <div className="flex items-center gap-2">
-              <CalendarCheck className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-sm font-medium text-foreground">Paid:</span>
-              <input
-                type="date"
-                value={paidDate}
-                onChange={e => setPaidDate(e.target.value)}
-                className="h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <button onClick={() => setPaidDate('')} className="p-2 rounded hover:bg-muted text-muted-foreground min-w-[44px] min-h-[44px] flex items-center justify-center">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => { setPaidDate(localDateStr()); setShowMoreFields(true); }}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors py-2 min-h-[44px]"
-            >
-              <CalendarCheck className="h-4 w-4" />
-              <span>Set paid date</span>
-            </button>
-          )}
-        </div>
-
-        {/* Notes in collapsible */}
-        <Collapsible open={showMoreFields} onOpenChange={setShowMoreFields}>
-          <CollapsibleContent>
-            <div className="px-3 py-2 bg-muted/20">
-              <div className="flex items-start gap-2">
-                <span className="text-sm text-muted-foreground w-12 pt-2">Notes</span>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Additional notes..."
-                  rows={2}
-                  className="flex-1 p-3 bg-muted rounded-md border border-input text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       </div>
 
       {/* Lines */}

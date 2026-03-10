@@ -19,6 +19,8 @@ interface DetailsCollapsibleProps {
   onPaidDateChange?: (date: string) => void;
   laborType?: string;
   onLaborTypeChange?: (type: string) => void;
+  notes?: string;
+  onNotesChange?: (notes: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layout?: 'mobile' | 'desktop';
@@ -41,6 +43,8 @@ export function DetailsCollapsible({
   onPaidDateChange,
   laborType,
   onLaborTypeChange,
+  notes,
+  onNotesChange,
   open,
   onOpenChange,
   layout = 'mobile',
@@ -348,6 +352,18 @@ export function DetailsCollapsible({
                   className="w-24 h-8 px-2 bg-muted rounded text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+              {onNotesChange !== undefined && (
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground w-16 pt-2">Notes</span>
+                  <textarea
+                    value={notes || ''}
+                    onChange={(e) => onNotesChange(e.target.value)}
+                    placeholder="Additional notes..."
+                    rows={2}
+                    className="flex-1 p-2 bg-muted rounded text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
