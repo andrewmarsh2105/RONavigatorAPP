@@ -473,7 +473,7 @@ export default function AddRO() {
                   </div>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">No presets — add in Settings.</span>
+                <span className="text-xs text-muted-foreground">No presets yet — set them up in Settings.</span>
               )}
             </div>
           ) : (

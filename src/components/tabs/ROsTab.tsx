@@ -415,11 +415,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <EmptyState
               icon={ClipboardList}
               variant={ros.length === 0 ? 'welcome' : 'filtered'}
-              title={ros.length === 0 ? 'No repair orders yet' : 'No repair orders found'}
+              title={ros.length === 0 ? 'No ROs yet' : 'Nothing matches'}
               description={
                 ros.length === 0
-                  ? 'Tap the Quick Add button below to log your first RO.'
-                  : 'Try adjusting your search or filters.'
+                  ? 'Hit + to log your first RO.'
+                  : 'Try a different search or filter.'
               }
               actions={
                 activeFiltersCount > 0 ? (
@@ -465,7 +465,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   onClick={() => setVisibleCount(c => c + 50)}
                   className="w-full h-10 rounded-full border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
-                  Load {Math.min(50, filteredROs.length - visibleCount)} more
+                  Show {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
               )}
             </div>

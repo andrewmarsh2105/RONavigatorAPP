@@ -55,7 +55,7 @@ export default function Auth() {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      toast.info('Enter your email address first, then tap Forgot Password');
+      toast.info('Enter your email above first');
       return;
     }
     try {
@@ -110,7 +110,7 @@ export default function Auth() {
         <Card className="shadow-raised rounded-2xl border-border/50">
           <CardContent className="pt-6 space-y-5">
             <p className="text-sm font-medium text-center text-muted-foreground">
-              {isLogin ? 'Sign in to your account' : 'Create a new account'}
+              {isLogin ? 'Sign in' : 'Create your account'}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -183,7 +183,7 @@ export default function Auth() {
         {/* Footer */}
         <div className="text-center space-y-1">
           <p className="text-xs text-muted-foreground/50">
-            Your data is encrypted and private.
+            Your data stays private.
           </p>
           <p className="text-xs text-muted-foreground/40">
             © {new Date().getFullYear()} RO Navigator

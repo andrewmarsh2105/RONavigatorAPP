@@ -87,7 +87,7 @@ export default function ResetPassword() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Set New Password</h1>
-            <p className="text-muted-foreground text-sm mt-1">Choose a strong password for your account.</p>
+            <p className="text-muted-foreground text-sm mt-1">Pick something you'll remember.</p>
           </div>
         </div>
 
