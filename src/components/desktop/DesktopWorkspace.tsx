@@ -164,7 +164,9 @@ export function DesktopWorkspace() {
     setRightPanel("none");
   };
 
-  const handleSaveAndAddAnother = () => {};
+  const handleSaveAndAddAnother = () => {
+    handleAddNew();
+  };
 
   const handleDeleteFromDetails = () => {
     if (!selectedRO) return;
@@ -215,7 +217,7 @@ export function DesktopWorkspace() {
               RO Navigator
             </span>
             <span className="text-[10px] text-muted-foreground leading-tight">
-              Repair order tracking
+              Track hours. Get paid right.
             </span>
           </div>
         </div>

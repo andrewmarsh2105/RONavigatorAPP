@@ -1,5 +1,5 @@
 import { useState, useMemo, createContext, useContext, useCallback } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock } from 'lucide-react';
+import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
@@ -11,6 +11,7 @@ import { usePayPeriodReport } from '@/hooks/usePayPeriodReport';
 import { generateLineCSV, generateSummaryText, downloadCSV } from '@/lib/exportUtils';
 import { cn, localDateStr } from '@/lib/utils';
 import { maskHours } from '@/lib/maskHours';
+import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -273,6 +274,34 @@ function MultiPeriodComparison({
   );
 }
 
+// ── Goal Progress Card ─────────────────────────────────────
+function GoalProgressCard({ label, current, goal, hide }: { label: string; current: number; goal: number; hide: boolean }) {
+  const pct = Math.min((current / goal) * 100, 100);
+  const isComplete = current >= goal;
+  return (
+    <div className="card-mobile p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Target className={cn('h-4 w-4', isComplete ? 'text-green-600 dark:text-green-400' : 'text-primary')} />
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+        </div>
+        <span className="text-sm font-bold tabular-nums">
+          {hide ? '--.-' : current.toFixed(1)} / {goal}h
+        </span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-500', isComplete ? 'bg-green-500' : 'bg-primary')}
+          style={{ width: `${hide ? 0 : pct}%` }}
+        />
+      </div>
+      {isComplete && !hide && (
+        <p className="text-xs text-green-600 dark:text-green-400 font-medium mt-1.5">Goal reached!</p>
+      )}
+    </div>
+  );
+}
+
 // ── Main SummaryTab ───────────────────────────────────────
 export function SummaryTab() {
   const isMobile = useIsMobile();
@@ -296,6 +325,11 @@ export function SummaryTab() {
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  // Hours goal & earnings from localStorage
+  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
+  const [hoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
+  const [hourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
 
 
   // Closeout state
@@ -566,6 +600,39 @@ export function SummaryTab() {
                     </div>
                   </div>
                 </div>
+
+                {/* Hours Goal Progress + Earnings */}
+                {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    {hoursGoalDaily > 0 && rangeMode === 'day' && (
+                      <GoalProgressCard
+                        label="Daily Goal"
+                        current={report.totalHours}
+                        goal={hoursGoalDaily}
+                        hide={hideTotals}
+                      />
+                    )}
+                    {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
+                      <GoalProgressCard
+                        label="Weekly Goal"
+                        current={report.totalHours}
+                        goal={hoursGoalWeekly}
+                        hide={hideTotals}
+                      />
+                    )}
+                    {hourlyRate > 0 && !hideTotals && (
+                      <div className="card-mobile p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Est. Earnings</div>
+                          <div className="text-xl font-bold tabular-nums">${(report.totalHours * hourlyRate).toFixed(0)}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </HideTotalsContext.Provider>
             </div>
 

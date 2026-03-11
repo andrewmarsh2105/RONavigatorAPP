@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -168,6 +169,7 @@ interface ROsTabProps {
 /* ── Main Tab ───────────────────────────────────── */
 
 export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
+  const navigate = useNavigate();
   const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
@@ -261,6 +263,14 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const hasMore = visibleCount < filteredROs.length;
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
+  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
+
+  // Today's hours for daily goal indicator
+  const todayHours = useMemo(() => {
+    if (hoursGoalDaily <= 0) return 0;
+    const today = new Date().toISOString().slice(0, 10);
+    return ros.filter(ro => (ro.date || '').startsWith(today)).reduce((s, ro) => s + calcHours(ro), 0);
+  }, [ros, hoursGoalDaily]);
 
   const handleConvertToFlag = useCallback((issue: ReviewIssue, flagType: FlagType, note?: string) => {
     addFlag(issue.roId, flagType, note || issue.detail, issue.lineId);
@@ -305,6 +315,16 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <span className="text-sm text-muted-foreground tabular-nums font-medium leading-none">
                 {filteredROs.length} ROs
               </span>
+              {hoursGoalDaily > 0 && (
+                <span className={cn(
+                  'text-xs font-semibold tabular-nums leading-none px-2 py-0.5 rounded-full',
+                  todayHours >= hoursGoalDaily
+                    ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                    : 'bg-primary/10 text-primary'
+                )}>
+                  {todayHours.toFixed(1)} / {hoursGoalDaily}h today
+                </span>
+              )}
               <Badge
                 variant="outline"
                 className={cn("gap-1 text-xs py-0.5 px-2 font-medium", dateFilter === "custom" && "cursor-pointer hover:bg-muted")}
@@ -415,14 +435,22 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <EmptyState
               icon={ClipboardList}
               variant={ros.length === 0 ? 'welcome' : 'filtered'}
-              title={ros.length === 0 ? 'No repair orders yet' : 'No repair orders found'}
+              title={ros.length === 0 ? 'No ROs yet' : 'Nothing matches'}
               description={
                 ros.length === 0
-                  ? 'Tap the Quick Add button below to log your first RO.'
-                  : 'Try adjusting your search or filters.'
+                  ? 'Track every repair order so you always know your hours.'
+                  : 'Try a different search or filter.'
               }
               actions={
-                activeFiltersCount > 0 ? (
+                ros.length === 0 ? (
+                  <button
+                    onClick={() => navigate('/add-ro')}
+                    className="h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground rounded-full flex items-center gap-2 active:scale-[0.97] transition-transform"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Your First RO
+                  </button>
+                ) : activeFiltersCount > 0 ? (
                   <button
                     onClick={clearFilters}
                     className="h-9 px-4 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/15 transition-colors"
@@ -465,7 +493,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   onClick={() => setVisibleCount(c => c + 50)}
                   className="w-full h-10 rounded-full border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
-                  Load {Math.min(50, filteredROs.length - visibleCount)} more
+                  Show {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
               )}
             </div>
