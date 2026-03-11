@@ -8,6 +8,7 @@ import { useTemplates } from '@/hooks/useTemplates';
 import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -478,6 +479,9 @@ export function SettingsTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+  const [hoursGoalDaily, setHoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
+  const [hoursGoalWeekly, setHoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
+  const [hourlyRate, setHourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -711,6 +715,65 @@ export function SettingsTab() {
             toggleValue={userSettings.hideTotals}
             onToggle={(v) => updateUserSetting('hideTotals', v)}
           />
+        </SettingsGroup>
+
+        {/* Hours & Earnings */}
+        <SettingsGroup title="Hours & Earnings">
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm">Daily goal</span>
+                <p className="text-xs text-muted-foreground">Hours per day target</p>
+              </div>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={24}
+                step={0.5}
+                value={hoursGoalDaily || ''}
+                onChange={e => setHoursGoalDaily(parseFloat(e.target.value) || 0)}
+                placeholder="Off"
+                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm">Weekly goal</span>
+                <p className="text-xs text-muted-foreground">Hours per week target</p>
+              </div>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={168}
+                step={1}
+                value={hoursGoalWeekly || ''}
+                onChange={e => setHoursGoalWeekly(parseFloat(e.target.value) || 0)}
+                placeholder="Off"
+                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+              />
+            </div>
+            <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
+              <div>
+                <span className="font-medium text-sm">Flat rate</span>
+                <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step={0.5}
+                  value={hourlyRate || ''}
+                  onChange={e => setHourlyRate(parseFloat(e.target.value) || 0)}
+                  placeholder="Off"
+                  className="w-24 h-9 pl-7 pr-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                />
+              </div>
+            </div>
+          </div>
         </SettingsGroup>
 
         {/* Pay Period Range */}

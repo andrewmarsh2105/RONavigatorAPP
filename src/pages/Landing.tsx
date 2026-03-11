@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ClipboardCheck, Flag, BarChart3, Check, ChevronDown, ChevronUp, Infinity, Camera, FileSpreadsheet, Shield } from 'lucide-react';
 import roLogo from '@/assets/ro-logo.jpeg';
 import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import heroMockup from '@/assets/hero-mockup.png';
 import multiperiodPreview from '@/assets/pro-multiperiod-preview.png';
@@ -199,7 +199,7 @@ export default function Landing() {
                   <span className="text-primary font-bold text-base md:text-xl">{s.num}</span>
                 </div>
                 <h3 className="font-semibold text-sm md:text-lg tracking-tight">{s.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto hidden md:block">{s.desc}</p>
+                <p className="text-[11px] md:text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{s.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -412,11 +412,22 @@ export default function Landing() {
                     <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
                 </button>
-                {openFaq === i && (
-                  <div className="px-5 md:px-6 pb-4 md:pb-5">
-                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {openFaq === i && (
+                    <motion.div
+                      key="answer"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 md:px-6 pb-4 md:pb-5">
+                        <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ))}
           </div>

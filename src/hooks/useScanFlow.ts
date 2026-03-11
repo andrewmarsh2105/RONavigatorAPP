@@ -248,7 +248,6 @@ export function useScanFlow() {
               .eq('storage_path', path);
           }
 
-          console.log('[ScanFlow] Photo auto-deleted after OCR success');
         } catch (e) {
           console.warn('[ScanFlow] Cleanup error (non-critical):', e);
         }

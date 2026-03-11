@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Camera, X, Plus } from 'lucide-react';
+import { haptics } from '@/lib/haptics';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
@@ -125,7 +126,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       customerName: customerName.trim() || undefined,
       vehicle: (vehicle.year || vehicle.make || vehicle.model) ? vehicle : undefined,
       mileage: mileage.trim() || undefined,
-      paidDate: paidDate.trim() || undefined,
+      paidDate: paidDate.trim() || null,
       paidHours: linesTotalHours,
       laborType,
       workPerformed: computedWorkPerformed,
@@ -138,12 +139,14 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
 
     try {
       if (editingRO) {
-        await updateRO(editingRO.id, roData);
+        const success = await updateRO(editingRO.id, roData);
+        if (!success) return;
         toast.success('RO updated');
       } else {
         await addRO(roData);
         toast.success('RO saved');
       }
+      haptics.success();
 
       if (addAnother) {
         resetForm();
@@ -187,9 +190,10 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               type="text"
               inputMode="numeric"
               value={roNumber}
-              onChange={(e) => setRoNumber(e.target.value)}
+              onChange={(e) => setRoNumber(e.target.value.slice(0, 20))}
               placeholder="Enter RO number"
-              className="w-full h-14 px-4 bg-secondary rounded-xl text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              maxLength={20}
+              className="w-full h-11 px-4 bg-secondary rounded-md border border-input text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -277,7 +281,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               onClick={() => handleSave(false)}
               disabled={!isValid}
               className={cn(
-                'flex-1 py-4 rounded-xl font-semibold tap-target touch-feedback transition-colors',
+                'flex-1 h-11 rounded-full font-semibold text-sm min-h-[44px] transition-colors active:scale-[0.98]',
                 isValid
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -290,7 +294,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
                 onClick={() => handleSave(true)}
                 disabled={!isValid}
                 className={cn(
-                  'py-4 px-6 rounded-xl font-semibold tap-target touch-feedback border-2 transition-colors',
+                  'h-11 px-6 rounded-full font-medium text-sm border min-h-[44px] transition-colors active:scale-[0.98]',
                   isValid
                     ? 'border-primary text-primary'
                     : 'border-muted text-muted-foreground'

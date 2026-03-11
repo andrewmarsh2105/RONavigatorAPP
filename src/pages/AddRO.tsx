@@ -293,7 +293,7 @@ export default function AddRO() {
         <EmptyState
           icon={FileText}
           title="RO not found"
-          description="The repair order you're looking for doesn't exist or was deleted."
+          description="RO not found — it may have been deleted."
           actions={
             <button onClick={() => navigate(-1)} className="text-sm font-medium text-primary">Go back</button>
           }
