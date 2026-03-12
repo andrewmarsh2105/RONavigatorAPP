@@ -8,6 +8,7 @@ import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
 import { ROsTab } from "@/components/tabs/ROsTab";
 import { DesktopWorkspace } from "@/components/desktop/DesktopWorkspace";
+import { OnboardingModal } from "@/components/OnboardingModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import type { RepairOrder } from "@/types/ro";
@@ -86,5 +87,10 @@ function MobileApp() {
 
 export default function Index() {
   const isMobile = useIsMobile();
-  return isMobile ? <MobileApp /> : <DesktopWorkspace />;
+  return (
+    <>
+      <OnboardingModal />
+      {isMobile ? <MobileApp /> : <DesktopWorkspace />}
+    </>
+  );
 }

@@ -43,7 +43,13 @@ export default function Auth() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        if (data.user) trackSignupCompleted(data.user.id);
+        if (data.user) {
+          trackSignupCompleted(data.user.id);
+          // Fire-and-forget welcome email — don't await so signup flow isn't blocked
+          supabase.functions.invoke('send-welcome-email', {
+            body: { email },
+          }).catch(() => { /* non-fatal */ });
+        }
         toast.success('Check your email to confirm your account');
       }
     } catch (err: any) {

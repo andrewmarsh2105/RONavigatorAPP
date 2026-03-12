@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "RO Navigator Support <onboarding@resend.dev>",
+        from: "RO Navigator Support <support@ronavigator.com>",
         to: ["support@ronavigator.com"],
         reply_to: email,
         subject: `Support Request from ${name}`,

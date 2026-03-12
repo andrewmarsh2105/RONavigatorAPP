@@ -1,5 +1,5 @@
 import { useState, useMemo, createContext, useContext, useCallback } from 'react';
-import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign } from 'lucide-react';
+import { Download, Copy, FileText, Flag, CalendarIcon, TrendingUp, TrendingDown, Minus, Clock, AlertCircle, ChevronDown, Lock, Target, DollarSign, Crown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { format } from 'date-fns';
@@ -435,8 +435,19 @@ export function SummaryTab() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full rounded-none bg-transparent h-11 gap-0 p-0">
             <TabsTrigger value="summary" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Summary</TabsTrigger>
-            {isPro && (
+            {isPro ? (
               <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Compare</TabsTrigger>
+            ) : (
+              <button
+                onClick={() => setShowUpgrade(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 h-11 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
+              >
+                Compare
+                <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  <Crown className="h-2.5 w-2.5" />
+                  PRO
+                </span>
+              </button>
             )}
           </TabsList>
         </Tabs>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus } from 'lucide-react';
+import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
+import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -187,6 +188,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [viewMode, setViewMode] = useLocalStorageState<'cards' | 'spreadsheet'>('ui.mobile.roTab.viewMode.v1', 'cards');
   const [visibleCount, setVisibleCount] = useState(50);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    if (!isPro && viewMode === 'spreadsheet') setViewMode('cards');
+  }, [isPro, viewMode, setViewMode]);
 
   useEffect(() => {
     onViewModeChange?.(viewMode);
@@ -337,17 +343,21 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <FlagInbox />
-            {isPro && (
-              <button
-                onClick={() => setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards')}
-                className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-full quiet-transition',
-                  viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {viewMode === 'spreadsheet' ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
-              </button>
-            )}
+            <button
+              onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
+              className={cn(
+                'h-8 w-8 flex items-center justify-center rounded-full quiet-transition relative',
+                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              )}
+              title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
+            >
+              {viewMode === 'spreadsheet' && isPro ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
+              {!isPro && (
+                <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center">
+                  <Crown className="h-2 w-2 text-primary-foreground" />
+                </span>
+              )}
+            </button>
             <button
               onClick={() => setShowFilters(true)}
               className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted relative quiet-transition"
@@ -401,7 +411,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       </div>
 
       {/* List content */}
-      {viewMode === 'spreadsheet' ? (
+      {viewMode === 'spreadsheet' && isPro ? (
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
             <SpreadsheetView
@@ -609,6 +619,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         initialStart={customStart}
         initialEnd={customEnd}
       />
+
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 }

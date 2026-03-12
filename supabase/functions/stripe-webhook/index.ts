@@ -154,6 +154,68 @@ serve(async (req) => {
         break;
       }
 
+      case "customer.subscription.trial_will_end": {
+        const subscription = event.data.object as any;
+        const customerId = subscription.customer;
+        const trialEnd = subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric" })
+          : "soon";
+
+        logStep("trial_will_end", { customerId, trialEnd });
+
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (!RESEND_API_KEY) break;
+
+        // Look up user email
+        const { data: settingsRows } = await supabaseAdmin
+          .from("user_settings")
+          .select("user_id")
+          .eq("stripe_customer_id", customerId)
+          .limit(1);
+
+        if (!settingsRows || settingsRows.length === 0) break;
+
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(settingsRows[0].user_id);
+        const userEmail = userData?.user?.email;
+        if (!userEmail) break;
+
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "RO Navigator <noreply@ronavigator.com>",
+            to: [userEmail],
+            subject: "Your Pro trial ends soon",
+            html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 24px; color: #111;">
+                <h1 style="font-size: 20px; font-weight: 700; margin: 0 0 16px;">Your free trial ends on ${trialEnd}</h1>
+                <p style="font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+                  Your 7-day Pro trial is almost up. Here's what you'll keep with a Pro subscription:
+                </p>
+                <ul style="font-size: 14px; line-height: 2; padding-left: 20px; margin: 0 0 24px; color: #333;">
+                  <li>OCR scanning — photograph ROs and auto-fill hours</li>
+                  <li>Pay period exports to Excel</li>
+                  <li>Unlimited RO history</li>
+                  <li>Spreadsheet view</li>
+                </ul>
+                <p style="font-size: 14px; color: #555; margin: 0 0 32px;">
+                  Only $8.99/month or $79.99/year. Cancel anytime.
+                </p>
+                <a href="https://ronavigator.com" style="display: inline-block; background: #2B82F0; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 24px; border-radius: 8px;">
+                  Keep Pro Access
+                </a>
+              </div>
+            `,
+          }),
+        });
+
+        logStep("Sent trial_will_end email", { userEmail });
+        break;
+      }
+
       default:
         logStep("Unhandled event type", { type: event.type });
     }

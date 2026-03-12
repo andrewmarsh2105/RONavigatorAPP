@@ -329,7 +329,7 @@ export default function Landing() {
               <div>
                 <h3 className="font-semibold text-lg">Pro</h3>
                 <p className="text-3xl font-extrabold tracking-tight mt-1">$8.99<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-                <p className="text-xs text-muted-foreground mt-1">or $79.99/yr — saves you $27.89</p>
+                <p className="text-xs text-muted-foreground mt-1">or $79.99/yr (~$0.22/day) — saves you $27.89</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-2.5 py-1">
                   <Check className="h-3 w-3 text-primary" />
                   <span className="text-xs font-semibold text-primary">7-day free trial — try risk-free</span>
@@ -365,10 +365,10 @@ export default function Landing() {
           </motion.h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Infinity, title: 'Unlimited ROs', desc: 'Log as many repair orders as you need. No monthly cap.' },
-              { icon: Camera, title: 'RO Photo Scan', desc: 'Snap a photo of a repair order — lines auto-fill via OCR.' },
-              { icon: BarChart3, title: 'Period Closeouts', desc: 'Freeze and compare pay periods side by side.' },
-              { icon: FileSpreadsheet, title: 'Full Exports', desc: 'Download payroll CSV, audit XLSX, or PDF for any date range.' },
+              { icon: Infinity, title: 'Unlimited ROs', desc: 'Never hit the 150/mo cap. Log every RO on every shift without limits.' },
+              { icon: Camera, title: 'RO Photo Scan', desc: 'Point your camera at a repair order — line items auto-fill in seconds via OCR.' },
+              { icon: BarChart3, title: 'Period Closeouts', desc: 'Lock in your hours at period end. Compare this period vs. last to catch trends.' },
+              { icon: FileSpreadsheet, title: 'Full Exports', desc: 'Send payroll CSV, audit XLSX, or PDF directly to your service manager.' },
             ].map((item, i) => (
               <motion.div
                 key={item.title}

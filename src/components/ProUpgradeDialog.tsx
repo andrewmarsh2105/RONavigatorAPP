@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, Infinity, Shield } from 'lucide-react';
+import { Crown, Camera, BarChart3, FileSpreadsheet, ExternalLink, Loader2, Infinity, Shield, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,7 @@ const proFeatures = [
   {
     icon: BarChart3,
     title: 'Pay period closeouts & comparison',
-    desc: 'Freeze periods, compare side-by-side.',
+    desc: 'Freeze periods and compare them side-by-side.',
   },
   {
     icon: FileSpreadsheet,
@@ -59,7 +59,7 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mt-1.5 leading-snug">
-            Get every hour. Every time. No more hitting your limit.
+            Don't leave hours on the table. Get the full picture — every RO, every period, every export.
           </p>
 
           {/* Trial badge */}
@@ -98,6 +98,7 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
             >
               <p className="text-xs font-medium text-muted-foreground">Monthly</p>
               <p className="text-xl font-bold mt-0.5">$8.99<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">~$0.30/day</p>
             </button>
             <button
               onClick={() => setSelectedPlan('yearly')}
@@ -109,12 +110,22 @@ export function ProUpgradeDialog({ open, onOpenChange }: ProUpgradeDialogProps) 
               )}
             >
               <span className="absolute -top-2.5 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
-                Save 26%
+                Best Value
               </span>
               <p className="text-xs font-medium text-muted-foreground">Yearly</p>
               <p className="text-xl font-bold mt-0.5">$79.99<span className="text-xs font-normal text-muted-foreground">/yr</span></p>
-              <p className="text-[11px] text-primary font-medium">~$6.67/mo</p>
+              <p className="text-[11px] text-primary font-medium">~$0.22/day · save $27</p>
             </button>
+          </div>
+
+          {/* What's included summary */}
+          <div className="bg-muted/50 rounded-xl px-4 py-3 space-y-1.5">
+            {['Everything in Free, plus:', 'Unlimited ROs + spreadsheet view', 'OCR scan + period exports', '7-day trial, cancel anytime'].map((line, i) => (
+              <div key={line} className="flex items-center gap-2">
+                <Check className={cn('h-3.5 w-3.5 flex-shrink-0', i === 0 ? 'text-muted-foreground' : 'text-primary')} />
+                <p className={cn('text-xs', i === 0 ? 'text-muted-foreground font-medium' : 'text-foreground')}>{line}</p>
+              </div>
+            ))}
           </div>
 
           {/* CTA */}
