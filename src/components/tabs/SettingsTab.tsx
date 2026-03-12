@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -663,20 +663,36 @@ export function SettingsTab() {
               </button>
             </div>
           ) : (
-            <div className="p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-muted-foreground" />
-                <span className="font-semibold">Free Plan</span>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-semibold">Free Plan</span>
+                </div>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">150 ROs/mo limit</span>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Upgrade to Pro for OCR scanning, closeouts, period comparison, spreadsheet exports, and more.
-              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { icon: Infinity, label: 'Unlimited ROs' },
+                  { icon: Camera, label: 'Scan with camera' },
+                  { icon: BarChart3, label: 'Period closeouts' },
+                  { icon: FileSpreadsheet, label: 'CSV / PDF exports' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-2 bg-muted/60 rounded-lg px-2.5 py-2">
+                    <Icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="text-xs font-medium text-foreground/80 leading-tight">{label}</span>
+                  </div>
+                ))}
+              </div>
               <button
                 onClick={() => setShowUpgradeDialog(true)}
                 className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
               >
-                Upgrade to Pro — $8.99/mo
+                Start 7-Day Free Trial
               </button>
+              <p className="text-[11px] text-center text-muted-foreground -mt-1">
+                $8.99/mo or $79.99/yr after trial. Cancel anytime.
+              </p>
             </div>
           )}
         </SettingsGroup>
