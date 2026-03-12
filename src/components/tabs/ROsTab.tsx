@@ -191,6 +191,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
+    if (!isPro && viewMode === 'spreadsheet') setViewMode('cards');
+  }, [isPro, viewMode, setViewMode]);
+
+  useEffect(() => {
     onViewModeChange?.(viewMode);
   }, [viewMode, onViewModeChange]);
 
@@ -407,7 +411,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       </div>
 
       {/* List content */}
-      {viewMode === 'spreadsheet' ? (
+      {viewMode === 'spreadsheet' && isPro ? (
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
             <SpreadsheetView
