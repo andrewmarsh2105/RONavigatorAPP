@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
 import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
+import { useSharedDateRange } from '@/hooks/useSharedDateRange';
+import { computeDateRangeBounds, filterROsByDateRange } from '@/lib/dateRangeFilter';
 
 interface ROEditorProps {
   ro?: RepairOrder | null;
@@ -51,6 +53,18 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
   }, [ros]);
   const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
+
+  // Date range for filtering advisors to match the current list view filter
+  const { dateFilter, customStart, customEnd } = useSharedDateRange('week', 'desktop-list');
+  const advisorRangeBounds = useMemo(() => computeDateRangeBounds({
+    filter: dateFilter,
+    weekStartDay: userSettings.weekStartDay ?? 0,
+    defaultSummaryRange: userSettings.defaultSummaryRange,
+    payPeriodEndDates: (userSettings.payPeriodEndDates || []) as number[],
+    hasCustomPayPeriod: !!(userSettings.payPeriodEndDates?.length),
+    customStart,
+    customEnd,
+  }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, customStart, customEnd]);
 
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -85,6 +99,14 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const [confirmClearFlag, setConfirmClearFlag] = useState(false);
   const flagPickerRef = useRef<HTMLDivElement | null>(null);
   const linesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Advisors filtered to those active in the current date range
+  const rangeFilteredAdvisors = useMemo(() => {
+    if (dateFilter === 'all') return settings.advisors;
+    const rosInRange = filterROsByDateRange(ros, advisorRangeBounds);
+    const inRange = new Set(rosInRange.map(r => r.advisor).filter(Boolean));
+    return settings.advisors.filter(a => inRange.has(a.name) || a.name === advisor);
+  }, [settings.advisors, ros, advisorRangeBounds, dateFilter, advisor]);
 
   // Active flags for this RO
   const roFlags = useMemo(() => ro?.id ? getFlagsForRO(ro.id) : [], [ro?.id, getFlagsForRO]);
@@ -289,7 +311,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
           <AdvisorCombobox
             value={advisor} onChange={setAdvisor}
-            advisors={settings.advisors}
+            advisors={rangeFilteredAdvisors}
             onCreateAdvisor={name => {
               const newAdvisor = { id: Date.now().toString(), name };
               updateAdvisors([...settings.advisors, newAdvisor]);
