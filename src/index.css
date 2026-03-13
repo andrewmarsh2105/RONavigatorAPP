@@ -52,6 +52,9 @@
     --status-internal-foreground: 0 0% 100%;
     --status-internal-bg: 28 82% 92%;
 
+    /* Chart colors */
+    --chart-period-b: 263 70% 60%;
+
     /* Mobile-safe */
     --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -120,6 +123,8 @@
     --status-internal: 28 88% 60%;
     --status-internal-foreground: 28 90% 10%;
     --status-internal-bg: 28 44% 17%;
+
+    --chart-period-b: 263 65% 68%;
 
     --shadow-card: 0 1px 4px -1px hsl(0 0% 0% / 0.32), 0 0 0 1px hsl(var(--border) / 0.9);
     --shadow-raised: 0 12px 36px -16px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(var(--border) / 0.85);

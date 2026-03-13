@@ -313,7 +313,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     <div className="flex flex-col h-full">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="px-4">
+        <div className="flex items-center justify-between pt-2.5 pb-1">
           <div className="min-w-0">
             <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
             <div className="flex items-center gap-2 flex-wrap mt-1">
@@ -379,7 +380,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="px-4 pb-2">
+        <div className="pb-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 icon-toolbar text-muted-foreground" />
             <input
@@ -392,7 +393,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 px-4 pb-2">
+        <div className="flex flex-wrap gap-1.5 pb-2">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -414,6 +415,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

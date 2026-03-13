@@ -18,6 +18,7 @@ import { haptics } from '@/lib/haptics';
 import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { calcLineHours } from '@/lib/roDisplay';
 import { toast } from 'sonner';
 
 interface ROEditorProps {
@@ -133,7 +134,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     return () => clearTimeout(timer);
   }, [focusLineId]);
 
-  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter(l => l.isTbd).length;
   const isValid = roNumber.trim() !== '';
 

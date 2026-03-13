@@ -3,7 +3,7 @@
  *
  * Shared display helpers for RO list/detail screens (keeps UI consistent).
  */
-import type { RepairOrder } from "@/types/ro";
+import type { ROLine, RepairOrder } from "@/types/ro";
 
 export function effectiveDate(ro: RepairOrder): string {
   return ro.paidDate || ro.date;
@@ -28,9 +28,14 @@ export function vehicleLabel(ro: RepairOrder): string {
   return parts.length ? parts.join(" ") : "—";
 }
 
+/** Sum paid hours across lines, excluding TBD lines. */
+export function calcLineHours(lines: ROLine[]): number {
+  return lines.filter((l) => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
+}
+
 export function calcHours(ro: RepairOrder): number {
   if (ro.lines?.length) {
-    return ro.lines.filter((l) => !l.isTbd).reduce((s, l) => s + (l.hoursPaid || 0), 0);
+    return calcLineHours(ro.lines);
   }
   return ro.paidHours || 0;
 }

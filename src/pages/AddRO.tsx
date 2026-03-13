@@ -18,6 +18,7 @@ import { haptics } from '@/lib/haptics';
 import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { calcLineHours } from '@/lib/roDisplay';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -139,7 +140,7 @@ export default function AddRO() {
     return () => clearTimeout(timer);
   }, [focusLineId]);
 
-  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
   const quickPresets = useMemo(() => {
@@ -349,36 +350,19 @@ export default function AddRO() {
         title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
         subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
         onBack={() => navigate(-1)}
-        rightActions={
-          <div className="flex items-center gap-1">
-            {isPro && (
-              <button
-                onClick={() => setShowScanFlow(true)}
-                className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                <Camera className="h-5 w-5" />
-              </button>
-            )}
-            <button
-              onClick={() => handleSave(false)}
-              disabled={!isValid || isSaving}
-              className={cn(
-                'h-9 px-4 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-colors',
-                isValid && !isSaving
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingRO ? 'Update' : 'Save'}
-            </button>
-          </div>
-        }
+        rightActions={isPro ? (
+          <button
+            onClick={() => setShowScanFlow(true)}
+            className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <Camera className="h-5 w-5" />
+          </button>
+        ) : undefined}
       />
 
       {/* Core fields strip */}
       <div className="flex-shrink-0 border-b border-border bg-card">
-        <div className="px-3 py-2 flex items-center gap-2">
+        <div className="px-3 py-2 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -392,17 +376,6 @@ export default function AddRO() {
             />
           </div>
 
-          <button
-            onClick={() => setShowAdvisorList(true)}
-            className={cn(
-              'flex-1 h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 min-w-0 overflow-hidden',
-              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
-            )}
-          >
-            <User className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{advisor || 'Advisor'}</span>
-          </button>
-
           <div className="flex items-center gap-1 flex-shrink-0">
             <input
               type="date"
@@ -411,6 +384,17 @@ export default function AddRO() {
               className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+
+          <button
+            onClick={() => setShowAdvisorList(true)}
+            className={cn(
+              'flex-1 min-w-[120px] h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden',
+              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
+            )}
+          >
+            <User className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{advisor || 'Advisor'}</span>
+          </button>
         </div>
 
         {/* Details collapsible */}

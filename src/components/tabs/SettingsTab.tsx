@@ -24,128 +24,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Preset, LaborType, Advisor } from '@/types/ro';
 import { cn } from '@/lib/utils';
-
-interface SettingsGroupProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function SettingsGroup({ title, children }: SettingsGroupProps) {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
-        {title}
-      </h3>
-      <div className="card-mobile divide-y divide-border">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-interface SettingsRowProps {
-  label: string;
-  description?: string;
-  value?: string;
-  onClick?: () => void;
-  toggle?: boolean;
-  toggleValue?: boolean;
-  onToggle?: (value: boolean) => void;
-}
-
-function SettingsRow({ label, description, value, onClick, toggle, toggleValue, onToggle }: SettingsRowProps) {
-  return (
-    <button
-      onClick={toggle ? () => onToggle?.(!toggleValue) : onClick}
-      className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
-    >
-      <div className="text-left">
-        <span className="font-medium">{label}</span>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        )}
-      </div>
-      {toggle ? (
-        <div
-          className={cn(
-            'w-12 h-7 rounded-full relative transition-colors flex-shrink-0',
-            toggleValue ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform',
-              toggleValue ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-muted-foreground flex-shrink-0">
-          {value && <span className="text-sm">{value}</span>}
-          <ChevronRight className="h-5 w-5" />
-        </div>
-      )}
-    </button>
-  );
-}
-
-interface PresetItemProps {
-  preset: Preset;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleFavorite: () => void;
-}
-
-function PresetItem({ preset, onEdit, onDelete, onToggleFavorite }: PresetItemProps) {
-  const typeLabel = {
-    'warranty': 'W',
-    'customer-pay': 'CP',
-    'internal': 'Int',
-  }[preset.laborType];
-
-  return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden">
-      <button onClick={onToggleFavorite} className="p-1.5 tap-target touch-feedback flex-shrink-0">
-        <Star className={cn('h-4 w-4', preset.isFavorite ? 'fill-primary text-primary' : 'text-muted-foreground')} />
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{preset.name}</div>
-        <div className="text-xs text-muted-foreground">
-          {typeLabel} • {preset.defaultHours ? `${preset.defaultHours}h` : 'No default'}
-        </div>
-      </div>
-      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback flex-shrink-0">
-        <Pencil className="h-4 w-4 text-muted-foreground" />
-      </button>
-      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive flex-shrink-0">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
-interface AdvisorItemProps {
-  advisor: Advisor;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
-  return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3">
-      <User className="h-5 w-5 text-muted-foreground" />
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{advisor.name}</div>
-      </div>
-      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback">
-        <Pencil className="h-4 w-4 text-muted-foreground" />
-      </button>
-      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
+import { SettingsGroup } from '@/components/settings/SettingsGroup';
+import { SettingsRow } from '@/components/settings/SettingsRow';
+import { PresetItem } from '@/components/settings/PresetItem';
+import { AdvisorItem } from '@/components/settings/AdvisorItem';
 
 function TemplatesSection() {
   const { templates, loading, addTemplate, updateTemplate, deleteTemplate } = useTemplates();
@@ -725,7 +607,7 @@ export function SettingsTab() {
               onChange={e => setLocalDisplayName(e.target.value)}
               onBlur={e => updateSetting('displayName', e.target.value.trim())}
               placeholder="e.g. Mike"
-              className="w-36 h-9 px-3 text-sm bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
@@ -739,7 +621,7 @@ export function SettingsTab() {
               onChange={e => setLocalShopName(e.target.value)}
               onBlur={e => updateSetting('shopName', e.target.value.trim())}
               placeholder="e.g. Smith's Auto"
-              className="w-36 h-9 px-3 text-sm bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </SettingsGroup>
@@ -820,7 +702,7 @@ export function SettingsTab() {
                 value={hoursGoalDaily || ''}
                 onChange={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
-                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
             <div className="flex items-center justify-between gap-4">
@@ -837,7 +719,7 @@ export function SettingsTab() {
                 value={hoursGoalWeekly || ''}
                 onChange={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
-                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
             <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
@@ -855,7 +737,7 @@ export function SettingsTab() {
                   value={hourlyRate || ''}
                   onChange={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
                   placeholder="Off"
-                  className="w-24 h-9 pl-7 pr-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                  className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
               </div>
             </div>

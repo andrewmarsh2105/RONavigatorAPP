@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calcLineHours } from '@/lib/roDisplay';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset, VehicleInfo } from '@/types/ro';
 import { formatVehicleChip } from '@/types/ro';
@@ -183,7 +184,7 @@ export function LinesGrid({
     }
   };
 
-  const totalHours = lines.filter((l) => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter((l) => l.isTbd).length;
 
   return (

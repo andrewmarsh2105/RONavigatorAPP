@@ -103,12 +103,16 @@ export function CompactLinesGrid({
             >
               <div className={cn(
                 'rounded-lg p-2.5 border transition-all duration-300',
-                // Highlighted from flag nav takes priority
-                isHighlighted 
-                  ? 'border-primary bg-primary/10 shadow-md border-l-[3px] border-l-primary' 
+                // Highlight state controls background + border color
+                isHighlighted
+                  ? 'border-primary bg-primary/10 shadow-md'
                   : 'border-border bg-card shadow-sm',
-                // Left accent ONLY for flagged (TBD state) — keeps neutral otherwise
-                !isHighlighted && line.isTbd && 'border-l-[3px] border-l-amber-400',
+                // TBD amber left border always visible regardless of highlight; primary left border otherwise when highlighted
+                line.isTbd
+                  ? 'border-l-[3px] border-l-amber-400'
+                  : isHighlighted
+                    ? 'border-l-[3px] border-l-primary'
+                    : '',
               )}>
                 {/* Row 1: Line # + Description */}
                 <div className="flex items-center gap-2 mb-1.5">
