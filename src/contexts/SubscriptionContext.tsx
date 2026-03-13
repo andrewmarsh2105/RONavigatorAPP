@@ -26,6 +26,9 @@ const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, session } = useAuth();
+  // Use user.id (stable string) so token refreshes (which create a new user object)
+  // don't unnecessarily re-run subscription checks and cause isPro to flash false.
+  const userId = user?.id ?? null;
   const [isPro, setIsPro] = useState(false);
   const prevIsPro = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -40,7 +43,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
     if (!token) {
-      setIsPro(false);
+      // If the user was previously pro, don't reset — this can happen briefly during
+      // a token refresh before the new token is available. Only reset if genuinely signed out.
+      if (!prevIsPro.current) {
+        setIsPro(false);
+      }
       setLoading(false);
       return;
     }
@@ -54,11 +61,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const subStatus = data?.status as string | null;
       const subscribed = data?.subscribed === true;
       // Track purchase_completed when Pro becomes active
-      if (subscribed && !prevIsPro.current && user) {
-        trackPurchaseCompleted(user.id);
+      if (subscribed && !prevIsPro.current && sessionData.session?.user?.id) {
+        trackPurchaseCompleted(sessionData.session.user.id);
       }
       prevIsPro.current = subscribed;
       setIsPro(subscribed);
@@ -68,22 +74,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       checkSubscription();
     } else {
       setIsPro(false);
+      prevIsPro.current = false;
       setLoading(false);
     }
-  }, [user, checkSubscription]);
+  }, [userId, checkSubscription]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     const interval = setInterval(checkSubscription, 60_000);
     return () => clearInterval(interval);
-  }, [user, checkSubscription]);
+  }, [userId, checkSubscription]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

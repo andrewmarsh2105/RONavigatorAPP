@@ -51,6 +51,9 @@ const defaultSettings: Settings = {
 
 export function useROStore() {
   const { user } = useAuth();
+  // Use user.id (stable string) instead of the user object so token refreshes
+  // (which create a new user object reference) don't trigger unnecessary refetches.
+  const userId = user?.id;
   const { isOnline, queueAction, registerRefresh } = useOffline();
   const [ros, setROs] = useState<RepairOrder[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -58,7 +61,7 @@ export function useROStore() {
 
   // Fetch ROs with lines
   const fetchROs = useCallback(async () => {
-    if (!user) { setROs([]); setLoadingROs(false); return; }
+    if (!userId) { setROs([]); setLoadingROs(false); return; }
     setLoadingROs(true);
     try {
       const { data: roRows, error } = await supabase
@@ -89,14 +92,14 @@ export function useROStore() {
     } finally {
       setLoadingROs(false);
     }
-  }, [user]);
+  }, [userId]);
 
   // Track whether an updatePresets operation is in flight to prevent races
   const presetsUpdating = useRef(false);
 
   // Fetch presets (labor_references)
   const fetchPresets = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     // Skip if an updatePresets call is in progress to prevent race conditions
     if (presetsUpdating.current) return;
     try {
@@ -116,11 +119,11 @@ export function useROStore() {
     } catch (err: unknown) {
       console.error('Failed to fetch presets', err);
     }
-  }, [user]);
+  }, [userId]);
 
   // Fetch advisors from DB
   const fetchAdvisors = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       const { data, error } = await supabase
         .from('advisors')
@@ -139,7 +142,7 @@ export function useROStore() {
     } catch (err: unknown) {
       console.error('Failed to fetch advisors', err);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { fetchROs(); }, [fetchROs]);
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
