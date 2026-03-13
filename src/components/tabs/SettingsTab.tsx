@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings, ACCENT_COLORS } from '@/hooks/useUserSettings';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -482,6 +482,13 @@ export function SettingsTab() {
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const { settings: syncedSettings, updateSetting } = useUserSettings();
   const hoursGoalDaily = syncedSettings.hoursGoalDaily;
+  const [localDisplayName, setLocalDisplayName] = useState(syncedSettings.displayName);
+  const [localShopName, setLocalShopName] = useState(syncedSettings.shopName);
+  // Sync local state when synced settings load
+  useEffect(() => {
+    setLocalDisplayName(syncedSettings.displayName);
+    setLocalShopName(syncedSettings.shopName);
+  }, [syncedSettings.displayName, syncedSettings.shopName]);
   const hoursGoalWeekly = syncedSettings.hoursGoalWeekly;
   const hourlyRate = syncedSettings.hourlyRate;
 
@@ -615,6 +622,12 @@ export function SettingsTab() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    // Re-apply accent color for the new theme
+    const hsl = ACCENT_COLORS[syncedSettings.accentColor]?.[enabled ? 'dark' : 'light'];
+    if (hsl) {
+      document.documentElement.style.setProperty('--primary', hsl);
+      document.documentElement.style.setProperty('--ring', hsl);
+    }
   };
 
   const handleClearAllClick = () => {
@@ -699,6 +712,38 @@ export function SettingsTab() {
           )}
         </SettingsGroup>
 
+        {/* Profile */}
+        <SettingsGroup title="Profile">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Your name</span>
+              <p className="text-xs text-muted-foreground">Shown in the app header</p>
+            </div>
+            <input
+              type="text"
+              value={localDisplayName}
+              onChange={e => setLocalDisplayName(e.target.value)}
+              onBlur={e => updateSetting('displayName', e.target.value.trim())}
+              placeholder="e.g. Mike"
+              className="w-36 h-9 px-3 text-sm bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Shop name</span>
+              <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
+            </div>
+            <input
+              type="text"
+              value={localShopName}
+              onChange={e => setLocalShopName(e.target.value)}
+              onBlur={e => updateSetting('shopName', e.target.value.trim())}
+              placeholder="e.g. Smith's Auto"
+              className="w-36 h-9 px-3 text-sm bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </SettingsGroup>
+
         {/* Appearance */}
         <SettingsGroup title="Appearance">
           <SettingsRow
@@ -707,6 +752,29 @@ export function SettingsTab() {
             toggleValue={darkMode}
             onToggle={toggleDarkMode}
           />
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Accent color</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => {
+                const hsl = ACCENT_COLORS[colorKey].light;
+                const isActive = (syncedSettings.accentColor || 'blue') === colorKey;
+                return (
+                  <button
+                    key={colorKey}
+                    onClick={() => updateSetting('accentColor', colorKey)}
+                    className="h-6 w-6 rounded-full flex-shrink-0 transition-all"
+                    style={{
+                      background: `hsl(${hsl})`,
+                      boxShadow: isActive ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(${hsl})` : undefined,
+                    }}
+                    title={colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
+                  />
+                );
+              })}
+            </div>
+          </div>
           {isPro && (
             <SettingsRow
               label="Show Scan Confidence"

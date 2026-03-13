@@ -315,7 +315,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       <div className="sticky top-0 z-30 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="min-w-0">
-            <h2 className="page-title">Repair Orders</h2>
+            <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <span className="text-2xl font-bold tabular-nums text-primary leading-none">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
@@ -344,6 +344,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {goalSettings.displayName && (
+              <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
+                {goalSettings.displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <FlagInbox />
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
