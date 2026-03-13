@@ -27,6 +27,7 @@ import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
 import { getStatusSummary } from '@/lib/roStatus';
 
@@ -269,7 +270,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const hasMore = visibleCount < filteredROs.length;
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
-  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
+  const { settings: goalSettings } = useUserSettings();
+  const hoursGoalDaily = goalSettings.hoursGoalDaily;
 
   // Today's hours for daily goal indicator
   const todayHours = useMemo(() => {

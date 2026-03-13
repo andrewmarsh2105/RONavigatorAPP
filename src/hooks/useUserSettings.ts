@@ -21,6 +21,9 @@ interface UserSettings {
   spreadsheetViewMode: string;
   spreadsheetDensity: string;
   spreadsheetGroupBy: string;
+  hoursGoalDaily: number;
+  hoursGoalWeekly: number;
+  hourlyRate: number;
 }
 
 const defaults: UserSettings = {
@@ -39,6 +42,9 @@ const defaults: UserSettings = {
   spreadsheetViewMode: 'payroll',
   spreadsheetDensity: 'comfortable',
   spreadsheetGroupBy: 'date',
+  hoursGoalDaily: 0,
+  hoursGoalWeekly: 0,
+  hourlyRate: 0,
 };
 
 export function useUserSettings() {
@@ -70,6 +76,9 @@ export function useUserSettings() {
         spreadsheetViewMode: (data as any).spreadsheet_view_mode || 'payroll',
         spreadsheetDensity: (data as any).spreadsheet_density || 'comfortable',
         spreadsheetGroupBy: (data as any).spreadsheet_group_by || 'date',
+        hoursGoalDaily: (data as any).hours_goal_daily ?? 0,
+        hoursGoalWeekly: (data as any).hours_goal_weekly ?? 0,
+        hourlyRate: (data as any).hourly_rate ?? 0,
       });
     }
     setLoaded(true);
@@ -95,6 +104,9 @@ export function useUserSettings() {
       : key === 'spreadsheetViewMode' ? 'spreadsheet_view_mode'
       : key === 'spreadsheetDensity' ? 'spreadsheet_density'
       : key === 'spreadsheetGroupBy' ? 'spreadsheet_group_by'
+      : key === 'hoursGoalDaily' ? 'hours_goal_daily'
+      : key === 'hoursGoalWeekly' ? 'hours_goal_weekly'
+      : key === 'hourlyRate' ? 'hourly_rate'
       : key;
     
     const { error } = await supabase

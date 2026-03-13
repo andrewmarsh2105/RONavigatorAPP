@@ -30,6 +30,7 @@ import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -326,10 +327,10 @@ export function SummaryTab() {
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  // Hours goal & earnings from localStorage
-  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
-  const [hoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
-  const [hourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
+  const { settings: goalSettings } = useUserSettings();
+  const hoursGoalDaily = goalSettings.hoursGoalDaily;
+  const hoursGoalWeekly = goalSettings.hoursGoalWeekly;
+  const hourlyRate = goalSettings.hourlyRate;
 
 
   // Closeout state

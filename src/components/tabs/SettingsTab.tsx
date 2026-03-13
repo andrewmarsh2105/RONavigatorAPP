@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -479,9 +480,10 @@ export function SettingsTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
-  const [hoursGoalDaily, setHoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
-  const [hoursGoalWeekly, setHoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
-  const [hourlyRate, setHourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
+  const { settings: syncedSettings, updateSetting } = useUserSettings();
+  const hoursGoalDaily = syncedSettings.hoursGoalDaily;
+  const hoursGoalWeekly = syncedSettings.hoursGoalWeekly;
+  const hourlyRate = syncedSettings.hourlyRate;
 
   useEffect(() => {
     async function checkAdmin() {
@@ -748,7 +750,7 @@ export function SettingsTab() {
                 max={24}
                 step={0.5}
                 value={hoursGoalDaily || ''}
-                onChange={e => setHoursGoalDaily(parseFloat(e.target.value) || 0)}
+                onChange={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
                 className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
@@ -765,7 +767,7 @@ export function SettingsTab() {
                 max={168}
                 step={1}
                 value={hoursGoalWeekly || ''}
-                onChange={e => setHoursGoalWeekly(parseFloat(e.target.value) || 0)}
+                onChange={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
                 className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
@@ -783,7 +785,7 @@ export function SettingsTab() {
                   min={0}
                   step={0.5}
                   value={hourlyRate || ''}
-                  onChange={e => setHourlyRate(parseFloat(e.target.value) || 0)}
+                  onChange={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
                   placeholder="Off"
                   className="w-24 h-9 pl-7 pr-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
