@@ -6,7 +6,7 @@ import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
-import roLogo from "@/assets/ro-logo.jpeg";
+import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
 import { useRO } from "@/contexts/ROContext";
@@ -202,25 +202,9 @@ export function DesktopWorkspace() {
     <div className="h-screen flex flex-col bg-background">
       <OfflineStatusBar />
 
-      {/* Industrial App Bar */}
-      <div className="flex-shrink-0 h-11 flex items-center justify-between px-4 border-b border-border bg-card">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded overflow-hidden flex items-center justify-center">
-            <img
-              src={roLogo}
-              alt="RO Navigator"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-xs tracking-tight text-foreground leading-none">
-              RO Navigator
-            </span>
-            <span className="text-[10px] text-muted-foreground leading-tight">
-              Track hours. Get paid right.
-            </span>
-          </div>
-        </div>
+      {/* App Bar */}
+      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border bg-card">
+        <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
         <div className="flex items-center gap-1">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
@@ -310,10 +294,17 @@ export function DesktopWorkspace() {
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
               >
-                <div className={cn(
-                  "w-0.5 h-8 rounded-full bg-border group-hover:bg-muted-foreground/40 quiet-transition",
-                  isDragging && "bg-muted-foreground/40",
-                )} />
+                <div className="flex flex-col gap-[3px]">
+                  {[0, 1, 2].map(i => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "w-1 h-1 rounded-full bg-border group-hover:bg-muted-foreground/50 quiet-transition",
+                        isDragging && "bg-muted-foreground/50",
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
 
               <div className="flex-1 min-w-0 relative">
@@ -389,6 +380,7 @@ export function DesktopWorkspace() {
       <ProUpgradeDialog
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
+        trigger="spreadsheet"
       />
     </div>
   );

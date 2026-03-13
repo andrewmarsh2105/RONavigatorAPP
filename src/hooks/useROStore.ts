@@ -15,6 +15,7 @@ import {
   type RoLineRow,
   type RoRow,
 } from '@/features/ro/data/roMapper';
+import { calcLineHours } from '@/lib/roDisplay';
 
 type AdvisorRow = Database["public"]["Tables"]["advisors"]["Row"];
 type LaborReferenceRow = Database["public"]["Tables"]["labor_references"]["Row"];
@@ -297,9 +298,7 @@ export function useROStore() {
           ...r,
           ...updates,
           lines: updates.lines ?? r.lines,
-          paidHours: updates.lines
-            ? updates.lines.filter(l => !l.isTbd).reduce((s, l) => s + l.hoursPaid, 0)
-            : r.paidHours,
+          paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
         };
       }));
     }

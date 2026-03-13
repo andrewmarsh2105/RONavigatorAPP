@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { useUserSettings, ACCENT_COLORS } from '@/hooks/useUserSettings';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import {
@@ -23,128 +24,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Preset, LaborType, Advisor } from '@/types/ro';
 import { cn } from '@/lib/utils';
-
-interface SettingsGroupProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function SettingsGroup({ title, children }: SettingsGroupProps) {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
-        {title}
-      </h3>
-      <div className="card-mobile divide-y divide-border">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-interface SettingsRowProps {
-  label: string;
-  description?: string;
-  value?: string;
-  onClick?: () => void;
-  toggle?: boolean;
-  toggleValue?: boolean;
-  onToggle?: (value: boolean) => void;
-}
-
-function SettingsRow({ label, description, value, onClick, toggle, toggleValue, onToggle }: SettingsRowProps) {
-  return (
-    <button
-      onClick={toggle ? () => onToggle?.(!toggleValue) : onClick}
-      className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
-    >
-      <div className="text-left">
-        <span className="font-medium">{label}</span>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        )}
-      </div>
-      {toggle ? (
-        <div
-          className={cn(
-            'w-12 h-7 rounded-full relative transition-colors flex-shrink-0',
-            toggleValue ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform',
-              toggleValue ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-muted-foreground flex-shrink-0">
-          {value && <span className="text-sm">{value}</span>}
-          <ChevronRight className="h-5 w-5" />
-        </div>
-      )}
-    </button>
-  );
-}
-
-interface PresetItemProps {
-  preset: Preset;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleFavorite: () => void;
-}
-
-function PresetItem({ preset, onEdit, onDelete, onToggleFavorite }: PresetItemProps) {
-  const typeLabel = {
-    'warranty': 'W',
-    'customer-pay': 'CP',
-    'internal': 'Int',
-  }[preset.laborType];
-
-  return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3 overflow-hidden">
-      <button onClick={onToggleFavorite} className="p-1.5 tap-target touch-feedback flex-shrink-0">
-        <Star className={cn('h-4 w-4', preset.isFavorite ? 'fill-primary text-primary' : 'text-muted-foreground')} />
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{preset.name}</div>
-        <div className="text-xs text-muted-foreground">
-          {typeLabel} • {preset.defaultHours ? `${preset.defaultHours}h` : 'No default'}
-        </div>
-      </div>
-      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback flex-shrink-0">
-        <Pencil className="h-4 w-4 text-muted-foreground" />
-      </button>
-      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive flex-shrink-0">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
-interface AdvisorItemProps {
-  advisor: Advisor;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function AdvisorItem({ advisor, onEdit, onDelete }: AdvisorItemProps) {
-  return (
-    <div className="bg-card px-3 py-2 rounded-lg flex items-center gap-3">
-      <User className="h-5 w-5 text-muted-foreground" />
-      <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{advisor.name}</div>
-      </div>
-      <button onClick={onEdit} className="p-1.5 tap-target touch-feedback">
-        <Pencil className="h-4 w-4 text-muted-foreground" />
-      </button>
-      <button onClick={onDelete} className="p-1.5 tap-target touch-feedback text-destructive">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
+import { SettingsGroup } from '@/components/settings/SettingsGroup';
+import { SettingsRow } from '@/components/settings/SettingsRow';
+import { PresetItem } from '@/components/settings/PresetItem';
+import { AdvisorItem } from '@/components/settings/AdvisorItem';
 
 function TemplatesSection() {
   const { templates, loading, addTemplate, updateTemplate, deleteTemplate } = useTemplates();
@@ -466,7 +349,7 @@ export function SettingsTab() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { userSettings, updateUserSetting } = useFlagContext();
-  const { isPro, subscriptionEnd, openPortal } = useSubscription();
+  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
@@ -479,9 +362,17 @@ export function SettingsTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
-  const [hoursGoalDaily, setHoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
-  const [hoursGoalWeekly, setHoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
-  const [hourlyRate, setHourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
+  const { settings: syncedSettings, updateSetting } = useUserSettings();
+  const hoursGoalDaily = syncedSettings.hoursGoalDaily;
+  const [localDisplayName, setLocalDisplayName] = useState(syncedSettings.displayName);
+  const [localShopName, setLocalShopName] = useState(syncedSettings.shopName);
+  // Sync local state when synced settings load
+  useEffect(() => {
+    setLocalDisplayName(syncedSettings.displayName);
+    setLocalShopName(syncedSettings.shopName);
+  }, [syncedSettings.displayName, syncedSettings.shopName]);
+  const hoursGoalWeekly = syncedSettings.hoursGoalWeekly;
+  const hourlyRate = syncedSettings.hourlyRate;
 
   useEffect(() => {
     async function checkAdmin() {
@@ -613,6 +504,12 @@ export function SettingsTab() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    // Re-apply accent color for the new theme
+    const hsl = ACCENT_COLORS[syncedSettings.accentColor]?.[enabled ? 'dark' : 'light'];
+    if (hsl) {
+      document.documentElement.style.setProperty('--primary', hsl);
+      document.documentElement.style.setProperty('--ring', hsl);
+    }
   };
 
   const handleClearAllClick = () => {
@@ -650,7 +547,30 @@ export function SettingsTab() {
                 <Crown className="h-5 w-5 text-primary" />
                 <span className="font-semibold">Pro Plan</span>
               </div>
-              {subscriptionEnd && (
+              {isNearExpiry && daysUntilEnd !== null && (
+                <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5">
+                  <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
+                    Your trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>. Add a payment method to keep Pro access.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { icon: Infinity, label: 'Unlimited ROs' },
+                  { icon: Camera, label: 'Scan with camera' },
+                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
+                  { icon: BarChart3, label: 'Period closeouts' },
+                  { icon: FileText, label: 'CSV / PDF exports' },
+                  { icon: Shield, label: 'Compare periods' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
+                    <Icon className="h-3 w-3 text-primary flex-shrink-0" />
+                    <span className="text-xs text-foreground/70 leading-tight">{label}</span>
+                  </div>
+                ))}
+              </div>
+              {subscriptionEnd && !isNearExpiry && (
                 <p className="text-xs text-muted-foreground">
                   Renews {new Date(subscriptionEnd).toLocaleDateString()}
                 </p>
@@ -675,8 +595,10 @@ export function SettingsTab() {
                 {[
                   { icon: Infinity, label: 'Unlimited ROs' },
                   { icon: Camera, label: 'Scan with camera' },
+                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
                   { icon: BarChart3, label: 'Period closeouts' },
-                  { icon: FileSpreadsheet, label: 'CSV / PDF exports' },
+                  { icon: FileText, label: 'CSV / PDF exports' },
+                  { icon: Shield, label: 'Compare periods' },
                 ].map(({ icon: Icon, label }) => (
                   <div key={label} className="flex items-center gap-2 bg-muted/60 rounded-lg px-2.5 py-2">
                     <Icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -697,6 +619,38 @@ export function SettingsTab() {
           )}
         </SettingsGroup>
 
+        {/* Profile */}
+        <SettingsGroup title="Profile">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Your name</span>
+              <p className="text-xs text-muted-foreground">Shown in the app header</p>
+            </div>
+            <input
+              type="text"
+              value={localDisplayName}
+              onChange={e => setLocalDisplayName(e.target.value)}
+              onBlur={e => updateSetting('displayName', e.target.value.trim())}
+              placeholder="e.g. Mike"
+              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Shop name</span>
+              <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
+            </div>
+            <input
+              type="text"
+              value={localShopName}
+              onChange={e => setLocalShopName(e.target.value)}
+              onBlur={e => updateSetting('shopName', e.target.value.trim())}
+              placeholder="e.g. Smith's Auto"
+              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </SettingsGroup>
+
         {/* Appearance */}
         <SettingsGroup title="Appearance">
           <SettingsRow
@@ -705,6 +659,29 @@ export function SettingsTab() {
             toggleValue={darkMode}
             onToggle={toggleDarkMode}
           />
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-sm">Accent color</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => {
+                const hsl = ACCENT_COLORS[colorKey].light;
+                const isActive = (syncedSettings.accentColor || 'blue') === colorKey;
+                return (
+                  <button
+                    key={colorKey}
+                    onClick={() => updateSetting('accentColor', colorKey)}
+                    className="h-6 w-6 rounded-full flex-shrink-0 transition-all"
+                    style={{
+                      background: `hsl(${hsl})`,
+                      boxShadow: isActive ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(${hsl})` : undefined,
+                    }}
+                    title={colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
+                  />
+                );
+              })}
+            </div>
+          </div>
           {isPro && (
             <SettingsRow
               label="Show Scan Confidence"
@@ -748,9 +725,9 @@ export function SettingsTab() {
                 max={24}
                 step={0.5}
                 value={hoursGoalDaily || ''}
-                onChange={e => setHoursGoalDaily(parseFloat(e.target.value) || 0)}
+                onChange={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
-                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
             <div className="flex items-center justify-between gap-4">
@@ -765,9 +742,9 @@ export function SettingsTab() {
                 max={168}
                 step={1}
                 value={hoursGoalWeekly || ''}
-                onChange={e => setHoursGoalWeekly(parseFloat(e.target.value) || 0)}
+                onChange={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
                 placeholder="Off"
-                className="w-20 h-9 px-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
             <div className="border-t border-border pt-4 flex items-center justify-between gap-4">
@@ -783,9 +760,9 @@ export function SettingsTab() {
                   min={0}
                   step={0.5}
                   value={hourlyRate || ''}
-                  onChange={e => setHourlyRate(parseFloat(e.target.value) || 0)}
+                  onChange={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
                   placeholder="Off"
-                  className="w-24 h-9 pl-7 pr-3 text-sm text-right bg-muted rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                  className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
               </div>
             </div>

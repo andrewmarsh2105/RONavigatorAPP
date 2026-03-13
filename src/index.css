@@ -52,6 +52,9 @@
     --status-internal-foreground: 0 0% 100%;
     --status-internal-bg: 28 82% 92%;
 
+    /* Chart colors */
+    --chart-period-b: 263 70% 60%;
+
     /* Mobile-safe */
     --tab-bar-height: 5rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -74,6 +77,16 @@
     --sidebar-accent-foreground: 222 22% 14%;
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 214 95% 53%;
+
+    /* ─── Brand identity tokens ─────────────────────────────────
+       These are logo/brand colors. They do NOT replace --primary.
+       Use them only in: Logo component, brand marks, Pro badges,
+       splash screen, document headers, and marketing surfaces.
+    ─────────────────────────────────────────────────────────── */
+    --brand-navy:        220 61% 10%;   /* #0C1829 — logo fill on light */
+    --brand-amber:       37  86% 44%;   /* #D4890A — logo indicator, light bg */
+    --brand-amber-light: 38  90% 54%;   /* #F5A623 — logo indicator, dark bg */
+    --brand-slate:       213 52% 24%;   /* #1E3A5F — secondary brand tone */
   }
 
   .dark {
@@ -120,6 +133,8 @@
     --status-internal: 28 88% 60%;
     --status-internal-foreground: 28 90% 10%;
     --status-internal-bg: 28 44% 17%;
+
+    --chart-period-b: 263 65% 68%;
 
     --shadow-card: 0 1px 4px -1px hsl(0 0% 0% / 0.32), 0 0 0 1px hsl(var(--border) / 0.9);
     --shadow-raised: 0 12px 36px -16px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(var(--border) / 0.85);

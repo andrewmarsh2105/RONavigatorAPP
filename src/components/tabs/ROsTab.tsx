@@ -27,6 +27,7 @@ import type { ReviewIssue } from '@/lib/reviewRules';
 import { getReviewIssues } from '@/lib/reviewRules';
 import { cn } from '@/lib/utils';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { effectiveDate, formatDateShort, calcHours, vehicleLabel } from '@/lib/roDisplay';
 import { getStatusSummary } from '@/lib/roStatus';
 
@@ -269,7 +270,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const hasMore = visibleCount < filteredROs.length;
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
-  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
+  const { settings: goalSettings } = useUserSettings();
+  const hoursGoalDaily = goalSettings.hoursGoalDaily;
 
   // Today's hours for daily goal indicator
   const todayHours = useMemo(() => {
@@ -311,9 +313,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     <div className="flex flex-col h-full">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="px-4">
+        <div className="flex items-center justify-between pt-2.5 pb-1">
           <div className="min-w-0">
-            <h2 className="page-title">Repair Orders</h2>
+            <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <span className="text-2xl font-bold tabular-nums text-primary leading-none">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
@@ -342,6 +345,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {goalSettings.displayName && (
+              <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
+                {goalSettings.displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <FlagInbox />
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
@@ -372,7 +380,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="px-4 pb-2">
+        <div className="pb-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 icon-toolbar text-muted-foreground" />
             <input
@@ -385,7 +393,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 px-4 pb-2">
+        <div className="flex flex-wrap gap-1.5 pb-2">
           {([
             { value: 'all', label: 'All' },
             { value: 'today', label: 'Today' },
@@ -407,6 +415,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -620,7 +629,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         initialEnd={customEnd}
       />
 
-      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} trigger="spreadsheet" />
     </div>
   );
 }

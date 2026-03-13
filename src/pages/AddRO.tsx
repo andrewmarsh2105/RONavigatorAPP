@@ -18,6 +18,8 @@ import { haptics } from '@/lib/haptics';
 import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { calcLineHours } from '@/lib/roDisplay';
+import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 import { DetailsCollapsible } from '@/components/shared/DetailsCollapsible';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -58,8 +60,7 @@ export default function AddRO() {
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
   }, [ros]);
-  const RO_CAP = 150;
-  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_CAP;
+  const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 
   const filteredAdvisors = settings.advisors.filter(a =>
     a.name.toLowerCase().includes(advisorSearch.toLowerCase())
@@ -139,7 +140,7 @@ export default function AddRO() {
     return () => clearTimeout(timer);
   }, [focusLineId]);
 
-  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter(l => l.isTbd).length;
 
   const quickPresets = useMemo(() => {
@@ -349,36 +350,19 @@ export default function AddRO() {
         title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
         subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
         onBack={() => navigate(-1)}
-        rightActions={
-          <div className="flex items-center gap-1">
-            {isPro && (
-              <button
-                onClick={() => setShowScanFlow(true)}
-                className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-              >
-                <Camera className="h-5 w-5" />
-              </button>
-            )}
-            <button
-              onClick={() => handleSave(false)}
-              disabled={!isValid || isSaving}
-              className={cn(
-                'h-9 px-4 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-colors',
-                isValid && !isSaving
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingRO ? 'Update' : 'Save'}
-            </button>
-          </div>
-        }
+        rightActions={isPro ? (
+          <button
+            onClick={() => setShowScanFlow(true)}
+            className="h-11 w-11 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <Camera className="h-5 w-5" />
+          </button>
+        ) : undefined}
       />
 
       {/* Core fields strip */}
       <div className="flex-shrink-0 border-b border-border bg-card">
-        <div className="px-3 py-2 flex items-center gap-2">
+        <div className="px-3 py-2 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -392,17 +376,6 @@ export default function AddRO() {
             />
           </div>
 
-          <button
-            onClick={() => setShowAdvisorList(true)}
-            className={cn(
-              'flex-1 h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 min-w-0 overflow-hidden',
-              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
-            )}
-          >
-            <User className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{advisor || 'Advisor'}</span>
-          </button>
-
           <div className="flex items-center gap-1 flex-shrink-0">
             <input
               type="date"
@@ -411,6 +384,17 @@ export default function AddRO() {
               className="w-[120px] h-11 px-2 bg-muted rounded-md border border-input text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+
+          <button
+            onClick={() => setShowAdvisorList(true)}
+            className={cn(
+              'flex-1 min-w-[120px] h-11 px-2 rounded-md border border-input text-sm text-left flex items-center gap-1.5 overflow-hidden',
+              advisor ? 'bg-muted font-medium' : 'bg-muted/50 text-muted-foreground'
+            )}
+          >
+            <User className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{advisor || 'Advisor'}</span>
+          </button>
         </div>
 
         {/* Details collapsible */}
@@ -641,22 +625,23 @@ export default function AddRO() {
       {/* Cap Sheet */}
       <BottomSheet isOpen={showCapSheet} onClose={() => setShowCapSheet(false)} title="Monthly Limit Reached">
         <div className="p-6 space-y-4 text-center">
-          <p className="text-muted-foreground text-sm">
-            You've created {monthlyROCount} ROs this month. Free accounts are limited to {RO_CAP}/month.
+          <p className="font-semibold text-base">You've added {monthlyROCount} ROs this month</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Free accounts are capped at {RO_MONTHLY_CAP} ROs/month. Go Pro and log every RO, every day — no cap.
           </p>
           <button
             onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
           >
-            Upgrade to Pro
+            Start 7-Day Free Trial
           </button>
           <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
-            Maybe later
+            I'll wait until next month
           </button>
         </div>
       </BottomSheet>
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
     </div>
   );
 }

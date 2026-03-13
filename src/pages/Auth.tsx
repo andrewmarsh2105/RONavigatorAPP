@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackSignupCompleted } from '@/lib/analytics';
-import { Loader2, Mail, Lock } from 'lucide-react';
-import roLogo from '@/assets/ro-logo.jpeg';
-import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, Shield, Wifi } from 'lucide-react';
+import { Logo, BrandMarkContainer } from '@/components/brand';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const brandFeatures = [
+  'Log ROs and line items in seconds',
+  'Catch missing hours before payroll',
+  'Close out pay periods with confidence',
+];
 
 export default function Auth() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,7 +51,6 @@ export default function Auth() {
         if (error) throw error;
         if (data.user) {
           trackSignupCompleted(data.user.id);
-          // Fire-and-forget welcome email — don't await so signup flow isn't blocked
           supabase.functions.invoke('send-welcome-email', {
             body: { email },
           }).catch(() => { /* non-fatal */ });
@@ -76,54 +81,139 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative dot grid */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-        }}
-      />
-      {/* Radial gradient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 50% 40% at 50% 30%, hsl(var(--primary) / 0.06) 0%, transparent 70%)',
-        }}
-      />
-
-      <motion.div
-        className="relative w-full max-w-sm space-y-6"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+    <div className="min-h-screen flex">
+      {/* Left brand panel — desktop only */}
+      <div className="hidden md:flex flex-col w-[42%] max-w-[460px] flex-shrink-0 relative overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.75) 100%)' }}
       >
-        {/* Branding */}
-        <div className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center">
-            <img src={roLogo} alt="RO Navigator" className="w-full h-full object-cover" />
+        {/* Subtle noise/texture overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.06]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
+        {/* Decorative circle */}
+        <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-white/10 pointer-events-none" />
+        <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
+
+        <div className="relative flex flex-col h-full p-10">
+          {/* Logo */}
+          <Logo variant="full" scheme="dark" size="md" />
+
+          {/* Middle content */}
+          <div className="flex-1 flex flex-col justify-center space-y-8">
+            <div className="space-y-3">
+              <h2 className="text-3xl font-extrabold text-white leading-tight tracking-tight">
+                Track Your Hours.<br />Get Paid Right.
+              </h2>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Built for flat-rate technicians who know every hour matters.
+              </p>
+            </div>
+
+            <ul className="space-y-3">
+              {brandFeatures.map((f) => (
+                <li key={f} className="flex items-start gap-3">
+                  <div className="mt-0.5 h-5 w-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-sm text-white/90">{f}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">RO Navigator</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {isLogin ? 'Welcome back.' : 'Free to start — no credit card needed.'}
-            </p>
-          </div>
+
+          {/* Bottom */}
+          <p className="text-xs text-white/40">
+            © {new Date().getFullYear()} RO Navigator. Built for techs, by techs.
+          </p>
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
+        {/* Background decorations */}
+        <div
+          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 60% 50% at 50% 20%, hsl(var(--primary) / 0.07) 0%, transparent 70%)',
+          }}
+        />
+
+        {/* Back to home */}
+        <div className="relative px-6 pt-5">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
         </div>
 
-        {/* Form Card */}
-        <Card className="shadow-raised rounded-2xl border-border/50">
-          <CardContent className="pt-6 space-y-5">
-            <p className="text-sm font-medium text-center text-muted-foreground">
-              {isLogin ? 'Sign in' : 'Create your account'}
-            </p>
+        {/* Form area */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div
+            className="w-full max-w-sm space-y-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {/* Mobile-only branding */}
+            <div className="flex flex-col items-center gap-2 md:hidden">
+              <BrandMarkContainer size={48} />
+              <h1 className="text-xl font-bold tracking-tight">RO Navigator</h1>
+            </div>
 
+            {/* Desktop heading */}
+            <div className="hidden md:block space-y-1">
+              <h1 className="text-2xl font-bold tracking-tight">
+                {isLogin ? 'Welcome back' : 'Create your account'}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {isLogin ? 'Sign in to your account to continue.' : 'Free to start — no credit card needed.'}
+              </p>
+            </div>
+
+            {/* Tab switcher */}
+            <div className="relative flex bg-muted rounded-xl p-1 gap-1">
+              {['Sign In', 'Sign Up'].map((label, i) => {
+                const active = isLogin === (i === 0);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setIsLogin(i === 0)}
+                    className="relative flex-1 py-2 text-sm font-semibold rounded-lg z-10 transition-colors duration-150"
+                    style={{ color: active ? undefined : undefined }}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="auth-tab-pill"
+                        className="absolute inset-0 bg-background rounded-lg shadow-sm"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className={`relative z-10 transition-colors ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="email"
                     type="email"
@@ -136,29 +226,37 @@ export default function Auth() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
                     minLength={6}
-                    className="pl-10 h-11"
+                    className="pl-10 pr-10 h-11"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {isLogin && (
-                  <div className="text-right">
+                  <div className="text-right pt-0.5">
                     <button
                       type="button"
                       onClick={handleForgotPassword}
                       className="text-xs text-primary hover:underline cursor-pointer"
                     >
-                      Forgot Password?
+                      Forgot password?
                     </button>
                   </div>
                 )}
@@ -167,14 +265,18 @@ export default function Auth() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 cursor-pointer"
+                className="w-full h-11 cursor-pointer font-semibold shadow-sm mt-1"
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isLogin ? 'Sign In' : 'Sign Up'}
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {isLogin ? 'Signing in…' : 'Creating account…'}</>
+                ) : (
+                  isLogin ? 'Sign In' : 'Create Free Account'
+                )}
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
+            {/* Mobile toggle link */}
+            <p className="text-center text-sm text-muted-foreground md:hidden">
               {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
               <button
                 onClick={() => setIsLogin(!isLogin)}
@@ -183,19 +285,32 @@ export default function Auth() {
                 {isLogin ? 'Sign Up' : 'Sign In'}
               </button>
             </p>
-          </CardContent>
-        </Card>
+
+            {/* Trust badges */}
+            <div className="flex items-center justify-center gap-4 pt-1">
+              {[
+                { icon: Shield, label: 'Encrypted' },
+                { icon: Check, label: 'Free to start' },
+                { icon: Wifi, label: 'Works offline' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
 
         {/* Footer */}
-        <div className="text-center space-y-1">
-          <p className="text-xs text-muted-foreground/50">
-            Your data stays private.
-          </p>
-          <p className="text-xs text-muted-foreground/40">
-            © {new Date().getFullYear()} RO Navigator
-          </p>
+        <div className="relative px-6 pb-5 text-center">
+          <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground/40">
+            <span>© {new Date().getFullYear()} RO Navigator</span>
+            <Link to="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

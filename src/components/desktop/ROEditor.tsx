@@ -18,6 +18,8 @@ import { haptics } from '@/lib/haptics';
 import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, RepairOrder, VehicleInfo } from '@/types/ro';
 import { cn } from '@/lib/utils';
+import { calcLineHours } from '@/lib/roDisplay';
+import { RO_MONTHLY_CAP } from '@/lib/proFeatures';
 import { toast } from 'sonner';
 
 interface ROEditorProps {
@@ -46,8 +48,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
   }, [ros]);
-  const RO_CAP = 150;
-  const isAtCap = !isPro && isNew && monthlyROCount >= RO_CAP;
+  const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
 
   // Form state
   const [roNumber, setRoNumber] = useState(ro?.roNumber || '');
@@ -133,7 +134,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     return () => clearTimeout(timer);
   }, [focusLineId]);
 
-  const totalHours = lines.filter(l => !l.isTbd).reduce((sum, line) => sum + line.hoursPaid, 0);
+  const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter(l => l.isTbd).length;
   const isValid = roNumber.trim() !== '';
 
@@ -414,7 +415,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
         existingLineDescriptions={lines.map(l => l.description)}
       />
 
-      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} />
+      <ProUpgradeDialog open={showProUpgrade} onOpenChange={setShowProUpgrade} trigger="ro-cap" />
     </div>
   );
 }

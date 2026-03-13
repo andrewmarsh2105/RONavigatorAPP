@@ -30,6 +30,7 @@ import type { CloseoutSnapshot, CloseoutRangeType } from '@/hooks/useCloseouts';
 import { getCustomPayPeriodRange } from '@/lib/payPeriodUtils';
 import type { DayBreakdown, AdvisorBreakdown } from '@/hooks/usePayPeriodReport';
 import type { SummaryRange } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,7 +189,7 @@ function MultiPeriodComparison({
   return (
     <div className="space-y-4">
       <PeriodDatePicker label="Period A" start={start1} end={end1} onStartChange={onStart1Change} onEndChange={onEnd1Change} color="bg-primary" />
-      <PeriodDatePicker label="Period B" start={start2} end={end2} onStartChange={onStart2Change} onEndChange={onEnd2Change} color="bg-violet-500" />
+      <PeriodDatePicker label="Period B" start={start2} end={end2} onStartChange={onStart2Change} onEndChange={onEnd2Change} color="bg-[hsl(var(--chart-period-b))]" />
       {!hasData && (
         <div className="card-mobile p-6 text-center text-muted-foreground text-sm">Select both date ranges above to compare periods</div>
       )}
@@ -208,7 +209,7 @@ function MultiPeriodComparison({
                 </span>
               </div>
             </div>
-            <div className="card-mobile p-3 text-center border-t-2 border-violet-500">
+            <div className="card-mobile p-3 text-center border-t-2" style={{ borderTopColor: 'hsl(var(--chart-period-b))' }}>
               <div className="text-[11px] font-semibold text-muted-foreground mb-1">Period B</div>
               <div className="text-2xl font-bold tabular-nums">{maskHours(report2.totalHours, hide)}<span className="text-lg opacity-60">h</span></div>
               <div className="text-[11px] text-muted-foreground">{report2.totalROs} ROs · {report2.totalLines} lines</div>
@@ -225,7 +226,7 @@ function MultiPeriodComparison({
                     formatter={(value: number, name: string) => [hide ? '--.-h' : `${value.toFixed(1)}h`, name]} />
                   <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
                   <Bar dataKey="periodA" name="Period A" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="periodB" name="Period B" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="periodB" name="Period B" fill="hsl(var(--chart-period-b))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -324,12 +325,17 @@ export function SummaryTab() {
   const [showProofPack, setShowProofPack] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<import('@/lib/proFeatures').UpgradeTrigger>('generic');
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const openUpgrade = (trigger: import('@/lib/proFeatures').UpgradeTrigger) => {
+    setUpgradeTrigger(trigger);
+    setShowUpgrade(true);
+  };
 
-  // Hours goal & earnings from localStorage
-  const [hoursGoalDaily] = useLocalStorageState<number>('settings.hoursGoalDaily', 0);
-  const [hoursGoalWeekly] = useLocalStorageState<number>('settings.hoursGoalWeekly', 0);
-  const [hourlyRate] = useLocalStorageState<number>('settings.hourlyRate', 0);
+  const { settings: goalSettings } = useUserSettings();
+  const hoursGoalDaily = goalSettings.hoursGoalDaily;
+  const hoursGoalWeekly = goalSettings.hoursGoalWeekly;
+  const hourlyRate = goalSettings.hourlyRate;
 
 
   // Closeout state
@@ -439,7 +445,7 @@ export function SummaryTab() {
               <TabsTrigger value="compare" className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">Compare</TabsTrigger>
             ) : (
               <button
-                onClick={() => setShowUpgrade(true)}
+                onClick={() => openUpgrade('compare')}
                 className="flex-1 flex items-center justify-center gap-1.5 h-11 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent"
               >
                 Compare
@@ -824,7 +830,7 @@ export function SummaryTab() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     if (!isPro) {
-                      setShowUpgrade(true);
+                      openUpgrade('export');
                       return;
                     }
                     handleExportCSV();
@@ -931,7 +937,7 @@ export function SummaryTab() {
         />
       )}
 
-      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <ProUpgradeDialog open={showUpgrade} onOpenChange={setShowUpgrade} trigger={upgradeTrigger} />
     </div>
   );
 }
