@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { Plus, Trash2, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Trash2, Maximize2, Minimize2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ interface LinesGridProps {
   roVehicle?: VehicleInfo;
   showVehicleChips?: boolean;
   defaultLaborType?: LaborType;
+  onSaveAsPreset?: (line: ROLine) => void;
 }
 
 function createEmptyLine(lineNo: number, laborType: LaborType = 'customer-pay'): ROLine {
@@ -93,6 +94,7 @@ export function LinesGrid({
   roVehicle,
   showVehicleChips = true,
   defaultLaborType = 'customer-pay',
+  onSaveAsPreset,
 }: LinesGridProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const inputRefs = useRef<Map<string, HTMLInputElement | HTMLSelectElement>>(new Map());
@@ -329,6 +331,15 @@ export function LinesGrid({
                 <div className="px-2 py-1 flex items-center justify-center gap-0.5">
                   {!readOnly && (
                     <>
+                      {onSaveAsPreset && (
+                        <button
+                          onClick={() => onSaveAsPreset(line)}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                          title="Save as preset"
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleRemoveLine(index)}
                         className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
