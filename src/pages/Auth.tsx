@@ -64,15 +64,14 @@ export default function Auth() {
     }
   };
 
-  const handleSocialSignIn = async (provider: 'google' | 'apple') => {
+  const handleGoogleSignIn = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: window.location.origin },
+      const { error } = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err.message || `Could not sign in with ${provider}`);
+      toast.error(err.message || 'Could not sign in with Google');
     }
   };
 
