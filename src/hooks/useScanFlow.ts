@@ -90,10 +90,7 @@ export function useScanFlow() {
   ) => {
     if (!user) return;
 
-    if (busyRef.current) {
-      console.warn('[ScanFlow] Ignoring — already busy');
-      return;
-    }
+    if (busyRef.current) return;
     busyRef.current = true;
 
     const previewUrl = URL.createObjectURL(file);
@@ -236,10 +233,7 @@ export function useScanFlow() {
             .from('ro-photos')
             .remove([path!]);
 
-          if (storageError) {
-            console.warn('[ScanFlow] Storage cleanup failed (non-critical):', storageError.message);
-            return;
-          }
+          if (storageError) return;
 
           if (roId) {
             await supabase
@@ -248,8 +242,8 @@ export function useScanFlow() {
               .eq('storage_path', path);
           }
 
-        } catch (e) {
-          console.warn('[ScanFlow] Cleanup error (non-critical):', e);
+        } catch {
+          // non-critical cleanup error, ignore
         }
       })();
     } catch (err: any) {

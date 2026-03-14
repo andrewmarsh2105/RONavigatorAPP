@@ -59,6 +59,9 @@ export function useROStore() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [loadingROs, setLoadingROs] = useState(true);
 
+  // Tracks pending deletes for undo support: id → { timer, savedRO }
+  const pendingDeletes = useRef<Map<string, { timer: ReturnType<typeof setTimeout>; savedRO: RepairOrder }>>(new Map());
+
   // Fetch ROs with lines
   const fetchROs = useCallback(async () => {
     if (!userId) { setROs([]); setLoadingROs(false); return; }
@@ -86,6 +89,68 @@ export function useROStore() {
       setROs(mapped);
       const totalLines = (lineRows || []).length;
       pushDebug({ action: `fetchROs OK: ${mapped.length} ROs, ${totalLines} lines` });
+
+      // Seed sample ROs for brand-new users with no data
+      if (mapped.length === 0 && userId && !localStorage.getItem(`sample.seeded.${userId}`)) {
+        localStorage.setItem(`sample.seeded.${userId}`, '1');
+        const today = new Date();
+        const daysAgo = (n: number) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() - n);
+          return d.toISOString().split('T')[0];
+        };
+        const sampleInputs = [
+          {
+            ro: { roNumber: '100001', date: daysAgo(4), advisor: 'Mike Johnson', notes: 'Sample RO — delete when ready', vehicle: { year: 2021, make: 'Toyota', model: 'Camry' } },
+            lines: [
+              { description: 'Oil & filter change — 5W-30 synthetic', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+              { description: 'Tire rotation', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+              { description: 'Multi-point inspection', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+            ],
+          },
+          {
+            ro: { roNumber: '100002', date: daysAgo(3), advisor: 'Sarah Lee', vehicle: { year: 2022, make: 'Ford', model: 'F-150' } },
+            lines: [
+              { description: 'Warranty: transmission output shaft seal replacement', hoursPaid: 2.4, laborType: 'warranty' as LaborType },
+              { description: 'Warranty: road test', hoursPaid: 0.5, laborType: 'warranty' as LaborType },
+            ],
+          },
+          {
+            ro: { roNumber: '100003', date: daysAgo(2), advisor: 'Mike Johnson', vehicle: { year: 2020, make: 'Honda', model: 'Accord' } },
+            lines: [
+              { description: 'Brake pad replacement — front axle', hoursPaid: 1.5, laborType: 'customer-pay' as LaborType },
+              { description: 'Brake rotor resurface — front', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+              { description: 'Brake fluid flush', hoursPaid: 0.4, laborType: 'customer-pay' as LaborType },
+            ],
+          },
+          {
+            ro: { roNumber: '100004', date: daysAgo(1), advisor: 'Sarah Lee', vehicle: { year: 2019, make: 'Chevrolet', model: 'Silverado' } },
+            lines: [
+              { description: '60k service: plugs, air filter, cabin filter', hoursPaid: 2.0, laborType: 'internal' as LaborType },
+              { description: 'Engine air induction service', hoursPaid: 0.5, laborType: 'internal' as LaborType },
+            ],
+          },
+        ];
+
+        (async () => {
+          const seededROs: RepairOrder[] = [];
+          for (const { ro, lines } of sampleInputs) {
+            const { data: newRow, error: rErr } = await supabase
+              .from('ros')
+              .insert(toRosInsert(userId, ro))
+              .select()
+              .single();
+            if (rErr || !newRow) continue;
+            const lineInserts = toRoLineInserts({ userId, roId: newRow.id, lines, fallbackLaborType: 'customer-pay' });
+            const { data: insertedLines } = await supabase.from('ro_lines').insert(lineInserts).select();
+            seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
+          }
+          if (seededROs.length > 0) {
+            setROs([...seededROs].reverse());
+            toast('Sample ROs added — explore the app, then delete them when ready', { duration: 6000 });
+          }
+        })();
+      }
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
       pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
@@ -312,29 +377,63 @@ export function useROStore() {
     return true;
   }, [user, isOnline, queueAction]);
 
-  const deleteRO = useCallback(async (id: string) => {
+  const deleteRO = useCallback((id: string) => {
     if (!user) return;
 
+    // Find and save the RO before removing for undo
+    let savedRO: RepairOrder | undefined;
+    setROs(prev => {
+      savedRO = prev.find(r => r.id === id);
+      return prev.filter(r => r.id !== id);
+    });
+    if (!savedRO) return;
+
     if (!isOnline) {
-      await queueAction('deleteRO', { id });
-      setROs(prev => prev.filter(ro => ro.id !== id));
+      queueAction('deleteRO', { id });
       toast.info('Delete saved offline — will sync when back online');
       return;
     }
 
-    const { error } = await supabase.from('ros').delete().eq('id', id);
-    if (error) {
-      const msg = error.message || '';
-      if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-        await queueAction('deleteRO', { id });
-        setROs(prev => prev.filter(ro => ro.id !== id));
-        toast.info('Network issue — delete saved offline');
-        return;
+    const roToRestore = savedRO;
+
+    // Show undo toast — actual DB delete happens after 5s
+    toast.success(`RO #${roToRestore.roNumber} deleted`, {
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const pending = pendingDeletes.current.get(id);
+          if (pending) {
+            clearTimeout(pending.timer);
+            pendingDeletes.current.delete(id);
+            setROs(prev => {
+              if (prev.some(r => r.id === id)) return prev;
+              return [pending.savedRO, ...prev];
+            });
+          }
+        },
+      },
+    });
+
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(id);
+      const { error } = await supabase.from('ros').delete().eq('id', id);
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+          queueAction('deleteRO', { id });
+          return;
+        }
+        // Restore on unexpected DB error
+        setROs(prev => {
+          if (prev.some(r => r.id === id)) return prev;
+          return [roToRestore, ...prev];
+        });
+        toast.error('Failed to delete RO');
       }
-      toast.error('Failed to delete RO');
-      return;
-    }
-    setROs(prev => prev.filter(ro => ro.id !== id));
+    }, 5000);
+
+    pendingDeletes.current.set(id, { timer, savedRO: roToRestore });
   }, [user, isOnline, queueAction]);
 
   const duplicateRO = useCallback(async (id: string, newRONumber?: string) => {

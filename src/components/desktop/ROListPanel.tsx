@@ -415,10 +415,7 @@ export const ROListPanel = memo(function ROListPanel({
                             duplicateRO(ro.id, newRONumber);
                             toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
                           }}
-                          onDelete={() => {
-                            deleteRO(ro.id);
-                            toast.success(`Deleted RO #${ro.roNumber}`);
-                          }}
+                          onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
                           existingRONumbers={ros.map((r) => r.roNumber)}
                           className="-mr-2"

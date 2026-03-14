@@ -6,6 +6,7 @@ import { ROEditor } from "./ROEditor";
 import { RODetailsPanel } from "./RODetailsPanel";
 import { FlagInbox } from "@/components/flags/FlagInbox";
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
+import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { Logo } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import type { RepairOrder } from "@/types/ro";
@@ -171,7 +172,6 @@ export function DesktopWorkspace() {
   const handleDeleteFromDetails = () => {
     if (!selectedRO) return;
     deleteRO(selectedRO.id);
-    toast.success(`Deleted RO #${selectedRO.roNumber}`);
     setSelectedRO(null);
     setRightPanel("none");
   };
@@ -200,6 +200,7 @@ export function DesktopWorkspace() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      <TrialCountdownBanner />
       <OfflineStatusBar />
 
       {/* App Bar */}
