@@ -129,6 +129,38 @@ export default function AddRO() {
     roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines
   }), [roNumber, advisor, date, laborType, customerName, notes, vehicle, mileage, paidDate, lines]);
 
+  // When editing, backfill form fields once the RO loads (handles the case where
+  // the component mounts before ros[] is populated — useState initial values only
+  // run once, so if editingRO was undefined on first render, fields stay empty).
+  const formSeededRef = useRef(false);
+  useEffect(() => {
+    if (editingRO && !formSeededRef.current) {
+      formSeededRef.current = true;
+      setRoNumber(editingRO.roNumber || '');
+      setAdvisor(editingRO.advisor || '');
+      setDate(editingRO.date || localDateStr());
+      setLaborType(editingRO.laborType || 'customer-pay');
+      setCustomerName(editingRO.customerName || '');
+      setNotes(editingRO.notes || '');
+      setVehicle(editingRO.vehicle || {});
+      setMileage(editingRO.mileage || '');
+      setPaidDate(editingRO.paidDate || '');
+      if (editingRO.lines?.length) {
+        setLines(editingRO.lines);
+      } else if (editingRO.paidHours > 0) {
+        setLines([{
+          id: Date.now().toString(),
+          lineNo: 1,
+          description: editingRO.workPerformed || 'General Labor',
+          hoursPaid: editingRO.paidHours,
+          laborType: editingRO.laborType,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }]);
+      }
+    }
+  }, [editingRO]);
+
   useEffect(() => {
     // Set initial snapshot once data is ready
     if (initialSnapshotRef.current === null && !loadingROs) {
