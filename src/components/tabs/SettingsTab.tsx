@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -613,33 +613,61 @@ export function SettingsTab() {
 
             {/* About */}
             <SettingsGroup title="About">
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div className="shrink-0">
                   <span className="font-medium text-sm">Your name</span>
                   <p className="text-xs text-muted-foreground">Shown in the app header</p>
                 </div>
-                <input
-                  type="text"
-                  value={localDisplayName}
-                  onChange={e => setLocalDisplayName(e.target.value)}
-                  onBlur={e => updateSetting('displayName', e.target.value.trim())}
-                  placeholder="e.g. Mike"
-                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-                />
+                <div className="flex items-center gap-2 min-w-0">
+                  <input
+                    type="text"
+                    value={localDisplayName}
+                    onChange={e => setLocalDisplayName(e.target.value)}
+                    onBlur={e => updateSetting('displayName', e.target.value.trim())}
+                    placeholder="e.g. Mike"
+                    className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onClick={() => updateSetting('displayName', localDisplayName.trim())}
+                    className={cn(
+                      'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
+                      localDisplayName.trim() !== syncedSettings.displayName
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                    aria-label="Save name"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div className="shrink-0">
                   <span className="font-medium text-sm">Shop name</span>
                   <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
                 </div>
-                <input
-                  type="text"
-                  value={localShopName}
-                  onChange={e => setLocalShopName(e.target.value)}
-                  onBlur={e => updateSetting('shopName', e.target.value.trim())}
-                  placeholder="e.g. Smith's Auto"
-                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-                />
+                <div className="flex items-center gap-2 min-w-0">
+                  <input
+                    type="text"
+                    value={localShopName}
+                    onChange={e => setLocalShopName(e.target.value)}
+                    onBlur={e => updateSetting('shopName', e.target.value.trim())}
+                    placeholder="e.g. Smith's Auto"
+                    className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    onClick={() => updateSetting('shopName', localShopName.trim())}
+                    className={cn(
+                      'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
+                      localShopName.trim() !== syncedSettings.shopName
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                    aria-label="Save shop name"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </SettingsGroup>
 
