@@ -64,15 +64,19 @@ const defaults: UserSettings = {
 
 export function useUserSettings() {
   const { user } = useAuth();
+  // Use user.id (stable string) so token refreshes (which create a new user object
+  // reference) don't re-trigger fetchSettings and race against pending upserts,
+  // which would overwrite optimistic updates and clear text fields like displayName.
+  const userId = user?.id;
   const [settings, setSettings] = useState<UserSettings>(defaults);
   const [loaded, setLoaded] = useState(false);
 
   const fetchSettings = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     const { data } = await supabase
       .from('user_settings')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
     if (data) {
       setSettings({
@@ -100,7 +104,7 @@ export function useUserSettings() {
       });
     }
     setLoaded(true);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
@@ -115,7 +119,7 @@ export function useUserSettings() {
   }, [settings.accentColor, loaded]);
 
   const updateSetting = useCallback(async (key: keyof UserSettings, value: any) => {
-    if (!user) return;
+    if (!userId) return;
     setSettings(prev => ({ ...prev, [key]: value }));
 
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
@@ -143,11 +147,11 @@ export function useUserSettings() {
     const { error } = await supabase
       .from('user_settings')
       .upsert({
-        user_id: user.id,
+        user_id: userId,
         [dbKey]: value,
       }, { onConflict: 'user_id' });
     if (error) console.error('Failed to save setting', error);
-  }, [user]);
+  }, [userId]);
 
   return { settings, loaded, updateSetting };
 }
