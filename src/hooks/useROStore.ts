@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from 'sonner';
 import { pushDebug } from '@/lib/debug';
+import { localDateStr } from '@/lib/utils';
 import type { RepairOrder, Preset, Settings, DaySummary, AdvisorSummary, LaborType, Advisor, ROLine } from '@/types/ro';
 import {
   dbToRepairOrder,
@@ -110,7 +111,7 @@ export function useROStore() {
         const daysAgo = (n: number) => {
           const d = new Date(today);
           d.setDate(d.getDate() - n);
-          return d.toISOString().split('T')[0];
+          return localDateStr(d);
         };
         const sampleInputs = [
           {

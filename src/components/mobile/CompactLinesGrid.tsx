@@ -54,7 +54,7 @@ export function CompactLinesGrid({
   onSaveAsPreset,
 }: CompactLinesGridProps) {
   const topRef = useRef<HTMLDivElement>(null);
-  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string; index: number } | null>(null);
+  const [expandedLine, setExpandedLine] = useState<{ lineNo: number; description: string; id: string } | null>(null);
 
   const handleRemoveLine = (index: number) => {
     triggerHaptic();
@@ -140,7 +140,7 @@ export function CompactLinesGrid({
                   />
                   {/* Expand button */}
                   <button
-                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id, index })}
+                    onClick={() => setExpandedLine({ lineNo: line.lineNo, description: line.description, id: line.id })}
                     className="h-11 w-11 text-muted-foreground hover:text-foreground rounded flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
                     title="View full description"
                     aria-label="View full description"
@@ -248,7 +248,7 @@ export function CompactLinesGrid({
         lineNo={expandedLine?.lineNo ?? 0}
         description={expandedLine?.description ?? ''}
         onSaveAsPreset={!readOnly && onSaveAsPreset && expandedLine
-          ? () => onSaveAsPreset(lines[expandedLine.index])
+          ? () => { const l = lines.find(ln => ln.id === expandedLine.id); if (l) onSaveAsPreset(l); }
           : undefined}
       />
     </div>
