@@ -224,7 +224,7 @@ export default function Auth() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={() => handleSocialSignIn('google')}
+                onClick={() => handleGoogleSignIn()}
                 className="w-full flex items-center justify-center gap-3 h-11 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 flex-shrink-0" aria-hidden="true">
