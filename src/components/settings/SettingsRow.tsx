@@ -4,18 +4,27 @@ import { cn } from '@/lib/utils';
 interface SettingsRowProps {
   label: string;
   description?: string;
+  /** Muted text shown to the left of the chevron (navigation rows only) */
+  currentValue?: string;
+  /** @deprecated use currentValue instead */
   value?: string;
   onClick?: () => void;
   toggle?: boolean;
   toggleValue?: boolean;
   onToggle?: (value: boolean) => void;
+  disabled?: boolean;
 }
 
-export function SettingsRow({ label, description, value, onClick, toggle, toggleValue, onToggle }: SettingsRowProps) {
+export function SettingsRow({ label, description, currentValue, value, onClick, toggle, toggleValue, onToggle, disabled }: SettingsRowProps) {
+  const displayValue = currentValue ?? value;
   return (
     <button
-      onClick={toggle ? () => onToggle?.(!toggleValue) : onClick}
-      className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
+      onClick={toggle ? () => !disabled && onToggle?.(!toggleValue) : onClick}
+      disabled={disabled && !toggle}
+      className={cn(
+        'w-full p-4 flex items-center justify-between tap-target touch-feedback',
+        disabled && 'opacity-50'
+      )}
     >
       <div className="text-left">
         <span className="font-medium">{label}</span>
@@ -39,7 +48,7 @@ export function SettingsRow({ label, description, value, onClick, toggle, toggle
         </div>
       ) : (
         <div className="flex items-center gap-2 text-muted-foreground flex-shrink-0">
-          {value && <span className="text-sm">{value}</span>}
+          {displayValue && <span className="text-sm">{displayValue}</span>}
           <ChevronRight className="h-5 w-5" />
         </div>
       )}
