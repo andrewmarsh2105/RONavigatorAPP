@@ -372,7 +372,7 @@ export default function AddRO() {
     <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
       <PageHeader
-        title={editingRO ? `Edit RO #${editingRO.roNumber}` : 'New Repair Order'}
+        title={editingRO ? `Edit RO #${editingRO.roNumber}` : (userSettings.shopName || 'New Repair Order')}
         subtitle={`${totalHours.toFixed(1)}h${tbdCount > 0 ? ` · ${tbdCount} TBD` : ''} · ${lines.length} lines`}
         onBack={() => navigate(-1)}
         rightActions={isPro ? (
