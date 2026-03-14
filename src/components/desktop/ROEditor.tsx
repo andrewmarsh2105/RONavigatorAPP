@@ -42,7 +42,7 @@ const LABOR_TYPES: { value: LaborType; label: string }[] = [
 ];
 
 export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onSaveAndAddAnother }: ROEditorProps) {
-  const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
+  const { settings, addRO, updateRO, updateAdvisors, updatePresets, ros } = useRO();
   const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
 
@@ -202,6 +202,23 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
     }
     setHighlightedLineIds(newLineIds);
     setShowScanFlow(false);
+  };
+
+  const handleSaveLineAsPreset = (line: ROLine) => {
+    const name = (line.description || '').trim();
+    if (!name) { toast.error('Add a description before saving as a preset'); return; }
+    if (settings.presets.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      toast.error(`A preset named "${name}" already exists`);
+      return;
+    }
+    updatePresets([...settings.presets, {
+      id: Date.now().toString(),
+      name,
+      laborType: line.laborType || 'customer-pay',
+      defaultHours: line.hoursPaid || undefined,
+    }]);
+    haptics.success();
+    toast.success(`Saved preset: ${name}`);
   };
 
   const handleSave = async (addAnother: boolean = false) => {
@@ -464,6 +481,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
           roVehicle={vehicle}
           showVehicleChips={false}
           defaultLaborType={laborType}
+          onSaveAsPreset={handleSaveLineAsPreset}
         />
         <div className="mt-4">
           <textarea

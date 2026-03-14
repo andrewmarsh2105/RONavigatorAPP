@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Plus } from "lucide-react";
 
 import { OfflineStatusBar } from "@/components/shared/OfflineStatusBar";
+import { TrialCountdownBanner } from "@/components/shared/TrialCountdownBanner";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { QuickAddSheet } from "@/components/sheets/QuickAddSheet";
@@ -58,6 +59,7 @@ function MobileApp() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <TrialCountdownBanner />
       <OfflineStatusBar />
       <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
         {activeTab === "ros" && <ROsTab onEditRO={handleEditRO} onViewModeChange={setRoViewMode} />}

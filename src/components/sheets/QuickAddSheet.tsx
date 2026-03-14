@@ -25,7 +25,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const { settings, addRO, updateRO, updateAdvisors, ros } = useRO();
   const { isPro } = useSubscription();
   const [showAdvisorList, setShowAdvisorList] = useState(false);
-  const [showCapSheet, setShowCapSheet] = useState(false);
   const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   // Form state
@@ -115,7 +114,7 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
 
   const handleSave = async (addAnother: boolean = false) => {
     if (isAtCap) {
-      setShowCapSheet(true);
+      setShowProUpgrade(true);
       return;
     }
 
@@ -350,25 +349,6 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
             />
             <p className="mt-1.5 text-xs text-muted-foreground px-1">Press Enter to save</p>
           </div>
-        </div>
-      </BottomSheet>
-
-      {/* Cap Sheet */}
-      <BottomSheet isOpen={showCapSheet} onClose={() => setShowCapSheet(false)} title="Monthly Limit Reached">
-        <div className="p-6 space-y-4 text-center">
-          <p className="font-semibold text-base">You've added {monthlyROCount} ROs this month</p>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Free accounts are capped at {RO_MONTHLY_CAP} ROs/month. Go Pro and log every RO, every day — no cap.
-          </p>
-          <button
-            onClick={() => { setShowCapSheet(false); setShowProUpgrade(true); }}
-            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm min-h-[44px]"
-          >
-            Start 7-Day Free Trial
-          </button>
-          <button onClick={() => setShowCapSheet(false)} className="w-full py-2 text-muted-foreground text-sm min-h-[44px]">
-            I'll wait until next month
-          </button>
         </div>
       </BottomSheet>
 
