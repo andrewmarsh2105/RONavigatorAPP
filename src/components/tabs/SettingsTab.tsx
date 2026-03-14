@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet } from 'lucide-react';
@@ -371,11 +371,17 @@ export function SettingsTab() {
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state when settings load from Supabase.
-  // userSettingsLoaded is included so this fires every time a fresh fetch completes
-  // after sign-in, even when the DB values are identical to any prior stale state.
+  // Sync local state from DB only once per load cycle (when userSettingsLoaded transitions
+  // false→true). Using a ref to guard against re-running when individual fields change due to
+  // the user's own optimistic updates — that would overwrite in-progress typing in OTHER fields.
+  const hasInitialSyncedRef = useRef(false);
   useEffect(() => {
-    if (!userSettingsLoaded) return;
+    if (!userSettingsLoaded) {
+      hasInitialSyncedRef.current = false;
+      return;
+    }
+    if (hasInitialSyncedRef.current) return;
+    hasInitialSyncedRef.current = true;
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
