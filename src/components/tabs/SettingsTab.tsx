@@ -349,7 +349,7 @@ export function SettingsTab() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   // Single shared source of truth — all reads/writes go through FlagContext's one useUserSettings instance
-  const { userSettings, updateUserSetting } = useFlagContext();
+  const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
@@ -365,19 +365,23 @@ export function SettingsTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllPresets, setShowAllPresets] = useState(false);
   const [showAllAdvisors, setShowAllAdvisors] = useState(false);
+  const [settingsView, setSettingsView] = useLocalStorageState<'settings' | 'manage'>('ui.settings.view.v1', 'settings');
   const [localDisplayName, setLocalDisplayName] = useState(syncedSettings.displayName);
   const [localShopName, setLocalShopName] = useState(syncedSettings.shopName);
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state when settings load from Supabase
+  // Sync local state when settings load from Supabase.
+  // userSettingsLoaded is included so this fires every time a fresh fetch completes
+  // after sign-in, even when the DB values are identical to any prior stale state.
   useEffect(() => {
+    if (!userSettingsLoaded) return;
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
     setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
     setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  }, [syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
+  }, [userSettingsLoaded, syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -536,435 +540,399 @@ export function SettingsTab() {
     toast.success('All ROs have been deleted');
   };
 
+  // Derived display values for settings rows
+  const accentLabel = (syncedSettings.accentColor || 'blue').charAt(0).toUpperCase() + (syncedSettings.accentColor || 'blue').slice(1);
+  const dailyGoalLabel = syncedSettings.hoursGoalDaily > 0 ? `${syncedSettings.hoursGoalDaily}h` : 'Off';
+  const weeklyGoalLabel = syncedSettings.hoursGoalWeekly > 0 ? `${syncedSettings.hoursGoalWeekly}h` : 'Off';
+  const rateLabel = syncedSettings.hourlyRate > 0 ? `$${syncedSettings.hourlyRate}/hr` : 'Off';
+  const avatarInitial = (syncedSettings.displayName || user?.email || '?').charAt(0).toUpperCase();
+
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 py-4 border-b border-border">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border space-y-3">
         <h1 className="text-2xl font-bold">Settings</h1>
+        <SegmentedControl
+          options={[
+            { value: 'settings', label: 'Settings' },
+            { value: 'manage', label: 'Manage' },
+          ]}
+          value={settingsView}
+          onChange={(v) => setSettingsView(v as 'settings' | 'manage')}
+        />
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Plan */}
-        <SettingsGroup title="Plan">
-          {isPro ? (
-            <div className="p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Pro Plan</span>
+        {settingsView === 'settings' ? (
+          <>
+            {/* Profile Card */}
+            <div className="card-mobile p-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xl font-bold select-none"
+                  style={{ backgroundColor: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+                >
+                  {avatarInitial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-base leading-tight truncate">
+                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-sm italic">Set your name</span>}
+                  </div>
+                  {syncedSettings.shopName && (
+                    <div className="text-xs text-muted-foreground truncate">{syncedSettings.shopName}</div>
+                  )}
+                  <div className="text-sm text-muted-foreground truncate mt-0.5">{user?.email}</div>
+                </div>
+                <button
+                  onClick={isPro ? openPortal : () => setShowUpgradeDialog(true)}
+                  className={cn(
+                    'flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors',
+                    isPro
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  )}
+                >
+                  {isPro ? <><Crown className="h-3 w-3" /> Pro</> : 'Free'}
+                </button>
               </div>
               {isNearExpiry && daysUntilEnd !== null && (
-                <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5">
+                <div className="mt-3 flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
                   <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
-                    Your trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>. Add a payment method to keep Pro access.
+                    Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro access.
                   </p>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-1.5">
-                {[
-                  { icon: Infinity, label: 'Unlimited ROs' },
-                  { icon: Camera, label: 'Scan with camera' },
-                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
-                  { icon: BarChart3, label: 'Period closeouts' },
-                  { icon: FileText, label: 'CSV / PDF exports' },
-                  { icon: Shield, label: 'Compare periods' },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
-                    <Icon className="h-3 w-3 text-primary flex-shrink-0" />
-                    <span className="text-xs text-foreground/70 leading-tight">{label}</span>
-                  </div>
-                ))}
+            </div>
+
+            {/* About */}
+            <SettingsGroup title="About">
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium text-sm">Your name</span>
+                  <p className="text-xs text-muted-foreground">Shown in the app header</p>
+                </div>
+                <input
+                  type="text"
+                  value={localDisplayName}
+                  onChange={e => setLocalDisplayName(e.target.value)}
+                  onBlur={e => updateSetting('displayName', e.target.value.trim())}
+                  placeholder="e.g. Mike"
+                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
-              {subscriptionEnd && !isNearExpiry && (
-                <p className="text-xs text-muted-foreground">
-                  Renews {new Date(subscriptionEnd).toLocaleDateString()}
-                </p>
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium text-sm">Shop name</span>
+                  <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
+                </div>
+                <input
+                  type="text"
+                  value={localShopName}
+                  onChange={e => setLocalShopName(e.target.value)}
+                  onBlur={e => updateSetting('shopName', e.target.value.trim())}
+                  placeholder="e.g. Smith's Auto"
+                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </SettingsGroup>
+
+            {/* Appearance */}
+            <SettingsGroup title="Appearance">
+              <SettingsRow
+                label="Dark Mode"
+                toggle
+                toggleValue={darkMode}
+                onToggle={toggleDarkMode}
+              />
+              <div className="p-4 flex items-center justify-between gap-4">
+                <span className="font-medium text-sm">Accent color</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-full flex-shrink-0"
+                    style={{ background: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+                  />
+                  <select
+                    value={syncedSettings.accentColor || 'blue'}
+                    onChange={e => updateSetting('accentColor', e.target.value)}
+                    className="h-9 pl-3 pr-7 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
+                  >
+                    {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
+                      <option key={colorKey} value={colorKey}>
+                        {colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <SettingsRow
+                label="Hide Hour Totals"
+                toggle
+                toggleValue={userSettings.hideTotals}
+                onToggle={(v) => updateUserSetting('hideTotals', v)}
+              />
+            </SettingsGroup>
+
+            {/* General */}
+            <SettingsGroup title="General">
+              <SettingsRow
+                label="Show Vehicle on Lines"
+                toggle
+                toggleValue={userSettings.showVehicleChips}
+                onToggle={(v) => updateUserSetting('showVehicleChips', v)}
+              />
+              <SettingsRow
+                label="Keyword Auto-Fill Hours"
+                toggle
+                toggleValue={userSettings.keywordAutofill}
+                onToggle={(v) => updateUserSetting('keywordAutofill', v)}
+              />
+              <SettingsRow
+                label="Show Scan Confidence"
+                description={!isPro ? 'Pro only' : undefined}
+                toggle
+                toggleValue={userSettings.showScanConfidence}
+                onToggle={(v) => updateUserSetting('showScanConfidence', v)}
+                disabled={!isPro}
+              />
+            </SettingsGroup>
+
+            {/* Goals & Earnings */}
+            <SettingsGroup title="Goals & Earnings">
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium text-sm">Daily goal</span>
+                  <p className="text-xs text-muted-foreground">Hours per day target</p>
+                </div>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={24}
+                  step={0.5}
+                  value={localDailyGoal}
+                  onChange={e => setLocalDailyGoal(e.target.value)}
+                  onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
+                  placeholder="Off"
+                  className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                />
+              </div>
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium text-sm">Weekly goal</span>
+                  <p className="text-xs text-muted-foreground">Hours per week target</p>
+                </div>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={168}
+                  step={1}
+                  value={localWeeklyGoal}
+                  onChange={e => setLocalWeeklyGoal(e.target.value)}
+                  onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
+                  placeholder="Off"
+                  className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                />
+              </div>
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium text-sm">Flat rate</span>
+                  <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={0.5}
+                    value={localHourlyRate}
+                    onChange={e => setLocalHourlyRate(e.target.value)}
+                    onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
+                    placeholder="Off"
+                    className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                  />
+                </div>
+              </div>
+            </SettingsGroup>
+
+            {/* Pay Period Range */}
+            <PayPeriodRangeSection
+              userSettings={userSettings}
+              updateUserSetting={updateUserSetting}
+            />
+
+            {/* Account */}
+            <SettingsGroup title="Account">
+              {user && (
+                <div className="p-4 text-sm text-muted-foreground truncate">{user.email}</div>
+              )}
+              <SettingsRow
+                label="Plan"
+                currentValue={isPro ? 'Pro' : 'Free'}
+                onClick={isPro ? openPortal : () => setShowUpgradeDialog(true)}
+              />
+              {subscriptionEnd && isPro && !isNearExpiry && (
+                <div className="px-4 pb-3 -mt-1">
+                  <p className="text-xs text-muted-foreground">Renews {new Date(subscriptionEnd).toLocaleDateString()}</p>
+                </div>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-primary"
+                >
+                  <Shield className="h-5 w-5" />
+                  <span className="font-medium">Admin Panel</span>
+                  <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
+                </button>
               )}
               <button
-                onClick={openPortal}
-                className="text-sm text-primary font-medium hover:underline"
+                onClick={signOut}
+                className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-destructive"
               >
-                Manage Subscription
+                <LogOut className="h-5 w-5" />
+                <span className="font-medium">Sign Out</span>
               </button>
-            </div>
-          ) : (
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-semibold">Free Plan</span>
-                </div>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">150 ROs/mo limit</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: Infinity, label: 'Unlimited ROs' },
-                  { icon: Camera, label: 'Scan with camera' },
-                  { icon: FileSpreadsheet, label: 'Spreadsheet view' },
-                  { icon: BarChart3, label: 'Period closeouts' },
-                  { icon: FileText, label: 'CSV / PDF exports' },
-                  { icon: Shield, label: 'Compare periods' },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex items-center gap-2 bg-muted/60 rounded-lg px-2.5 py-2">
-                    <Icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span className="text-xs font-medium text-foreground/80 leading-tight">{label}</span>
-                  </div>
-                ))}
-              </div>
+            </SettingsGroup>
+
+            {/* Support */}
+            <SettingsGroup title="Support">
               <button
-                onClick={() => setShowUpgradeDialog(true)}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
+                onClick={() => {
+                  window.open('mailto:support@ronavigator.com', '_blank');
+                  navigator.clipboard.writeText('support@ronavigator.com');
+                  toast.success('Email copied to clipboard!');
+                }}
+                className="w-full p-4 flex items-center gap-3 tap-target touch-feedback"
               >
-                Start 7-Day Free Trial
+                <Mail className="h-5 w-5 text-muted-foreground" />
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="font-medium">Contact Support</span>
+                  <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>
-              <p className="text-[11px] text-center text-muted-foreground -mt-1">
-                $8.99/mo or $79.99/yr after trial. Cancel anytime.
-              </p>
-            </div>
-          )}
-        </SettingsGroup>
-
-        {/* Profile */}
-        <SettingsGroup title="Profile">
-          <div className="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Your name</span>
-              <p className="text-xs text-muted-foreground">Shown in the app header</p>
-            </div>
-            <input
-              type="text"
-              value={localDisplayName}
-              onChange={e => setLocalDisplayName(e.target.value)}
-              onBlur={e => updateSetting('displayName', e.target.value.trim())}
-              placeholder="e.g. Mike"
-              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Shop name</span>
-              <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
-            </div>
-            <input
-              type="text"
-              value={localShopName}
-              onChange={e => setLocalShopName(e.target.value)}
-              onBlur={e => updateSetting('shopName', e.target.value.trim())}
-              placeholder="e.g. Smith's Auto"
-              className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </SettingsGroup>
-
-        {/* Appearance */}
-        <SettingsGroup title="Appearance">
-          <SettingsRow
-            label="Dark Mode"
-            toggle
-            toggleValue={darkMode}
-            onToggle={toggleDarkMode}
-          />
-          <div className="p-4 flex items-center justify-between gap-4">
-            <span className="font-medium text-sm">Accent color</span>
-            <div className="flex items-center gap-2">
-              <span
-                className="h-4 w-4 rounded-full flex-shrink-0"
-                style={{ background: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
-              />
-              <select
-                value={syncedSettings.accentColor || 'blue'}
-                onChange={e => updateSetting('accentColor', e.target.value)}
-                className="h-9 pl-3 pr-7 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
-              >
-                {(Object.keys(ACCENT_COLORS) as string[]).map(colorKey => (
-                  <option key={colorKey} value={colorKey}>
-                    {colorKey.charAt(0).toUpperCase() + colorKey.slice(1)}
-                  </option>
+            </SettingsGroup>
+          </>
+        ) : (
+          <>
+            {/* Quick Presets */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick Presets</h3>
+                <button onClick={() => openPresetEditor()} className="p-2 tap-target touch-feedback text-primary">
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-1">
+                {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
+                  <PresetItem
+                    key={preset.id}
+                    preset={preset}
+                    onEdit={() => openPresetEditor(preset)}
+                    onDelete={() => deletePreset(preset.id)}
+                    onToggleFavorite={() => {
+                      updatePresets(settings.presets.map(p =>
+                        p.id === preset.id ? { ...p, isFavorite: !p.isFavorite } : p
+                      ));
+                    }}
+                  />
                 ))}
-              </select>
+                {settings.presets.length > 6 && (
+                  <button
+                    onClick={() => setShowAllPresets(v => !v)}
+                    className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {showAllPresets
+                      ? <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
+                      : <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.presets.length - 6})</>}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-          {isPro && (
-            <SettingsRow
-              label="Show Scan Confidence"
-              toggle
-              toggleValue={userSettings.showScanConfidence}
-              onToggle={(v) => updateUserSetting('showScanConfidence', v)}
-            />
-          )}
-          <SettingsRow
-            label="Show Vehicle on Lines"
-            toggle
-            toggleValue={userSettings.showVehicleChips}
-            onToggle={(v) => updateUserSetting('showVehicleChips', v)}
-          />
-          <SettingsRow
-            label="Keyword Auto-Fill Hours"
-            toggle
-            toggleValue={userSettings.keywordAutofill}
-            onToggle={(v) => updateUserSetting('keywordAutofill', v)}
-          />
-          <SettingsRow
-            label="Hide Hour Totals"
-            toggle
-            toggleValue={userSettings.hideTotals}
-            onToggle={(v) => updateUserSetting('hideTotals', v)}
-          />
-        </SettingsGroup>
 
-        {/* Hours & Earnings */}
-        <SettingsGroup title="Hours & Earnings">
-          <div className="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Daily goal</span>
-              <p className="text-xs text-muted-foreground">Hours per day target</p>
+            {/* Advisors */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Advisors</h3>
+                <button onClick={() => openAdvisorEditor()} className="p-2 tap-target touch-feedback text-primary">
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-1">
+                {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
+                  <AdvisorItem
+                    key={advisor.id}
+                    advisor={advisor}
+                    onEdit={() => openAdvisorEditor(advisor)}
+                    onDelete={() => deleteAdvisor(advisor.id)}
+                  />
+                ))}
+                {settings.advisors.length > 6 && (
+                  <button
+                    onClick={() => setShowAllAdvisors(v => !v)}
+                    className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {showAllAdvisors
+                      ? <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
+                      : <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.advisors.length - 6})</>}
+                  </button>
+                )}
+              </div>
             </div>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              max={24}
-              step={0.5}
-              value={localDailyGoal}
-              onChange={e => setLocalDailyGoal(e.target.value)}
-              onBlur={e => updateSetting('hoursGoalDaily', parseFloat(e.target.value) || 0)}
-              placeholder="Off"
-              className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-            />
-          </div>
-          <div className="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Weekly goal</span>
-              <p className="text-xs text-muted-foreground">Hours per week target</p>
-            </div>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              max={168}
-              step={1}
-              value={localWeeklyGoal}
-              onChange={e => setLocalWeeklyGoal(e.target.value)}
-              onBlur={e => updateSetting('hoursGoalWeekly', parseFloat(e.target.value) || 0)}
-              placeholder="Off"
-              className="w-20 h-10 px-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-            />
-          </div>
-          <div className="p-4 flex items-center justify-between gap-4">
-            <div>
-              <span className="font-medium text-sm">Flat rate</span>
-              <p className="text-xs text-muted-foreground">$/hr — shows earnings in Summary</p>
-            </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step={0.5}
-                value={localHourlyRate}
-                onChange={e => setLocalHourlyRate(e.target.value)}
-                onBlur={e => updateSetting('hourlyRate', parseFloat(e.target.value) || 0)}
-                placeholder="Off"
-                className="w-24 h-10 pl-7 pr-3 text-sm text-right bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
-              />
-            </div>
-          </div>
-        </SettingsGroup>
 
-        {/* Pay Period Range */}
-        <PayPeriodRangeSection
-          userSettings={userSettings}
-          updateUserSetting={updateUserSetting}
-        />
+            {/* Scan Templates - Pro only */}
+            {isPro && <TemplatesSection />}
 
-
-        {/* Presets */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-4">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Quick Presets
-            </h3>
-            <button
-              onClick={() => openPresetEditor()}
-              className="p-2 tap-target touch-feedback text-primary"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="space-y-1">
-            {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
-              <PresetItem
-                key={preset.id}
-                preset={preset}
-                onEdit={() => openPresetEditor(preset)}
-                onDelete={() => deletePreset(preset.id)}
-                onToggleFavorite={() => {
-                  updatePresets(settings.presets.map(p =>
-                    p.id === preset.id ? { ...p, isFavorite: !p.isFavorite } : p
-                  ));
+            {/* Data */}
+            <SettingsGroup title="Data">
+              <SettingsRow
+                label="Download Backup (JSON)"
+                description="Exports all ROs + lines as JSON"
+                onClick={() => {
+                  if (ros.length === 0) { toast.info('No ROs to export'); return; }
+                  const exportData = ros.map(ro => ({
+                    roNumber: ro.roNumber, date: ro.date, advisor: ro.advisor,
+                    customerName: ro.customerName, vehicle: ro.vehicle, mileage: ro.mileage,
+                    notes: ro.notes, paidDate: ro.paidDate,
+                    lines: ro.lines.map(l => ({
+                      lineNo: l.lineNo, description: l.description,
+                      laborType: l.laborType, hoursPaid: l.hoursPaid, isTbd: l.isTbd,
+                    })),
+                  }));
+                  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success(`Exported ${ros.length} ROs`);
                 }}
               />
-            ))}
-            {settings.presets.length > 6 && (
-              <button
-                onClick={() => setShowAllPresets(v => !v)}
-                className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                {showAllPresets ? (
-                  <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
-                ) : (
-                  <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.presets.length - 6})</>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Advisors */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-4">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Advisors
-            </h3>
-            <button
-              onClick={() => openAdvisorEditor()}
-              className="p-2 tap-target touch-feedback text-primary"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="space-y-1">
-            {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
-              <AdvisorItem
-                key={advisor.id}
-                advisor={advisor}
-                onEdit={() => openAdvisorEditor(advisor)}
-                onDelete={() => deleteAdvisor(advisor.id)}
-              />
-            ))}
-            {settings.advisors.length > 6 && (
-              <button
-                onClick={() => setShowAllAdvisors(v => !v)}
-                className="w-full flex items-center justify-center gap-1 py-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                {showAllAdvisors ? (
-                  <><ChevronUp className="h-3.5 w-3.5" /> Show Less</>
-                ) : (
-                  <><ChevronDown className="h-3.5 w-3.5" /> Show More ({settings.advisors.length - 6})</>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Scan Templates - Pro only */}
-        {isPro && <TemplatesSection />}
-
-        {/* Data Management */}
-        <SettingsGroup title="Data">
-          <SettingsRow
-            label="Download Backup (JSON)"
-            description="Exports all ROs + lines as JSON"
-            onClick={() => {
-              if (ros.length === 0) {
-                toast.info('No ROs to export');
-                return;
-              }
-              const exportData = ros.map(ro => ({
-                roNumber: ro.roNumber,
-                date: ro.date,
-                advisor: ro.advisor,
-                customerName: ro.customerName,
-                vehicle: ro.vehicle,
-                mileage: ro.mileage,
-                notes: ro.notes,
-                paidDate: ro.paidDate,
-                lines: ro.lines.map(l => ({
-                  lineNo: l.lineNo,
-                  description: l.description,
-                  laborType: l.laborType,
-                  hoursPaid: l.hoursPaid,
-                  isTbd: l.isTbd,
-                })),
-              }));
-              const json = JSON.stringify(exportData, null, 2);
-              const blob = new Blob([json], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
-              a.click();
-              URL.revokeObjectURL(url);
-              toast.success(`Exported ${ros.length} ROs`);
-            }}
-          />
-          <div className="w-full p-4 flex items-center justify-between tap-target touch-feedback">
-            <div>
-              <span className="font-medium text-destructive">Clear All ROs</span>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleClearAllClick}
-              disabled={ros.length === 0}
-              className="tap-target"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          </div>
-        </SettingsGroup>
-
-        {/* Account */}
-        <SettingsGroup title="Account">
-          {user && (
-            <div className="p-4 text-sm text-muted-foreground truncate">
-              {user.email}
-            </div>
-          )}
-          {isAdmin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-primary"
-            >
-              <Shield className="h-5 w-5" />
-              <span className="font-medium">Admin Panel</span>
-              <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
-            </button>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-destructive"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="font-medium">Sign Out</span>
-          </button>
-        </SettingsGroup>
-
-        {/* Support */}
-        <SettingsGroup title="Support">
-          <button
-            onClick={() => {
-              window.open('mailto:support@ronavigator.com', '_blank');
-              navigator.clipboard.writeText('support@ronavigator.com');
-              toast.success('Email copied to clipboard!');
-            }}
-            className="w-full p-4 flex items-center gap-3 tap-target touch-feedback"
-          >
-            <Mail className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1 min-w-0 text-left">
-              <span className="font-medium">Contact Support</span>
-              <p className="text-xs text-muted-foreground">support@ronavigator.com</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-        </SettingsGroup>
+              <div className="w-full p-4 flex items-center justify-between tap-target touch-feedback">
+                <div>
+                  <span className="font-medium text-destructive">Clear All ROs</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleClearAllClick}
+                  disabled={ros.length === 0}
+                  className="tap-target"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </SettingsGroup>
+          </>
+        )}
       </div>
 
       {/* Preset Editor Sheet */}

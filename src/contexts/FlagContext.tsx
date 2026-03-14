@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useFlags } from '@/hooks/useFlags';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
@@ -14,13 +14,16 @@ export function FlagProvider({ children }: { children: ReactNode }) {
   const flagStore = useFlags();
   const { settings: userSettings, loaded: userSettingsLoaded, updateSetting } = useUserSettings();
 
+  const value = useMemo(() => ({
+    ...flagStore,
+    userSettings,
+    userSettingsLoaded,
+    updateUserSetting: updateSetting,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [flagStore, userSettings, userSettingsLoaded, updateSetting]);
+
   return (
-    <FlagContext.Provider value={{
-      ...flagStore,
-      userSettings,
-      userSettingsLoaded,
-      updateUserSetting: updateSetting,
-    }}>
+    <FlagContext.Provider value={value}>
       {children}
     </FlagContext.Provider>
   );
