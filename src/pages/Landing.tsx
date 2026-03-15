@@ -42,7 +42,6 @@ const outcomes = [
 ];
 
 const freeFeatures = [
-  'Up to 150 ROs/month',
   'Pay period summaries',
   'Flag inbox & resolution',
   'Offline mode',
@@ -61,7 +60,7 @@ const proFeatures = [
 const faqs = [
   {
     q: 'Is RO Navigator really free?',
-    a: 'Yes. The free plan includes pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required. A monthly RO limit of 150 applies. Most techs stay under that.',
+    a: 'Yes. The free plan includes pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required.',
   },
   {
     q: 'Who is RO Navigator built for?',
@@ -69,7 +68,7 @@ const faqs = [
   },
   {
     q: 'What does Pro add?',
-    a: 'Pro removes the RO cap entirely and adds phone scanning (snap a photo → auto-fill lines), multi-period comparisons, full spreadsheet exports (CSV/XLSX/PDF), and payroll-ready closeouts. It\'s $8.99/mo or $79.99/yr — both include a 7-day free trial.',
+    a: 'Pro adds phone scanning (snap a photo → auto-fill lines), unlimited ROs, multi-period comparisons, full spreadsheet exports (CSV/XLSX/PDF), and payroll-ready closeouts. It\'s $8.99/mo or $79.99/yr — both include a 7-day free trial.',
   },
   {
     q: 'How does the 7-day free trial work?',
@@ -355,7 +354,7 @@ export default function Landing() {
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Infinity, title: 'Unlimited ROs', desc: 'Never hit the 150/mo cap. Log every RO on every shift without limits.' },
+              { icon: Infinity, title: 'Unlimited ROs', desc: 'Log every RO on every shift — no limits, no counting.' },
               { icon: Camera, title: 'RO Photo Scan', desc: 'Point your camera at a repair order — line items auto-fill in seconds via OCR.' },
               { icon: BarChart3, title: 'Period Closeouts', desc: 'Lock in your hours at period end. Compare this period vs. last to catch trends.' },
               { icon: FileSpreadsheet, title: 'Full Exports', desc: 'Send payroll CSV, audit XLSX, or PDF directly to your service manager.' },

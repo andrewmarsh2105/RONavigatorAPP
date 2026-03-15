@@ -38,7 +38,7 @@ export default function Terms() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground">4. Free & Pro Plans</h2>
-            <p>Free accounts are limited to 150 repair orders per calendar month. Pro subscriptions are billed monthly ($8.99/mo) or yearly ($79.99/yr) and include a 7-day free trial. You may cancel at any time through the billing portal. Refunds are handled on a case-by-case basis.</p>
+            <p>Pro subscriptions are billed monthly ($8.99/mo) or yearly ($79.99/yr) and include a 7-day free trial. You may cancel at any time through the billing portal. Refunds are handled on a case-by-case basis.</p>
           </section>
 
           <section className="space-y-3">
