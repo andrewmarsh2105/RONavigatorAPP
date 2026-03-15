@@ -147,11 +147,11 @@ export default function Landing() {
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]">
-                Track Your Hours.{' '}
-                <span className="text-primary">Get Paid Right.</span>
+                Stop leaving hours{' '}
+                <span className="text-primary">on the table.</span>
               </h1>
               <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Log RO lines fast, close out your pay period, and catch missing hours before payroll. Built for techs who know every hour matters.
+                Know exactly what you're owed before payday. Log ROs as you work, catch missing hours, and close out every pay period with proof.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Link to="/auth">
@@ -202,9 +202,9 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12">
             {[
               { value: '150,000+', label: 'ROs tracked' },
-              { value: 'Free', label: 'to get started' },
-              { value: '7-day', label: 'Pro trial, no card' },
-              { value: '100%', label: 'offline-capable' },
+              { value: 'Free', label: 'to get started, no card' },
+              { value: 'Works offline', label: 'even without Wi-Fi' },
+              { value: '7-day', label: 'Pro trial included' },
             ].map((stat, i) => (
               <div key={i} className="flex items-center gap-3">
                 {i > 0 && <div className="hidden md:block w-px h-6 bg-border" />}

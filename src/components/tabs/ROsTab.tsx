@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useDeferredValue, memo, lazy, Suspense } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
@@ -189,6 +189,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const [viewMode, setViewMode] = useLocalStorageState<'cards' | 'spreadsheet'>('ui.mobile.roTab.viewMode.v1', 'cards');
   const [visibleCount, setVisibleCount] = useState(50);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const SCROLL_KEY = 'ui.mobile.roTab.scrollY';
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(saved, 10);
+    }
+    return () => {
+      if (scrollRef.current) {
+        sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop));
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isPro && viewMode === 'spreadsheet') setViewMode('cards');
@@ -430,7 +444,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto pb-32">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32">
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
