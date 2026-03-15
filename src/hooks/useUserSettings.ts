@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export type SummaryRange = 'week' | 'two_weeks';
 export type PayPeriodType = 'week' | 'two_weeks' | 'custom';
@@ -69,6 +70,8 @@ export function useUserSettings() {
   // which would overwrite optimistic updates and clear text fields like displayName.
   const userId = user?.id;
   const [settings, setSettings] = useState<UserSettings>(defaults);
+  const settingsRef = useRef<UserSettings>(defaults);
+  settingsRef.current = settings;
   const [loaded, setLoaded] = useState(false);
 
   const fetchSettings = useCallback(async () => {
@@ -132,6 +135,7 @@ export function useUserSettings() {
 
   const updateSetting = useCallback(async (key: keyof UserSettings, value: any) => {
     if (!userId) return;
+    const previousValue = settingsRef.current[key];
     setSettings(prev => ({ ...prev, [key]: value }));
 
     const dbKey = key === 'showScanConfidence' ? 'show_scan_confidence'
@@ -162,7 +166,10 @@ export function useUserSettings() {
         user_id: userId,
         [dbKey]: value,
       }, { onConflict: 'user_id' });
-    if (error) console.error('Failed to save setting', error);
+    if (error) {
+      setSettings(prev => ({ ...prev, [key]: previousValue }));
+      toast.error('Failed to save setting. Please try again.');
+    }
   }, [userId]);
 
   return { settings, loaded, updateSetting };

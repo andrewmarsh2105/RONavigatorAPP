@@ -32,7 +32,7 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
                 isActive ? 'bg-primary/12 px-4 py-1' : 'px-3 py-1'
               )}>
                 <Icon
-                  className={cn('flex-shrink-0 transition-all duration-200', isActive ? 'h-[22px] w-[22px]' : 'h-[22px] w-[22px]')}
+                  className="flex-shrink-0 h-[22px] w-[22px] transition-all duration-200"
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
               </div>

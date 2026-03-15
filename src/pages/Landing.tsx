@@ -42,7 +42,6 @@ const outcomes = [
 ];
 
 const freeFeatures = [
-  'Up to 150 ROs/month',
   'Pay period summaries',
   'Flag inbox & resolution',
   'Offline mode',
@@ -61,7 +60,7 @@ const proFeatures = [
 const faqs = [
   {
     q: 'Is RO Navigator really free?',
-    a: 'Yes. The free plan includes pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required. A monthly RO limit of 150 applies. Most techs stay under that.',
+    a: 'Yes. The free plan includes pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required.',
   },
   {
     q: 'Who is RO Navigator built for?',
@@ -69,7 +68,7 @@ const faqs = [
   },
   {
     q: 'What does Pro add?',
-    a: 'Pro removes the RO cap entirely and adds phone scanning (snap a photo → auto-fill lines), multi-period comparisons, full spreadsheet exports (CSV/XLSX/PDF), and payroll-ready closeouts. It\'s $8.99/mo or $79.99/yr — both include a 7-day free trial.',
+    a: 'Pro adds phone scanning (snap a photo → auto-fill lines), unlimited ROs, multi-period comparisons, full spreadsheet exports (CSV/XLSX/PDF), and payroll-ready closeouts. It\'s $8.99/mo or $79.99/yr — both include a 7-day free trial.',
   },
   {
     q: 'How does the 7-day free trial work?',
@@ -147,11 +146,11 @@ export default function Landing() {
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1]">
-                Track Your Hours.{' '}
-                <span className="text-primary">Get Paid Right.</span>
+                Stop leaving hours{' '}
+                <span className="text-primary">on the table.</span>
               </h1>
               <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Log RO lines fast, close out your pay period, and catch missing hours before payroll. Built for techs who know every hour matters.
+                Know exactly what you're owed before payday. Log ROs as you work, catch missing hours, and close out every pay period with proof.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Link to="/auth">
@@ -202,9 +201,9 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12">
             {[
               { value: '150,000+', label: 'ROs tracked' },
-              { value: 'Free', label: 'to get started' },
-              { value: '7-day', label: 'Pro trial, no card' },
-              { value: '100%', label: 'offline-capable' },
+              { value: 'Free', label: 'to get started, no card' },
+              { value: 'Works offline', label: 'even without Wi-Fi' },
+              { value: '7-day', label: 'Pro trial included' },
             ].map((stat, i) => (
               <div key={i} className="flex items-center gap-3">
                 {i > 0 && <div className="hidden md:block w-px h-6 bg-border" />}
@@ -355,7 +354,7 @@ export default function Landing() {
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Infinity, title: 'Unlimited ROs', desc: 'Never hit the 150/mo cap. Log every RO on every shift without limits.' },
+              { icon: Infinity, title: 'Unlimited ROs', desc: 'Log every RO on every shift — no limits, no counting.' },
               { icon: Camera, title: 'RO Photo Scan', desc: 'Point your camera at a repair order — line items auto-fill in seconds via OCR.' },
               { icon: BarChart3, title: 'Period Closeouts', desc: 'Lock in your hours at period end. Compare this period vs. last to catch trends.' },
               { icon: FileSpreadsheet, title: 'Full Exports', desc: 'Send payroll CSV, audit XLSX, or PDF directly to your service manager.' },

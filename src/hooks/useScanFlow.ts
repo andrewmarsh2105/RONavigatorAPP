@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -70,7 +70,19 @@ export function useScanFlow() {
     }));
   }, []);
 
+  // Track all blob URLs so we can revoke them to free memory
+  const blobUrlsRef = useRef<string[]>([]);
+
+  // Revoke all tracked blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      for (const url of blobUrlsRef.current) URL.revokeObjectURL(url);
+    };
+  }, []);
+
   const reset = useCallback(() => {
+    for (const url of blobUrlsRef.current) URL.revokeObjectURL(url);
+    blobUrlsRef.current = [];
     busyRef.current = false;
     scanIdRef.current = null;
     retryCountRef.current = 0;
@@ -94,6 +106,7 @@ export function useScanFlow() {
     busyRef.current = true;
 
     const previewUrl = URL.createObjectURL(file);
+    blobUrlsRef.current.push(previewUrl);
 
     updateState('uploading', {
       imagePreviewUrl: previewUrl,

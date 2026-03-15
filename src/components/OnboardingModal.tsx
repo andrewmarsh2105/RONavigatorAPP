@@ -10,7 +10,7 @@ const steps = [
   {
     icon: ClipboardList,
     title: 'Log your first RO',
-    description: 'Tap the + button to add a repair order. Enter the RO number and labor hours — takes 10 seconds.',
+    description: 'A Repair Order is the ticket written up when a car comes in — it tracks what you worked on and what you\'re owed. Tap the + button to add one. Enter the RO number and labor hours — takes 10 seconds.',
   },
   {
     icon: BarChart2,

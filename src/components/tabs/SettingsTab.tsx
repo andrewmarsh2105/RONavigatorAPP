@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet } from 'lucide-react';
+import { Pencil, Plus, Trash2, Moon, Sun, ChevronRight, ChevronDown, ChevronUp, X, User, AlertTriangle, LogOut, FileText, Star, Crown, Shield, Mail, Infinity, Camera, BarChart3, FileSpreadsheet, Check } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -354,6 +354,7 @@ export function SettingsTab() {
   const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
   const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
   const [showAdvisorEditor, setShowAdvisorEditor] = useState(false);
@@ -371,11 +372,17 @@ export function SettingsTab() {
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state when settings load from Supabase.
-  // userSettingsLoaded is included so this fires every time a fresh fetch completes
-  // after sign-in, even when the DB values are identical to any prior stale state.
+  // Sync local state from DB only once per load cycle (when userSettingsLoaded transitions
+  // false→true). Using a ref to guard against re-running when individual fields change due to
+  // the user's own optimistic updates — that would overwrite in-progress typing in OTHER fields.
+  const hasInitialSyncedRef = useRef(false);
   useEffect(() => {
-    if (!userSettingsLoaded) return;
+    if (!userSettingsLoaded) {
+      hasInitialSyncedRef.current = false;
+      return;
+    }
+    if (hasInitialSyncedRef.current) return;
+    hasInitialSyncedRef.current = true;
     setLocalDisplayName(syncedSettings.displayName);
     setLocalShopName(syncedSettings.shopName);
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
@@ -565,8 +572,11 @@ export function SettingsTab() {
       <div className="p-4 space-y-6">
         {settingsView === 'settings' ? (
           <>
-            {/* Profile Card */}
-            <div className="card-mobile p-4">
+            {/* Profile Card — tappable, opens Account sheet */}
+            <button
+              onClick={() => setShowAccountSheet(true)}
+              className="card-mobile p-4 w-full text-left tap-target touch-feedback"
+            >
               <div className="flex items-center gap-3">
                 <div
                   className="h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xl font-bold select-none"
@@ -583,17 +593,17 @@ export function SettingsTab() {
                   )}
                   <div className="text-sm text-muted-foreground truncate mt-0.5">{user?.email}</div>
                 </div>
-                <button
-                  onClick={isPro ? openPortal : () => setShowUpgradeDialog(true)}
-                  className={cn(
-                    'flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors',
-                    isPro
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  )}
-                >
-                  {isPro ? <><Crown className="h-3 w-3" /> Pro</> : 'Free'}
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span
+                    className={cn(
+                      'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold',
+                      isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {isPro ? <><Crown className="h-3 w-3" /> Pro</> : 'Free'}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
               {isNearExpiry && daysUntilEnd !== null && (
                 <div className="mt-3 flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
@@ -603,39 +613,7 @@ export function SettingsTab() {
                   </p>
                 </div>
               )}
-            </div>
-
-            {/* About */}
-            <SettingsGroup title="About">
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium text-sm">Your name</span>
-                  <p className="text-xs text-muted-foreground">Shown in the app header</p>
-                </div>
-                <input
-                  type="text"
-                  value={localDisplayName}
-                  onChange={e => setLocalDisplayName(e.target.value)}
-                  onBlur={e => updateSetting('displayName', e.target.value.trim())}
-                  placeholder="e.g. Mike"
-                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium text-sm">Shop name</span>
-                  <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
-                </div>
-                <input
-                  type="text"
-                  value={localShopName}
-                  onChange={e => setLocalShopName(e.target.value)}
-                  onBlur={e => updateSetting('shopName', e.target.value.trim())}
-                  placeholder="e.g. Smith's Auto"
-                  className="w-36 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </SettingsGroup>
+            </button>
 
             {/* Appearance */}
             <SettingsGroup title="Appearance">
@@ -762,40 +740,6 @@ export function SettingsTab() {
               userSettings={userSettings}
               updateUserSetting={updateUserSetting}
             />
-
-            {/* Account */}
-            <SettingsGroup title="Account">
-              {user && (
-                <div className="p-4 text-sm text-muted-foreground truncate">{user.email}</div>
-              )}
-              <SettingsRow
-                label="Plan"
-                currentValue={isPro ? 'Pro' : 'Free'}
-                onClick={isPro ? openPortal : () => setShowUpgradeDialog(true)}
-              />
-              {subscriptionEnd && isPro && !isNearExpiry && (
-                <div className="px-4 pb-3 -mt-1">
-                  <p className="text-xs text-muted-foreground">Renews {new Date(subscriptionEnd).toLocaleDateString()}</p>
-                </div>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-primary"
-                >
-                  <Shield className="h-5 w-5" />
-                  <span className="font-medium">Admin Panel</span>
-                  <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
-                </button>
-              )}
-              <button
-                onClick={signOut}
-                className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-destructive"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="font-medium">Sign Out</span>
-              </button>
-            </SettingsGroup>
 
             {/* Support */}
             <SettingsGroup title="Support">
@@ -1148,6 +1092,137 @@ export function SettingsTab() {
         </DialogContent>
       </Dialog>
       <ProUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
+
+      {/* Account Sheet */}
+      <BottomSheet isOpen={showAccountSheet} onClose={() => setShowAccountSheet(false)} title="Account">
+        <div className="p-4 space-y-6">
+          {/* Avatar + email */}
+          <div className="flex items-center gap-4">
+            <div
+              className="h-16 w-16 rounded-full flex items-center justify-center flex-shrink-0 text-white text-2xl font-bold select-none"
+              style={{ backgroundColor: `hsl(${ACCENT_COLORS[syncedSettings.accentColor || 'blue'].light})` }}
+            >
+              {avatarInitial}
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold truncate">
+                {syncedSettings.displayName || <span className="text-muted-foreground font-normal italic text-sm">No name set</span>}
+              </div>
+              <div className="text-sm text-muted-foreground truncate">{user?.email}</div>
+            </div>
+          </div>
+
+          {/* Name fields */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="shrink-0">
+                <span className="font-medium text-sm">Your name</span>
+                <p className="text-xs text-muted-foreground">Shown in the app header</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={localDisplayName}
+                  onChange={e => setLocalDisplayName(e.target.value)}
+                  onBlur={e => updateSetting('displayName', e.target.value.trim())}
+                  placeholder="e.g. Mike"
+                  className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  onClick={() => updateSetting('displayName', localDisplayName.trim())}
+                  className={cn(
+                    'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
+                    localDisplayName.trim() !== syncedSettings.displayName
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                  aria-label="Save name"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="shrink-0">
+                <span className="font-medium text-sm">Shop name</span>
+                <p className="text-xs text-muted-foreground">Replaces "Repair Orders" title</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={localShopName}
+                  onChange={e => setLocalShopName(e.target.value)}
+                  onBlur={e => updateSetting('shopName', e.target.value.trim())}
+                  placeholder="e.g. Smith's Auto"
+                  className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  onClick={() => updateSetting('shopName', localShopName.trim())}
+                  className={cn(
+                    'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center transition-colors',
+                    localShopName.trim() !== syncedSettings.shopName
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                  aria-label="Save shop name"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Plan */}
+          <div className="card-mobile overflow-hidden">
+            <button
+              onClick={() => { setShowAccountSheet(false); isPro ? openPortal() : setShowUpgradeDialog(true); }}
+              className="w-full p-4 flex items-center justify-between tap-target touch-feedback"
+            >
+              <span className="font-medium">Plan</span>
+              <div className="flex items-center gap-2">
+                <span className={cn('text-sm', isPro ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+                  {isPro ? 'Pro' : 'Free'}
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
+            {subscriptionEnd && isPro && !isNearExpiry && (
+              <div className="px-4 pb-3 -mt-1">
+                <p className="text-xs text-muted-foreground">Renews {new Date(subscriptionEnd).toLocaleDateString()}</p>
+              </div>
+            )}
+            {isNearExpiry && daysUntilEnd !== null && (
+              <div className="mx-4 mb-3 flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
+                  Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro access.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Admin + Sign out */}
+          <div className="card-mobile overflow-hidden">
+            {isAdmin && (
+              <button
+                onClick={() => { setShowAccountSheet(false); navigate('/admin'); }}
+                className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-primary border-b border-border"
+              >
+                <Shield className="h-5 w-5" />
+                <span className="font-medium">Admin Panel</span>
+                <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
+              </button>
+            )}
+            <button
+              onClick={signOut}
+              className="w-full p-4 flex items-center gap-3 tap-target touch-feedback text-destructive"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PayPeriodReport } from '@/hooks/usePayPeriodReport';
 import type { RepairOrder, ROLine } from '@/types/ro';
@@ -173,7 +174,16 @@ export function useCloseouts() {
   }, [user, fetchCloseouts]);
 
   const deleteCloseout = useCallback(async (id: string) => {
-    await supabase.from('pay_period_closeouts').delete().eq('id', id);
+    if (!user) return;
+    const { error } = await supabase
+      .from('pay_period_closeouts')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) {
+      toast.error('Failed to delete closeout');
+      return;
+    }
     setCloseouts(prev => prev.filter(c => c.id !== id));
   }, []);
 

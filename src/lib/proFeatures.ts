@@ -44,13 +44,13 @@ export const UPGRADE_CONTEXT: Record<UpgradeTrigger, UpgradeContext> = {
     highlightFeature: 'Scan ROs with your phone',
   },
   'spreadsheet': {
-    headline: 'Spreadsheet view is Pro',
-    pitch: 'See every line in a sortable, filterable table — the fastest way to review your pay period before submitting.',
+    headline: 'See every line at once',
+    pitch: 'Spreadsheet view shows all your ROs in one scrollable table — the fastest way to catch missing hours before payday.',
     highlightFeature: 'Full exports',
   },
   'export': {
-    headline: 'Export your records',
-    pitch: 'Download payroll CSV, audit XLSX, or PDF for any date range — so you have proof when it matters.',
+    headline: 'Your pay period is done — lock it in',
+    pitch: 'Download the full XLSX for your records. One file with every RO, every line, and your total hours — proof you can keep.',
     highlightFeature: 'Full exports',
   },
   'closeout': {

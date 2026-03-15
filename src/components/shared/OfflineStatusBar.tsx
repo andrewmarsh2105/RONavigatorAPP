@@ -50,7 +50,7 @@ export function OfflineStatusBar() {
         ) : conflicts.length > 0 ? (
           <>
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>{conflicts.length} need{conflicts.length > 1 ? '' : 's'} attention</span>
+            <span>{conflicts.length} {conflicts.length === 1 ? 'needs' : 'need'} attention</span>
             <button
               onClick={() => setConflictOpen(true)}
               className="ml-auto underline text-xs hover:opacity-80"
