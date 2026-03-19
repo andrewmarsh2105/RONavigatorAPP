@@ -24,7 +24,12 @@ export function BottomSheet({
   const dragControls = useDragControls();
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
@@ -58,7 +63,7 @@ export function BottomSheet({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -88,7 +93,7 @@ export function BottomSheet({
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocusedRef.current?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.velocity.y > 500 || info.offset.y > 100) {
