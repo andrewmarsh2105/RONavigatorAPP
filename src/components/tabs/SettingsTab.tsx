@@ -355,7 +355,7 @@ export function SettingsTab() {
   const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
-  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, openPortal } = useSubscription();
+  const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, hasBillingIssue, openPortal } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [showPresetEditor, setShowPresetEditor] = useState(false);
@@ -1206,6 +1206,14 @@ export function SettingsTab() {
                 <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-yellow-700 dark:text-yellow-400 leading-snug">
                   Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong> — add a payment method to keep Pro access.
+                </p>
+              </div>
+            )}
+            {hasBillingIssue && (
+              <div className="mx-4 mb-3 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700 dark:text-red-400 leading-snug">
+                  We couldn't renew your Pro subscription. Open billing to update payment details.
                 </p>
               </div>
             )}
