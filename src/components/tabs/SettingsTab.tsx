@@ -560,7 +560,7 @@ export function SettingsTab() {
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32 bg-accent/[0.14]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border/80 space-y-3">
+      <div className="sticky top-0 z-30 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm px-4 pt-4 pb-3 border-b border-border/90 space-y-3 shadow-[var(--shadow-sm)]">
         <h1 className="text-2xl font-bold">Settings</h1>
         <SegmentedControl
           options={[
@@ -578,7 +578,7 @@ export function SettingsTab() {
             {/* Profile Card — tappable, opens Account sheet */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="card-mobile p-4 w-full text-left tap-target touch-feedback border border-border/80"
+              className="card-mobile p-4 w-full text-left tap-target touch-feedback border border-border/90 bg-gradient-to-b from-card to-secondary/30"
             >
               <div className="flex items-center gap-3">
                 <div
