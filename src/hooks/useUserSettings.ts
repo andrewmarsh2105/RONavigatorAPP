@@ -72,6 +72,8 @@ export function useUserSettings() {
   const [settings, setSettings] = useState<UserSettings>(defaults);
   const settingsRef = useRef<UserSettings>(defaults);
   settingsRef.current = settings;
+  const profileCloudSyncUnavailableRef = useRef(false);
+  const hasShownProfileCloudSyncToastRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
 
   const persistProfileSettingLocally = useCallback((key: 'displayName' | 'shopName', value: string) => {
@@ -153,9 +155,16 @@ export function useUserSettings() {
   const updateSetting = useCallback(async (key: keyof UserSettings, value: UserSettings[keyof UserSettings]) => {
     if (!userId) return;
     const previousValue = settingsRef.current[key];
+    if (Object.is(previousValue, value)) return;
 
     if (key === 'displayName' || key === 'shopName') {
-      persistProfileSettingLocally(key, value);
+      persistProfileSettingLocally(key, String(value ?? ''));
+      // If we already know profile columns are unavailable, keep local-only behavior
+      // and avoid repeated failed cloud upserts on every edit.
+      if (profileCloudSyncUnavailableRef.current) {
+        setSettings(prev => ({ ...prev, [key]: value }));
+        return;
+      }
     }
 
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -199,7 +208,11 @@ export function useUserSettings() {
         );
 
       if (isMissingProfileColumn) {
-        toast.success('Saved on this device. Cloud sync for profile names is not available yet.');
+        profileCloudSyncUnavailableRef.current = true;
+        if (!hasShownProfileCloudSyncToastRef.current) {
+          hasShownProfileCloudSyncToastRef.current = true;
+          toast.success('Saved on this device. Cloud sync for profile names is not available yet.');
+        }
         return;
       }
 
