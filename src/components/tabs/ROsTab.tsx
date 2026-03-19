@@ -235,7 +235,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const uniqueAdvisors = useMemo(() => [...new Set(ros.map(r => r.advisor))].sort(), [ros]);
 
-  const filteredROs = useMemo(() => {
+  // Pre-filtered ROs: search + advisor + labor type, sorted — but NO date filter.
+  // SpreadsheetView manages its own local date range independently.
+  const preFilteredROs = useMemo(() => {
     let result = ros;
 
     if (deferredSearch.trim()) {
@@ -260,9 +262,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       result = result.filter(ro => filters.laborTypes.includes(ro.laborType));
     }
 
-    result = filterROsByDateRange(result, rangeBounds);
-
-    const sorted = [...result].sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (filters.sortBy === 'date') return (b.paidDate || b.date).localeCompare(a.paidDate || a.date);
       if (filters.sortBy === 'hours') return calcHours(b) - calcHours(a);
       if (filters.sortBy === 'ro') return a.roNumber.localeCompare(b.roNumber);
@@ -271,9 +271,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       if (filters.sortBy === 'laborType') return a.laborType.localeCompare(b.laborType);
       return 0;
     });
+  }, [ros, deferredSearch, filters]);
 
-    return sorted;
-  }, [ros, deferredSearch, filters, hasCustomPayPeriod, userSettings, rangeBounds]);
+  // For cards view: apply date filter on top of pre-filtered ROs
+  const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
 
   useEffect(() => {
     setVisibleCount(50);
@@ -437,8 +438,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
             <SpreadsheetView
-              ros={filteredROs}
-              rangeLabel={rangeChipLabel}
+              ros={preFilteredROs}
               onSelectRO={ro => { setSelectedRO(ro); setShowDetail(true); }}
             />
           </Suspense>
