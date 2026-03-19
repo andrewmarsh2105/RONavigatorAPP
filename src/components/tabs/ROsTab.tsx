@@ -105,14 +105,14 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="card-mobile px-4 py-3.5 group row-hover quiet-transition border-l-[3px] border border-border/70 shadow-soft"
+      className="card-mobile px-4 py-3.5 group row-hover quiet-transition border-l-4 border border-border/80 shadow-[var(--shadow-card)]"
       style={{ borderLeftColor: laborTypeColor }}
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
           {/* Row 1: RO# · hours · status badges */}
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-base font-bold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
+            <span className="text-base font-extrabold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
             <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
             <span className="meta-text tabular-nums flex-shrink-0 bg-muted/60 px-2 py-0.5 rounded-full">{formatDateShort(roEffectiveDate)}</span>
             <div className="flex-shrink-0">
@@ -357,12 +357,12 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/80">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/90 shadow-[var(--shadow-sm)]">
         <div className="px-4 pt-2.5">
         <div className="flex items-start justify-between pb-2 gap-2">
           <div className="min-w-0">
-            <h2 className="page-title">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.08] px-2.5 py-1.5 shadow-sm">
+            <h2 className="page-title text-foreground">{goalSettings.shopName || 'Repair Orders'}</h2>
+            <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-xl border border-primary/35 bg-primary/[0.15] px-2.5 py-1.5 shadow-[var(--shadow-sm)]">
               <span className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight">
                 {maskHours(totalHours, userSettings.hideTotals ?? false)}h
               </span>
@@ -381,7 +381,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               )}
               <Badge
                 variant="outline"
-                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full border-border/80 bg-card/80", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
+                className={cn("gap-1 text-xs py-0.5 px-2 font-medium rounded-full border-border/90 bg-card/90", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
                 onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
               >
                 <CalendarRange className="h-3 w-3" />
@@ -400,7 +400,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
                 'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative',
-                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                isPro && viewMode === 'spreadsheet' ? 'bg-primary text-primary-foreground shadow-[var(--shadow-soft)]' : 'text-muted-foreground hover:bg-muted'
               )}
               title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
             >
@@ -413,7 +413,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </button>
             <button
               onClick={() => setShowFilters(true)}
-              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/40 relative quiet-transition"
+              className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/60 relative quiet-transition"
             >
               <SlidersHorizontal className="icon-toolbar" />
               {activeFiltersCount > 0 && (
@@ -433,7 +433,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search RO #, advisor, vehicle, work..."
-              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm shadow-[var(--shadow-sm)] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -455,7 +455,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
                 dateFilter === value
                   ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:bg-accent/35'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent/50'
               )}
             >
               {label}
@@ -478,7 +478,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32 bg-accent/[0.12]">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32 bg-gradient-to-b from-accent/[0.22] via-background to-secondary/30">
           {loadingROs ? (
             <div className="px-4 py-3 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -552,7 +552,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full h-10 rounded-full border border-border bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
+                  className="w-full h-10 rounded-full border border-border/90 bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
                 >
                   Show {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
@@ -582,7 +582,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       {/* Filter / Sort Bottom Sheet */}
       <BottomSheet isOpen={showFilters} onClose={() => setShowFilters(false)} title="Filter & Sort">
         <div className="p-4 space-y-5">
-          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
             <label className="section-title block mb-2">Sort By</label>
             <div className="grid grid-cols-2 gap-1.5">
               {([
@@ -609,7 +609,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
             <label className="section-title block mb-2">Labor Type</label>
             <div className="flex flex-wrap gap-1.5">
               {(['warranty', 'customer-pay', 'internal'] as LaborType[]).map(type => (

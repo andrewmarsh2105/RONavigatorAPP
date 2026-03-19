@@ -63,7 +63,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/80 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm border-b border-border/90 px-4 py-3 shadow-[var(--shadow-sm)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -132,25 +132,25 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-3 bg-accent/[0.15]">
+      <div className="p-4 space-y-3 bg-gradient-to-b from-accent/[0.26] via-background to-secondary/32">
         {/* Details */}
         <SectionCard title="Details">
           <div className="inset-panel p-3 space-y-2">
             <div className="flex justify-between">
               <span className="meta-text">Advisor</span>
-              <span className="text-xs font-medium">{ro.advisor}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.advisor}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Customer</span>
-              <span className="text-xs font-medium">{ro.customerName || "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.customerName || "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Mileage</span>
-              <span className="text-xs font-medium">{ro.mileage || "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.mileage || "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">Paid date</span>
-              <span className="text-xs font-medium">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</span>
+              <span className="text-xs font-semibold text-foreground">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</span>
             </div>
           </div>
         </SectionCard>
@@ -160,11 +160,11 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
           <div className="inset-panel p-3 space-y-2">
             <div className="flex justify-between">
               <span className="meta-text">Vehicle</span>
-              <span className="text-xs font-medium">{vehicleLabel(ro)}</span>
+              <span className="text-xs font-semibold text-foreground">{vehicleLabel(ro)}</span>
             </div>
             <div className="flex justify-between">
               <span className="meta-text">VIN</span>
-              <span className="text-xs font-medium font-mono">{ro.vehicle?.vin || "—"}</span>
+              <span className="text-xs font-semibold text-foreground font-mono">{ro.vehicle?.vin || "—"}</span>
             </div>
           </div>
         </SectionCard>
@@ -176,7 +176,7 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
               {ro.lines.map((l) => (
                 <div key={l.id} className="inset-panel px-3 py-2 flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium truncate">{l.description || "—"}</p>
+                    <p className="text-xs font-semibold text-foreground truncate">{l.description || "—"}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <StatusPill type={l.laborType || ro.laborType} size="sm" />
                       {l.isTbd && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">TBD</Badge>}

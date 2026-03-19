@@ -56,7 +56,7 @@ interface LineRowProps {
 const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg, borderColorClass, renderCellValue, onSelectRO }: LineRowProps) {
   return (
     <tr
-      className={cn('cursor-pointer hover:bg-accent/50 transition-colors border-t border-border/30', rowBg)}
+      className={cn('cursor-pointer hover:bg-accent/65 transition-colors border-t border-border/40', rowBg)}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
       {activeCols.map((col, ci) => (
@@ -346,7 +346,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
     return (
       <div className="h-full flex flex-col">
         {/* Still show toolbar so user can change range */}
-        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-card">
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40">
         {!isCloseout && (
             isMobile ? (
               <DropdownMenu>
@@ -419,7 +419,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/80 bg-card/95 backdrop-blur-sm flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Date range selector */}
           {!isCloseout && (
@@ -448,7 +448,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-            <div className="flex rounded-xl border border-border/80 overflow-hidden bg-accent/20 shadow-sm">
+            <div className="flex rounded-xl border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
                 { value: 'week' as DateFilterKey, label: 'Week' },
@@ -486,7 +486,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-xl border border-border/80 overflow-hidden bg-accent/20 shadow-sm">
+          <div className="flex rounded-xl border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
@@ -567,7 +567,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       {/* ─── Table ─── */}
       <div className="flex-1 overflow-auto" ref={tableRef}>
         <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
-          <thead className="sticky top-0 z-10 bg-card border-b-2 border-border">
+          <thead className="sticky top-0 z-10 bg-secondary/95 border-b-2 border-border shadow-[0_3px_8px_-6px_hsl(var(--foreground)/0.25)]">
             <tr>
               {activeCols.map((col) => (
                 <th
@@ -663,7 +663,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 const afterCols = activeCols.length - spanCols - 1;
 
                 return (
-                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/5">
+                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
                     <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
                       {sub.label}
                     </td>
@@ -716,7 +716,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       </div>
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-card px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+      <div className="flex-shrink-0 border-t-2 border-border bg-gradient-to-r from-card to-accent/35 px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
         <div className="flex flex-wrap gap-3 sm:gap-4 text-muted-foreground">
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>

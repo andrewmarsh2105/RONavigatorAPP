@@ -207,7 +207,7 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
 
       {/* App Bar */}
-      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border/80 bg-card/95 backdrop-blur-sm">
+      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm shadow-[var(--shadow-sm)]">
         <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
         <div className="flex items-center gap-1">
@@ -270,10 +270,10 @@ export function DesktopWorkspace() {
           </Suspense>
         </div>
       ) : (
-        <div className={cn("flex-1 flex min-h-0 p-2 gap-2", isDragging && "select-none")}>
+        <div className={cn("flex-1 flex min-h-0 p-3 gap-3 bg-gradient-to-b from-primary/[0.04] via-background to-accent/[0.14]", isDragging && "select-none")}>
           {/* Left Panel */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]"
+            className="min-w-0 flex-shrink-0 overflow-hidden rounded-2xl border border-border/90 bg-card/95 shadow-[var(--shadow-raised)]"
             style={isWideList ? { flex: "1 1 0%" } : { width: splitter.width }}
           >
             <ROListPanel
@@ -290,7 +290,7 @@ export function DesktopWorkspace() {
             <>
               <div
                 className={cn(
-                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border/70 bg-accent/20 hover:bg-accent/40 quiet-transition rounded-md",
+                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border/80 bg-gradient-to-b from-accent/60 to-secondary/70 hover:from-accent hover:to-secondary quiet-transition rounded-md",
                   isDragging && "bg-accent",
                 )}
                 onPointerDown={handlePointerDown}
@@ -311,7 +311,7 @@ export function DesktopWorkspace() {
                 </div>
               </div>
 
-              <div className="flex-1 min-w-0 relative rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)]">
+              <div className="flex-1 min-w-0 relative rounded-2xl border border-border/90 bg-card/95 shadow-[var(--shadow-raised)]">
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div

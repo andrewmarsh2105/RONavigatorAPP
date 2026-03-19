@@ -22,12 +22,12 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
       onClick={toggle ? () => !disabled && onToggle?.(!toggleValue) : onClick}
       disabled={disabled && !toggle}
       className={cn(
-        'w-full p-4 flex items-center justify-between tap-target touch-feedback hover:bg-accent/30 quiet-transition',
+        'w-full p-4 flex items-center justify-between tap-target touch-feedback hover:bg-accent/40 quiet-transition',
         disabled && 'opacity-50'
       )}
     >
-      <div className="text-left">
-        <span className="font-medium">{label}</span>
+        <div className="text-left">
+          <span className="font-semibold text-foreground">{label}</span>
         {description && (
           <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
@@ -36,12 +36,12 @@ export function SettingsRow({ label, description, currentValue, value, onClick, 
         <div
           className={cn(
             'w-12 h-7 rounded-full relative transition-colors flex-shrink-0 border border-border/70',
-            toggleValue ? 'bg-primary' : 'bg-muted/80'
+            toggleValue ? 'bg-primary shadow-[var(--shadow-soft)]' : 'bg-muted/80'
           )}
         >
           <div
             className={cn(
-              'absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform',
+              'absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform',
               toggleValue ? 'translate-x-6' : 'translate-x-1'
             )}
           />

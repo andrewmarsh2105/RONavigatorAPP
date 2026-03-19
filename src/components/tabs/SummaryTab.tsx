@@ -81,7 +81,7 @@ function KPISkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="card-mobile p-4 space-y-2">
+        <div key={i} className="card-mobile p-4 space-y-2 bg-gradient-to-b from-card to-secondary/35">
           <Skeleton className="h-3 w-16" />
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-3 w-20" />
@@ -93,7 +93,7 @@ function KPISkeleton() {
 
 function BreakdownSkeleton() {
   return (
-    <div className="card-mobile p-4 space-y-3">
+    <div className="card-mobile p-4 space-y-3 bg-gradient-to-b from-card to-secondary/35">
       <Skeleton className="h-4 w-28" />
       {[...Array(5)].map((_, i) => (
         <div key={i} className="flex justify-between items-center">
@@ -253,7 +253,7 @@ function MultiPeriodComparison({
         <>
           {/* Summary hero row */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="card-mobile p-3 text-center space-y-0.5 border-l-[3px] border-primary">
+            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 border-primary bg-gradient-to-b from-primary/[0.1] to-card">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period A</div>
               {start1 && end1 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start1, 'MMM d')}–{format(end1, 'MMM d')}</div>
@@ -266,7 +266,7 @@ function MultiPeriodComparison({
             <div className="flex flex-col items-center justify-center gap-1">
               <div className={cn('rounded-2xl px-3 py-2.5 flex flex-col items-center w-full', deltaBg)}>
                 <DeltaIcon className={cn('h-4 w-4', deltaColor)} />
-                <span className={cn('text-base font-bold tabular-nums mt-0.5', deltaColor)}>
+                <span className={cn('text-base font-extrabold tabular-nums mt-0.5', deltaColor)}>
                   {hide ? '--.-' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}h
                 </span>
                 <span className={cn('text-[10px] font-medium', deltaColor)}>
@@ -274,7 +274,7 @@ function MultiPeriodComparison({
                 </span>
               </div>
             </div>
-            <div className="card-mobile p-3 text-center space-y-0.5 border-l-[3px]" style={{ borderLeftColor: 'hsl(var(--chart-period-b))' }}>
+            <div className="card-mobile p-3 text-center space-y-0.5 border-l-4 bg-gradient-to-b from-accent/45 to-card" style={{ borderLeftColor: 'hsl(var(--chart-period-b))' }}>
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period B</div>
               {start2 && end2 && (
                 <div className="text-[9px] text-muted-foreground/60">{format(start2, 'MMM d')}–{format(end2, 'MMM d')}</div>
@@ -287,7 +287,7 @@ function MultiPeriodComparison({
           </div>
 
           {/* Chart */}
-          <div className="card-mobile p-4">
+          <div className="card-mobile p-4 bg-gradient-to-b from-card to-secondary/25">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Daily Hours Comparison</h4>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -315,9 +315,9 @@ function MultiPeriodComparison({
           </div>
 
           {/* Day-by-day breakdown — proper table layout */}
-          <div className="card-mobile overflow-hidden">
+          <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
             {/* Column headers */}
-            <div className="grid items-center px-4 py-2 border-b-2 border-border bg-muted/50 gap-2"
+            <div className="grid items-center px-4 py-2 border-b-2 border-border bg-secondary/80 gap-2"
               style={{ gridTemplateColumns: '2.25rem 1fr 3rem 3rem 3.5rem' }}>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Day</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trend</div>
@@ -420,7 +420,7 @@ function GoalProgressCard({ label, current, goal, hide }: { label: string; curre
   const pct = Math.min((current / goal) * 100, 100);
   const isComplete = current >= goal;
   return (
-    <div className="card-mobile p-4">
+    <div className="card-mobile p-4 bg-gradient-to-b from-card to-secondary/25">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Target className={cn('h-4 w-4', isComplete ? 'text-green-600 dark:text-green-400' : 'text-primary')} />
@@ -796,7 +796,7 @@ export function SummaryTab() {
             {/* ── C) Breakdown Row (2 cards) ─────────── */}
             <div className="px-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Hours by Day */}
-              <div className="card-mobile overflow-hidden">
+              <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
                 <div className="px-4 pt-3 pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Day</h3>
                 </div>
@@ -841,7 +841,7 @@ export function SummaryTab() {
               </div>
 
               {/* Hours by Advisor */}
-              <div className="card-mobile overflow-hidden">
+              <div className="card-mobile overflow-hidden bg-gradient-to-b from-card to-secondary/25">
                 <div className="px-4 pt-3 pb-2">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hours by Advisor</h3>
                 </div>
