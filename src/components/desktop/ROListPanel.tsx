@@ -240,17 +240,17 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full border-r border-border bg-card">
+      <div className="flex flex-col h-full border-r border-border/70 bg-card">
         {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-2.5 border-b border-border space-y-2.5">
+        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border/70 bg-muted/20 space-y-2.5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="page-title">{userSettings.shopName || 'Repair Orders'}</h2>
-              <div className="mt-1 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-2 py-1">
-                <span className="text-lg font-bold tabular-nums text-primary leading-none">
+              <div className="mt-1 inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-2.5 py-1.5 shadow-sm">
+                <span className="text-xl font-extrabold tabular-nums text-primary leading-none">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-xs font-medium text-muted-foreground">{totals.totalAll} total</span>
+                <span className="text-xs font-semibold text-muted-foreground">{totals.totalAll} total</span>
                 <Badge
                   variant="outline"
                   className={cn("gap-1 h-5 text-[10px] px-1.5", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
@@ -261,7 +261,7 @@ export const ROListPanel = memo(function ROListPanel({
                 </Badge>
               </div>
             </div>
-            <Button size="sm" onClick={onAddNew} className="h-8 text-xs gap-1.5 rounded-full">
+            <Button size="sm" onClick={onAddNew} className="h-9 text-xs gap-1.5 rounded-full px-4">
               <Plus className="icon-row" />
               Add RO
             </Button>
@@ -274,7 +274,7 @@ export const ROListPanel = memo(function ROListPanel({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search RO #, advisor, vehicle, customer, work..."
-                className="h-9 pl-9 bg-muted/20"
+                className="h-10 pl-9 bg-background"
               />
             </div>
 
@@ -284,7 +284,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-8 w-full rounded-md border border-input bg-muted/20 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
@@ -301,7 +301,7 @@ export const ROListPanel = memo(function ROListPanel({
                 <select
                   value={advisorFilter}
                   onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-8 w-full rounded-md border border-input bg-muted/20 px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="all">All advisors</option>
                   {advisors.map((a) => (
@@ -337,7 +337,7 @@ export const ROListPanel = memo(function ROListPanel({
           ) : (
             <div>
               {/* Grid header */}
-              <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card border-b border-border", gridCols)}>
+              <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/80", gridCols)}>
                 <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
                 <button
@@ -375,9 +375,9 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-2.5 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
+                        "grid gap-x-2 items-start px-3 py-3 cursor-pointer text-xs border-b border-border/50 row-hover quiet-transition",
                         gridCols,
-                        selected && "bg-primary/5 border-l-2 border-l-primary",
+                        selected && "bg-primary/10 border-l-2 border-l-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.18)]",
                       )}
                       onClick={() => onSelectRO(ro)}
                       role="row"
@@ -392,7 +392,7 @@ export const ROListPanel = memo(function ROListPanel({
 
                       {/* Info: two-line */}
                       <div className="min-w-0" role="cell">
-                        <p className="text-[11px] font-medium truncate">
+                        <p className="text-[11px] font-semibold truncate">
                           {ro.advisor} · {vehicleLabel(ro)}
                         </p>
                         <p className="meta-text truncate">{workSummary}</p>

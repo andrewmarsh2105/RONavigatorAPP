@@ -419,7 +419,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/95 backdrop-blur-sm flex-wrap">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-border/80 bg-card/95 backdrop-blur-sm flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* Date range selector */}
           {!isCloseout && (
@@ -448,7 +448,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-            <div className="flex rounded-lg border border-border/80 overflow-hidden bg-muted/20">
+            <div className="flex rounded-xl border border-border/80 overflow-hidden bg-muted/20 shadow-sm">
               {([
                 { value: 'today' as DateFilterKey, label: 'Today' },
                 { value: 'week' as DateFilterKey, label: 'Week' },
@@ -461,7 +461,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   key={opt.value}
                   onClick={() => opt.value === 'custom' ? requestCustomDialog() : setDateRange(opt.value)}
                   className={cn(
-                    'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors',
+                    'px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-colors',
                     dateRange === opt.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-transparent text-muted-foreground hover:bg-muted',
@@ -477,7 +477,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           {computedRangeLabel && (
             <Badge
               variant="outline"
-              className={cn("gap-1", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
+              className={cn("gap-1 rounded-lg bg-background", dateRange === 'custom' && "cursor-pointer hover:bg-muted")}
               onClick={() => { if (dateRange === 'custom') requestCustomDialog(); }}
             >
               <CalendarRange className="h-3 w-3" />
@@ -486,13 +486,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-lg border border-border/80 overflow-hidden bg-muted/20">
+          <div className="flex rounded-xl border border-border/80 overflow-hidden bg-muted/20 shadow-sm">
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
                 onClick={() => handleViewModeChange(m)}
                 className={cn(
-                  'px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors',
+                  'px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors',
                   viewMode === m
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-transparent text-muted-foreground hover:bg-muted',
