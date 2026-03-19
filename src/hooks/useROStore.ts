@@ -267,14 +267,15 @@ export function useROStore() {
   }, [user]);
 
   const addRO = useCallback(async (ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
+    if (!user) return null;
 
     // Queue if offline
     if (!isOnline) {
-      await queueAction('addRO', { ro });
-      toast.info('Saved offline — will sync when back online');
+      const queued = await queueAction('addRO', { ro });
+      if (!queued) return null;
+      toast.info('Saved offline to sync queue');
       pushDebug({ action: 'addRO QUEUED (offline)', userId: user.id });
-      return;
+      return { queuedOffline: true };
     }
 
     const { data: newRow, error } = await supabase
@@ -287,13 +288,16 @@ export function useROStore() {
       const msg = error?.message || 'Unknown error';
       // If network error, queue it
       if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-        await queueAction('addRO', { ro });
-        toast.info('Network issue — saved offline');
-        return;
+        const queued = await queueAction('addRO', { ro });
+        if (queued) {
+          toast.info('Network issue — saved to offline sync queue');
+          return { queuedOffline: true };
+        }
+        return null;
       }
       toast.error('Failed to create RO');
       pushDebug({ action: 'addRO FAIL', userId: user.id, error: msg });
-      return;
+      return null;
     }
     pushDebug({ action: 'addRO OK', roId: newRow.id, userId: user.id });
 
@@ -312,7 +316,7 @@ export function useROStore() {
         // Roll back the RO header so we don't leave an orphaned 0-hour record
         await supabase.from('ros').delete().eq('id', newRow.id);
         toast.error(`Failed to save RO: ${lErr.message}`);
-        return;
+        return null;
       }
       pushDebug({ action: 'insertLines OK', roId: newRow.id, lineCount: lineInserts.length });
     }
@@ -334,8 +338,9 @@ export function useROStore() {
 
     // Queue if offline
     if (!isOnline) {
-      await queueAction('updateRO', { id, updates });
-      toast.info('Update saved offline — will sync when back online');
+      const queued = await queueAction('updateRO', { id, updates });
+      if (!queued) return false;
+      toast.info('Update saved to offline sync queue');
       return true;
     }
 
@@ -348,9 +353,12 @@ export function useROStore() {
         console.error('updateRO DB error:', error);
         pushDebug({ action: 'updateRO FAIL', roId: id, error: msg, code: error.code });
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          await queueAction('updateRO', { id, updates });
-          toast.info('Network issue — update saved offline');
-          return true;
+          const queued = await queueAction('updateRO', { id, updates });
+          if (queued) {
+            toast.info('Network issue — update saved to offline sync queue');
+            return true;
+          }
+          return false;
         }
         toast.error(`Failed to update RO: ${msg}`);
         return false;
@@ -438,8 +446,8 @@ export function useROStore() {
     setROs(prev => prev.filter(r => r.id !== id));
 
     if (!isOnline) {
-      queueAction('deleteRO', { id });
-      toast.info('Delete saved offline — will sync when back online');
+      void queueAction('deleteRO', { id });
+      toast.info('Delete saved to offline sync queue');
       return;
     }
 
@@ -470,7 +478,7 @@ export function useROStore() {
       if (error) {
         const msg = error.message || '';
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          queueAction('deleteRO', { id });
+          void queueAction('deleteRO', { id });
           return;
         }
         // Restore on unexpected DB error

@@ -147,7 +147,8 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
         if (!success) return;
         toast.success('RO updated');
       } else {
-        await addRO(roData);
+        const saved = await addRO(roData);
+        if (!saved) return;
         toast.success('RO saved');
       }
       haptics.success();

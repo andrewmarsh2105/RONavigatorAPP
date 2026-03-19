@@ -360,7 +360,8 @@ export default function AddRO() {
         if (!success) return;
         toast.success('RO updated');
       } else {
-        await addRO(roData);
+        const saved = await addRO(roData);
+        if (!saved) return;
         toast.success('RO created');
       }
       haptics.success();
