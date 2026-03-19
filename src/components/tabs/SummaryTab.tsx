@@ -709,9 +709,9 @@ export function SummaryTab() {
               <HideTotalsContext.Provider value={hideTotals}>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   {/* Total Hours */}
-                  <div className="card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.04]">
+                  <div className="card-mobile p-4 border-l-4 border-l-primary bg-primary/[0.06] shadow-sm">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Total Hours</div>
-                    <div className="text-3xl font-bold tabular-nums tracking-tight">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
+                    <div className="text-4xl font-extrabold tabular-nums tracking-tight text-primary">{maskHours(report.totalHours, hideTotals)}<span className="text-xl ml-0.5 opacity-60">h</span></div>
                     <div className="text-xs text-muted-foreground mt-1">{report.totalROs} ROs · {report.totalLines} lines</div>
                   </div>
 
@@ -739,7 +739,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* Flagged */}
-                  <div className="card-mobile p-4 border border-orange-300/40 bg-orange-500/[0.04]">
+                  <div className="card-mobile p-4 border border-orange-300/50 bg-orange-500/[0.06]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Flagged</div>
                     <div className="flex items-baseline gap-1.5">
                       <Flag className={cn('h-4 w-4 flex-shrink-0', report.flaggedCount > 0 ? 'text-orange-500' : 'text-muted-foreground/40')} />
@@ -749,7 +749,7 @@ export function SummaryTab() {
                   </div>
 
                   {/* TBD */}
-                  <div className="card-mobile p-4 border border-yellow-300/40 bg-yellow-500/[0.04]">
+                  <div className="card-mobile p-4 border border-yellow-300/50 bg-yellow-500/[0.06]">
                     <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">TBD</div>
                     <div className="flex items-baseline gap-1.5">
                       <Clock className={cn('h-4 w-4 flex-shrink-0', report.tbdLineCount > 0 ? 'text-yellow-500' : 'text-muted-foreground/40')} />
