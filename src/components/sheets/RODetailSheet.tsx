@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -10,12 +11,12 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { StatusPill } from "@/components/mobile/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -45,8 +46,8 @@ interface RODetailSheetProps {
   onClose: () => void;
   ro: RepairOrder | null;
   onEdit: () => void;
-  onDuplicate: (newRONumber: string) => void;
   onDelete: () => void;
+  onSelectRO?: (ro: RepairOrder) => void;
   existingRONumbers?: string[];
 }
 
@@ -59,7 +60,11 @@ async function copyToClipboard(label: string, value: string) {
   }
 }
 
-function ChecksPanel(props: { issues: ReviewIssue[]; onConvert: (issue: ReviewIssue) => void }) {
+function ChecksPanel(props: {
+  issues: ReviewIssue[];
+  onConvert: (issue: ReviewIssue) => void;
+  onGoToDuplicateRO?: (roId: string) => void;
+}) {
   if (!props.issues.length) return null;
 
   return (
@@ -75,13 +80,23 @@ function ChecksPanel(props: { issues: ReviewIssue[]; onConvert: (issue: ReviewIs
               <p className="text-sm font-semibold text-foreground">{i.title}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{i.detail}</p>
               <div className="mt-1.5">
-                <button
-                  onClick={() => props.onConvert(i)}
-                  className="text-[11px] font-semibold text-primary hover:underline"
-                >
-                  <Flag className="h-3 w-3 inline mr-1" />
-                  Convert to flag
-                </button>
+                {i.code === 'duplicate_ro' && i.duplicateRoIds && props.onGoToDuplicateRO ? (
+                  <button
+                    onClick={() => props.onGoToDuplicateRO!(i.duplicateRoIds![0])}
+                    className="text-[11px] font-semibold text-blue-600 hover:underline"
+                  >
+                    <ArrowRight className="h-3 w-3 inline mr-1" />
+                    Go to duplicate RO
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => props.onConvert(i)}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    <Flag className="h-3 w-3 inline mr-1" />
+                    Convert to flag
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -96,30 +111,25 @@ export function RODetailSheet({
   onClose,
   ro,
   onEdit,
-  onDuplicate,
   onDelete,
+  onSelectRO,
   existingRONumbers = [],
 }: RODetailSheetProps) {
   const { ros } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [dupRONumber, setDupRONumber] = useState("");
-  const [dupWarning, setDupWarning] = useState<string | null>(null);
 
   const [flagDialogOpen, setFlagDialogOpen] = useState(false);
   const [convertingIssue, setConvertingIssue] = useState<ReviewIssue | null>(null);
   const [expandedLineIds, setExpandedLineIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!showDuplicateDialog) return;
-    setDupRONumber("");
-    setDupWarning(null);
-  }, [showDuplicateDialog]);
-
-  useEffect(() => {
     setExpandedLineIds({});
+    if (!isOpen) {
+      setFlagDialogOpen(false);
+      setConvertingIssue(null);
+    }
   }, [ro?.id, isOpen]);
 
   const flags = useMemo(() => (ro ? getFlagsForRO(ro.id) : []), [getFlagsForRO, ro]);
@@ -127,20 +137,6 @@ export function RODetailSheet({
   const hours = useMemo(() => (ro ? calcHours(ro) : 0), [ro]);
 
   const showPaidDate = !!ro?.paidDate && ro?.paidDate !== ro?.date;
-
-  const handleDuplicateConfirm = (force: boolean) => {
-    const trimmed = dupRONumber.trim();
-    if (!trimmed) return;
-
-    if (!force && existingRONumbers.includes(trimmed)) {
-      setDupWarning(`RO #${trimmed} already exists.`);
-      return;
-    }
-
-    setShowDuplicateDialog(false);
-    onDuplicate(trimmed);
-    onClose();
-  };
 
   const handleConfirmDelete = () => {
     onDelete();
@@ -215,13 +211,13 @@ export function RODetailSheet({
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openFlagDialog}>
-                      <Flag className="h-3 w-3 mr-1" />
-                      Flag
+                    <Button size="sm" className="h-7 px-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Edit
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowDuplicateDialog(true)}>
-                      <Copy className="h-3 w-3 mr-1" />
-                      Duplicate
+                    <Button variant="destructive" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowDeleteConfirm(true)}>
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -404,7 +400,14 @@ export function RODetailSheet({
 
               {issues.length ? (
                 <SectionCard title="Checks">
-                  <ChecksPanel issues={issues} onConvert={openConvertDialog} />
+                  <ChecksPanel
+                    issues={issues}
+                    onConvert={openConvertDialog}
+                    onGoToDuplicateRO={onSelectRO ? (roId) => {
+                      const dupRO = ros.find((r) => r.id === roId);
+                      if (dupRO) { onClose(); onSelectRO(dupRO); }
+                    } : undefined}
+                  />
                 </SectionCard>
               ) : null}
 
@@ -417,16 +420,10 @@ export function RODetailSheet({
 
             {/* ── Footer ── */}
             <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-card safe-area-bottom">
-              <div className="flex gap-2">
-                <Button className="flex-1 h-12 text-sm bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
-                  <Pencil className="h-4 w-4 mr-1.5" />
-                  Edit
-                </Button>
-                <Button variant="destructive" className="flex-1 h-12 text-sm" onClick={() => setShowDeleteConfirm(true)}>
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  Delete
-                </Button>
-              </div>
+              <Button variant="outline" className="w-full h-12 text-sm" onClick={openFlagDialog}>
+                <Flag className="h-4 w-4 mr-1.5" />
+                Flag
+              </Button>
             </div>
           </div>
         )}
@@ -446,58 +443,6 @@ export function RODetailSheet({
             </Button>
             <Button variant="destructive" className="flex-1 h-9" onClick={handleConfirmDelete}>
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Duplicate RO #{ro?.roNumber}</DialogTitle>
-            <DialogDescription>Enter a new RO number for the duplicate.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <Input
-              value={dupRONumber}
-              onChange={(e) => {
-                setDupRONumber(e.target.value);
-                setDupWarning(null);
-              }}
-              placeholder="New RO #"
-              className="h-9"
-              inputMode="numeric"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && dupRONumber.trim()) handleDuplicateConfirm(false);
-              }}
-            />
-
-            {dupWarning ? (
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
-                <div className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-destructive">{dupWarning}</p>
-                    <button
-                      className="text-xs text-primary underline mt-1"
-                      onClick={() => handleDuplicateConfirm(true)}
-                    >
-                      Continue anyway
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <DialogFooter className="flex-row gap-2">
-            <Button variant="outline" className="flex-1 h-9" onClick={() => setShowDuplicateDialog(false)}>
-              Cancel
-            </Button>
-            <Button className="flex-1 h-9" disabled={!dupRONumber.trim()} onClick={() => handleDuplicateConfirm(false)}>
-              Duplicate
             </Button>
           </DialogFooter>
         </DialogContent>

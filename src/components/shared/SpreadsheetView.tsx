@@ -132,6 +132,7 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
   const filterOpts: { value: DateFilterKey; label: string }[] = [
     { value: 'today', label: 'Today' },
     { value: 'week', label: 'Week' },
+    { value: 'last_week', label: 'Last Wk' },
     { value: 'month', label: 'Month' },
     ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
     { value: 'all', label: 'All' },
@@ -141,6 +142,7 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
   const activeLabelShort =
     dateRange === 'all' ? 'All'
     : dateRange === 'today' ? 'Today'
+    : dateRange === 'last_week' ? 'Last Wk'
     : dateRange === 'week' ? 'Week'
     : dateRange === 'month' ? 'Month'
     : dateRange === 'pay_period' ? 'Pay Period'

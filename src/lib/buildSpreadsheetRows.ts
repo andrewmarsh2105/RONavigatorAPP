@@ -266,7 +266,6 @@ export function buildSpreadsheetRowsFromSnapshot(
     let dayCP = 0, dayW = 0, dayI = 0;
 
     for (const ro of dateROs) {
-      const paidLines = ro.lines.filter(l => !l.isTbd);
       let roTotal = 0;
       let roCP = 0, roW = 0, roI = 0;
 

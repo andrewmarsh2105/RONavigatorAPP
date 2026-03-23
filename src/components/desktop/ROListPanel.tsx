@@ -109,7 +109,7 @@ export const ROListPanel = memo(function ROListPanel({
   onFilteredROsChange,
   compact = false,
 }: ROListPanelProps) {
-  const { ros, deleteRO, duplicateRO, loadingROs } = useRO();
+  const { ros, deleteRO, loadingROs } = useRO();
   const { flags, userSettings } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -325,8 +325,9 @@ export const ROListPanel = memo(function ROListPanel({
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
                   <option value="week">
-                    {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "1 Week"}
+                    {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "This week"}
                   </option>
+                  <option value="last_week">Last week</option>
                   <option value="month">This month</option>
                   {hasCustomPayPeriod && <option value="pay_period">Pay period</option>}
                   <option value="custom">Custom…</option>
@@ -451,10 +452,6 @@ export const ROListPanel = memo(function ROListPanel({
                         <ROActionMenu
                           roNumber={ro.roNumber}
                           onEdit={() => onSelectRO(ro)}
-                          onDuplicate={(newRONumber) => {
-                            duplicateRO(ro.id, newRONumber);
-                            toast.success(`Duplicated RO #${ro.roNumber} → #${newRONumber}`);
-                          }}
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
                           existingRONumbers={existingRONumbers}

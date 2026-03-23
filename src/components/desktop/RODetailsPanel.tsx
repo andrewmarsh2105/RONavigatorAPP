@@ -34,11 +34,11 @@ async function copyText(label: string, value: string) {
 interface RODetailsPanelProps {
   ro: RepairOrder | null;
   onEdit: () => void;
-  onDuplicate: (newRONumber: string) => void;
   onDelete: () => void;
+  onSelectRO?: (ro: RepairOrder) => void;
 }
 
-export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsPanelProps) {
+export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPanelProps) {
   const { ros } = useRO();
   const { getFlagsForRO, clearFlag, addFlag, userSettings } = useFlagContext();
   const [flagOpen, setFlagOpen] = useState(false);
@@ -127,10 +127,6 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setFlagOpen(true)}>
               <Flag className="icon-row" />
               Flag
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => onDuplicate(String(Number(ro.roNumber) + 1))}>
-              <Copy className="icon-row" />
-              Duplicate
             </Button>
           </div>
         </div>
@@ -248,6 +244,10 @@ export function RODetailsPanel({ ro, onEdit, onDuplicate, onDelete }: RODetailsP
                 onConvertToFlag={(issue, flagType, note) =>
                   addFlag(issue.roId, flagType, note || issue.detail, issue.lineId)
                 }
+                onGoToDuplicateRO={onSelectRO ? (roId) => {
+                  const dupRO = ros.find((r) => r.id === roId);
+                  if (dupRO) onSelectRO(dupRO);
+                } : undefined}
               />
             ) : (
               <p className="meta-text">No checks.</p>
