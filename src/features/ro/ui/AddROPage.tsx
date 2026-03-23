@@ -71,7 +71,7 @@ export default function AddROPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AddROHeader onSave={onSave} onBack={() => navigate(-1)} />
+      <AddROHeader onSave={onSave} onBack={() => navigate('/')} />
 
       {duplicateWarning && (
         <div className="max-w-3xl mx-auto px-4 pt-2">
