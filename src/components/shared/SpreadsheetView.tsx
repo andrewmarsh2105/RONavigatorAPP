@@ -131,6 +131,7 @@ interface DateFilterBarProps {
 function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMobile, onSelect, onCustomRequest }: DateFilterBarProps) {
   const filterOpts: { value: DateFilterKey; label: string }[] = [
     { value: 'today', label: 'Today' },
+    { value: 'last_week', label: 'Last Wk' },
     { value: 'week', label: 'Week' },
     { value: 'month', label: 'Month' },
     ...(hasCustomPayPeriod ? [{ value: 'pay_period' as DateFilterKey, label: 'Pay Period' }] : []),
@@ -141,6 +142,7 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
   const activeLabelShort =
     dateRange === 'all' ? 'All'
     : dateRange === 'today' ? 'Today'
+    : dateRange === 'last_week' ? 'Last Wk'
     : dateRange === 'week' ? 'Week'
     : dateRange === 'month' ? 'Month'
     : dateRange === 'pay_period' ? 'Pay Period'

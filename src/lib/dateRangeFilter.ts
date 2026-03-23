@@ -5,7 +5,7 @@ import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from "date-f
 import { getCustomPayPeriodRange } from "@/lib/payPeriodUtils";
 import type { RepairOrder } from "@/types/ro";
 
-export type DateFilterKey = "all" | "today" | "week" | "month" | "pay_period" | "custom";
+export type DateFilterKey = "all" | "today" | "last_week" | "week" | "month" | "pay_period" | "custom";
 
 export interface DateRangeBounds {
   start: string;
@@ -66,6 +66,22 @@ function getWeekEnd(weekStartDay: number): string {
   return localDateStr(end);
 }
 
+function getLastWeekStart(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff - 7);
+  return localDateStr(start);
+}
+
+function getLastWeekEnd(weekStartDay: number): string {
+  const now = new Date();
+  const diff = (now.getDay() - weekStartDay + 7) % 7;
+  const end = new Date(now);
+  end.setDate(now.getDate() - diff - 1);
+  return localDateStr(end);
+}
+
 function getTwoWeekStart(weekStartDay: number): string {
   const now = new Date();
   const diff = (now.getDay() - weekStartDay + 7) % 7;
@@ -93,6 +109,12 @@ export function computeDateRangeBounds(opts: ComputeDateRangeOpts): DateRangeBou
 
   if (filter === "today") {
     return { start: today, end: today, label: "Today" };
+  }
+
+  if (filter === "last_week") {
+    const start = getLastWeekStart(weekStartDay);
+    const end = getLastWeekEnd(weekStartDay);
+    return { start, end, label: fmtRangeLabel(start, end) };
   }
 
   if (filter === "week") {
