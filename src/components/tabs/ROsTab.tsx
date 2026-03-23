@@ -448,8 +448,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 {([
                   { value: 'all', label: 'All' },
                   { value: 'today', label: 'Today' },
-                  { value: 'last_week', label: 'Last Wk' },
                   { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
+                  { value: 'last_week', label: 'Last Wk' },
                   { value: 'month', label: 'Month' },
                   ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
                   { value: 'custom' as const, label: 'Custom' },

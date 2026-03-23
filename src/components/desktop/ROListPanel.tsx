@@ -324,10 +324,10 @@ export const ROListPanel = memo(function ROListPanel({
                 >
                   <option value="all">All dates</option>
                   <option value="today">Today</option>
-                  <option value="last_week">Last week</option>
                   <option value="week">
                     {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "This week"}
                   </option>
+                  <option value="last_week">Last week</option>
                   <option value="month">This month</option>
                   {hasCustomPayPeriod && <option value="pay_period">Pay period</option>}
                   <option value="custom">Custom…</option>
