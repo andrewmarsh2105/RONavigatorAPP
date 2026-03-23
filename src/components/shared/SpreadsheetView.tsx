@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import {
-  Printer, Download, ChevronDown,
+  Printer, Download, ChevronDown, MoreVertical,
   Rows3, Rows4, FileSpreadsheet, FileText, Group, CalendarRange, CalendarDays,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +94,58 @@ const LineRow = memo(function LineRow({ line, activeCols, cellPx, cellPy, rowBg,
         </td>
       ))}
     </tr>
+  );
+});
+
+/* ─── Mobile card row ─── */
+interface MobileLineCardProps {
+  line: SpreadsheetLineRow;
+  onSelectRO: (ro: RepairOrder) => void;
+}
+
+const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO }: MobileLineCardProps) {
+  const borderColorClass = line.laborType === 'warranty'
+    ? 'border-l-[hsl(var(--status-warranty))]'
+    : line.laborType === 'customer-pay'
+      ? 'border-l-[hsl(var(--status-customer-pay))]'
+      : 'border-l-[hsl(var(--status-internal))]';
+
+  const typeColor = line.laborType === 'warranty'
+    ? 'text-[hsl(var(--status-warranty))]'
+    : line.laborType === 'customer-pay'
+      ? 'text-[hsl(var(--status-customer-pay))]'
+      : 'text-[hsl(var(--status-internal))]';
+
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-3 px-3 py-2.5 border-l-[3px] bg-card border-b border-border/40',
+        'cursor-pointer active:bg-accent/50 transition-colors',
+        borderColorClass,
+      )}
+      onClick={() => line.ro && onSelectRO(line.ro)}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5 mb-0.5">
+          <span className="font-bold text-xs text-foreground shrink-0">#{line.roNumber}</span>
+          {line.customer && (
+            <span className="text-xs text-muted-foreground truncate">{line.customer}</span>
+          )}
+        </div>
+        <p className="text-sm text-foreground leading-snug line-clamp-2">
+          {line.description || <span className="italic text-muted-foreground">No description</span>}
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
+        <span className={cn('text-base font-bold tabular-nums leading-none', line.isTbd && 'line-through text-amber-500')}>
+          {line.hours.toFixed(1)}h
+        </span>
+        <span className={cn('text-[10px] font-semibold uppercase tracking-wide', typeColor)}>
+          {line.type}
+        </span>
+        {line.isTbd && <span className="text-[9px] font-bold text-amber-500">TBD</span>}
+      </div>
+    </div>
   );
 });
 
@@ -593,229 +645,341 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             ))}
           </div>
 
+          {/* Group by — hidden on mobile (cards use date grouping) */}
+          {!isMobile && (
             <Select value={groupBy} onValueChange={(v) => handleGroupByChange(v as GroupBy)}>
-            <SelectTrigger className="h-9 w-[132px] text-xs font-semibold">
-              <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-              <SelectValue placeholder="Group by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">By Date</SelectItem>
-              <SelectItem value="ro">By RO</SelectItem>
-              <SelectItem value="advisor">By Advisor</SelectItem>
-              <SelectItem value="none">No Grouping</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger className="h-9 w-[132px] text-xs font-semibold">
+                <Group className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                <SelectValue placeholder="Group by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">By Date</SelectItem>
+                <SelectItem value="ro">By RO</SelectItem>
+                <SelectItem value="advisor">By Advisor</SelectItem>
+                <SelectItem value="none">No Grouping</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost" size="sm" className="h-9 gap-1 text-xs"
-            onClick={handleDensityChange}
-            title={density === 'compact' ? 'Comfortable' : 'Compact'}
-          >
-            {density === 'compact' ? <Rows4 className="h-3.5 w-3.5" /> : <Rows3 className="h-3.5 w-3.5" />}
-          </Button>
+          {/* Desktop-only controls */}
+          {!isMobile && (
+            <>
+              <Button
+                variant="ghost" size="sm" className="h-9 gap-1 text-xs"
+                onClick={handleDensityChange}
+                title={density === 'compact' ? 'Comfortable' : 'Compact'}
+              >
+                {density === 'compact' ? <Rows4 className="h-3.5 w-3.5" /> : <Rows3 className="h-3.5 w-3.5" />}
+              </Button>
 
-          <ColumnChooser activeColumns={activeColIds} onToggle={handleToggleCol} />
+              <ColumnChooser activeColumns={activeColIds} onToggle={handleToggleCol} />
 
-          {isPro && (
+              {isPro && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs">
+                      <Download className="h-3.5 w-3.5" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
+                      <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
+                      <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportXLSX}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {isPro && (
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={handlePrint}>
+                  <Printer className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Mobile: collapse everything into a single ⋮ menu */}
+          {isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs">
-                  <Download className="h-3.5 w-3.5" />
-                  Export
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
-                  <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
-                  <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
-                  <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
-                  <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportXLSX}>
-                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-52">
+                <div className="px-2 py-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Group By</p>
+                </div>
+                {(['date', 'ro', 'advisor', 'none'] as GroupBy[]).map(g => (
+                  <DropdownMenuItem
+                    key={g}
+                    onClick={() => handleGroupByChange(g)}
+                    className={cn(groupBy === g && 'bg-primary/10 text-primary font-semibold')}
+                  >
+                    {g === 'date' ? 'By Date' : g === 'ro' ? 'By RO' : g === 'advisor' ? 'By Advisor' : 'No Grouping'}
+                  </DropdownMenuItem>
+                ))}
+                {isPro && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Export</p>
+                    </div>
+                    <DropdownMenuItem onClick={() => handleExportCSV('payroll')}>
+                      <Download className="h-3.5 w-3.5 mr-2" /> Payroll CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportCSV('audit')}>
+                      <Download className="h-3.5 w-3.5 mr-2" /> Audit CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPDF('payroll')}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Payroll PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPDF('audit')}>
+                      <FileText className="h-3.5 w-3.5 mr-2" /> Audit PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportXLSX}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> XLSX
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
-          {isPro && (
-            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs" onClick={handlePrint}>
-              <Printer className="h-3.5 w-3.5" />
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* ─── Table ─── */}
-      <div className="flex-1 overflow-auto" ref={tableRef}>
-        <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
-          <thead className="sticky top-0 z-10 bg-secondary/95 border-b-2 border-border shadow-[0_3px_8px_-6px_hsl(var(--foreground)/0.25)]">
-            <tr>
-              {activeCols.map((col) => (
-                <th
-                  key={col.id}
-                  className={cn(
-                    cellPx, cellPy,
-                    'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
-                    col.align === 'right' && 'text-right',
-                    col.align === 'center' && 'text-center',
-                  )}
-                  style={{ minWidth: col.minWidth }}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRows.map((row, i) => {
-              /* ─── Subtotal rows ─── */
-              if (row.rowType === 'roSubtotal') {
-                const sub = row as SpreadsheetSubtotalRow;
-                // Find how many columns before 'hours'
-                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                const typeIdx = activeCols.findIndex(c => c.id === 'type');
-                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
-
-                return (
-                  <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
-                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
-                      {sub.label}
-                    </td>
-                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>
-                      {maskHours(sub.hours, hideTotals)}h
-                    </td>
-                    {typeIdx > hrsIdx && (
-                      <td className={cn(cellPx, cellPy, 'text-xs text-muted-foreground')}>
-                        {[
-                          sub.cpHours ? `CP: ${sub.cpHours.toFixed(1)}` : '',
-                          sub.wHours ? `W: ${sub.wHours.toFixed(1)}` : '',
-                          sub.iHours ? `I: ${sub.iHours.toFixed(1)}` : '',
-                        ].filter(Boolean).join(' ')}
-                      </td>
-                    )}
-                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
-                  </tr>
-                );
-              }
-
-              if (row.rowType === 'daySubtotal') {
-                const sub = row as SpreadsheetSubtotalRow;
-                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                const afterCols = activeCols.length - spanCols - 1;
-
-                return (
-                  <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
-                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
-                      {sub.label}
-                    </td>
-                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
-                      {maskHours(sub.hours, hideTotals)}h
-                    </td>
-                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
-                  </tr>
-                );
-              }
-
-              if (row.rowType === 'advisorSubtotal') {
-                const sub = row as SpreadsheetSubtotalRow;
-                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                const afterCols = activeCols.length - spanCols - 1;
-
-                return (
-                  <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
-                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
-                      {sub.label}
-                    </td>
-                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
-                      {maskHours(sub.hours, hideTotals)}h
-                    </td>
-                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
-                  </tr>
-                );
-              }
-
-              if (row.rowType === 'periodSubtotal') {
-                const sub = row as SpreadsheetSubtotalRow;
-                const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
-                const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
-                const afterCols = activeCols.length - spanCols - 1;
-
-                return (
-                  <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
-                    <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
-                      {sub.label}
-                    </td>
-                    <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>
-                      {maskHours(sub.hours, hideTotals)}h
-                    </td>
-                    {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
-                  </tr>
-                );
-              }
-
-              /* ─── Line row ─── */
-              const line = row as SpreadsheetLineRow;
-              const rowBg = getRowBg(line.groupIndex);
-              const borderColorClass = line.laborType === 'warranty'
-                ? 'border-l-[hsl(var(--status-warranty))]'
-                : line.laborType === 'customer-pay'
-                  ? 'border-l-[hsl(var(--status-customer-pay))]'
-                  : 'border-l-[hsl(var(--status-internal))]';
-
+      {/* ─── Mobile card list ─── */}
+      {isMobile ? (
+        <div className="flex-1 overflow-auto">
+          {visibleRows.map((row, i) => {
+            if (row.rowType === 'daySubtotal' || row.rowType === 'advisorSubtotal') {
+              const sub = row as SpreadsheetSubtotalRow;
               return (
-                <LineRow
-                  key={`line-${i}`}
-                  line={line}
-                  activeCols={activeCols}
-                  cellPx={cellPx}
-                  cellPy={cellPy}
-                  rowBg={rowBg}
-                  borderColorClass={borderColorClass}
-                  renderCellValue={renderCellValue}
-                  onSelectRO={onSelectRO}
-                />
+                <div
+                  key={`header-${i}`}
+                  className="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 bg-secondary/95 backdrop-blur-sm border-b border-t border-border shadow-[0_2px_6px_-4px_hsl(var(--foreground)/0.2)]"
+                >
+                  <span className="text-xs font-bold uppercase tracking-wide text-foreground">{sub.label}</span>
+                  <span className="text-xs font-bold tabular-nums text-foreground">{maskHours(sub.hours, hideTotals)}h</span>
+                </div>
               );
-            })}
-
-            {hasMore && (
+            }
+            if (row.rowType === 'roSubtotal') {
+              const sub = row as SpreadsheetSubtotalRow;
+              return (
+                <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-accent/20 border-b border-border/40">
+                  <span className="text-xs font-semibold text-muted-foreground">{sub.label}</span>
+                  <div className="flex items-center gap-2">
+                    {(sub.cpHours > 0 || sub.wHours > 0 || sub.iHours > 0) && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {[
+                          sub.cpHours ? `CP ${sub.cpHours.toFixed(1)}` : '',
+                          sub.wHours ? `W ${sub.wHours.toFixed(1)}` : '',
+                          sub.iHours ? `I ${sub.iHours.toFixed(1)}` : '',
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
+                    <span className="text-xs font-bold tabular-nums text-primary">{maskHours(sub.hours, hideTotals)}h</span>
+                  </div>
+                </div>
+              );
+            }
+            if (row.rowType === 'periodSubtotal') {
+              const sub = row as SpreadsheetSubtotalRow;
+              return (
+                <div key={`period-${i}`} className="flex items-center justify-between px-3 py-2.5 bg-primary/10 border-t-2 border-border">
+                  <span className="text-sm font-bold uppercase tracking-wide text-foreground">{sub.label}</span>
+                  <span className="text-lg font-bold tabular-nums text-foreground">{maskHours(sub.hours, hideTotals)}h</span>
+                </div>
+              );
+            }
+            const line = row as SpreadsheetLineRow;
+            return <MobileLineCard key={`line-${i}`} line={line} onSelectRO={onSelectRO} />;
+          })}
+          {hasMore && (
+            <button
+              onClick={() => setVisibleCount(c => c + ROW_BATCH)}
+              className="w-full py-3.5 text-sm font-medium text-primary hover:text-primary/80 active:scale-95 transition-all border-t border-border/40"
+            >
+              Show {allRows.length - visibleCount} more
+            </button>
+          )}
+        </div>
+      ) : (
+        /* ─── Desktop Table ─── */
+        <div className="flex-1 overflow-auto" ref={tableRef}>
+          <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
+            <thead className="sticky top-0 z-10 bg-secondary/95 border-b-2 border-border shadow-[0_3px_8px_-6px_hsl(var(--foreground)/0.25)]">
               <tr>
-                <td colSpan={activeCols.length} className="text-center py-3">
-                  <button
-                    onClick={() => setVisibleCount(c => c + ROW_BATCH)}
-                    className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                {activeCols.map((col) => (
+                  <th
+                    key={col.id}
+                    className={cn(
+                      cellPx, cellPy,
+                      'font-semibold text-muted-foreground whitespace-nowrap bg-card overflow-hidden',
+                      col.align === 'right' && 'text-right',
+                      col.align === 'center' && 'text-center',
+                    )}
+                    style={{ minWidth: col.minWidth }}
                   >
-                    Show more
-                  </button>
-                </td>
+                    {col.label}
+                  </th>
+                ))}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {visibleRows.map((row, i) => {
+                if (row.rowType === 'roSubtotal') {
+                  const sub = row as SpreadsheetSubtotalRow;
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                  const typeIdx = activeCols.findIndex(c => c.id === 'type');
+                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                  const afterCols = activeCols.length - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
+
+                  return (
+                    <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-xs text-right')}>
+                        {sub.label}
+                      </td>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary')}>
+                        {maskHours(sub.hours, hideTotals)}h
+                      </td>
+                      {typeIdx > hrsIdx && (
+                        <td className={cn(cellPx, cellPy, 'text-xs text-muted-foreground')}>
+                          {[
+                            sub.cpHours ? `CP: ${sub.cpHours.toFixed(1)}` : '',
+                            sub.wHours ? `W: ${sub.wHours.toFixed(1)}` : '',
+                            sub.iHours ? `I: ${sub.iHours.toFixed(1)}` : '',
+                          ].filter(Boolean).join(' ')}
+                        </td>
+                      )}
+                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                    </tr>
+                  );
+                }
+
+                if (row.rowType === 'daySubtotal') {
+                  const sub = row as SpreadsheetSubtotalRow;
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                  const afterCols = activeCols.length - spanCols - 1;
+
+                  return (
+                    <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                        {sub.label}
+                      </td>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
+                        {maskHours(sub.hours, hideTotals)}h
+                      </td>
+                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                    </tr>
+                  );
+                }
+
+                if (row.rowType === 'advisorSubtotal') {
+                  const sub = row as SpreadsheetSubtotalRow;
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                  const afterCols = activeCols.length - spanCols - 1;
+
+                  return (
+                    <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-xs uppercase text-right')}>
+                        {sub.label}
+                      </td>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
+                        {maskHours(sub.hours, hideTotals)}h
+                      </td>
+                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                    </tr>
+                  );
+                }
+
+                if (row.rowType === 'periodSubtotal') {
+                  const sub = row as SpreadsheetSubtotalRow;
+                  const hrsIdx = activeCols.findIndex(c => c.id === 'hours');
+                  const spanCols = hrsIdx > 0 ? hrsIdx : activeCols.length - 1;
+                  const afterCols = activeCols.length - spanCols - 1;
+
+                  return (
+                    <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-xs text-right')}>
+                        {sub.label}
+                      </td>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>
+                        {maskHours(sub.hours, hideTotals)}h
+                      </td>
+                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                    </tr>
+                  );
+                }
+
+                const line = row as SpreadsheetLineRow;
+                const rowBg = getRowBg(line.groupIndex);
+                const borderColorClass = line.laborType === 'warranty'
+                  ? 'border-l-[hsl(var(--status-warranty))]'
+                  : line.laborType === 'customer-pay'
+                    ? 'border-l-[hsl(var(--status-customer-pay))]'
+                    : 'border-l-[hsl(var(--status-internal))]';
+
+                return (
+                  <LineRow
+                    key={`line-${i}`}
+                    line={line}
+                    activeCols={activeCols}
+                    cellPx={cellPx}
+                    cellPy={cellPy}
+                    rowBg={rowBg}
+                    borderColorClass={borderColorClass}
+                    renderCellValue={renderCellValue}
+                    onSelectRO={onSelectRO}
+                  />
+                );
+              })}
+
+              {hasMore && (
+                <tr>
+                  <td colSpan={activeCols.length} className="text-center py-3">
+                    <button
+                      onClick={() => setVisibleCount(c => c + ROW_BATCH)}
+                      className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Show {allRows.length - visibleCount} more
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-gradient-to-r from-card to-accent/35 px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
-        <div className="flex flex-wrap gap-3 sm:gap-4 text-muted-foreground">
+      <div className="flex-shrink-0 border-t-2 border-border bg-gradient-to-r from-card to-accent/35 px-3 py-2 flex items-center justify-between gap-2 text-sm">
+        <div className="flex gap-2 text-muted-foreground text-xs">
           <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
           <span><strong className="text-foreground">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-accent/20 px-3 py-1.5">
+        <div className="flex items-center gap-1.5 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-accent/20 px-2.5 py-1">
           <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
           <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
-          <span className="font-bold text-foreground ml-1 text-sm">{maskHours(totalHours, hideTotals)}h total</span>
+          <span className="font-bold text-foreground text-sm border-l border-border/50 pl-1.5 ml-0.5">{maskHours(totalHours, hideTotals)}h</span>
         </div>
       </div>
 
