@@ -374,9 +374,12 @@ export function SettingsTab() {
   const [localDailyGoal, setLocalDailyGoal] = useState(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
   const [localWeeklyGoal, setLocalWeeklyGoal] = useState(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
   const [localHourlyRate, setLocalHourlyRate] = useState(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  // Sync local state from DB only once per load cycle (when userSettingsLoaded transitions
-  // false→true). Using a ref to guard against re-running when individual fields change due to
-  // the user's own optimistic updates — that would overwrite in-progress typing in OTHER fields.
+  // Sync local draft state from DB exactly once per load cycle, when
+  // userSettingsLoaded transitions false→true. React 18 batches the setSettings +
+  // setLoaded calls inside fetchSettings, so syncedSettings already holds the
+  // fetched values by the time this effect runs. We intentionally omit the
+  // individual field deps: subsequent optimistic updates change syncedSettings but
+  // must NOT overwrite the user's in-progress typing in other fields.
   const hasInitialSyncedRef = useRef(false);
   useEffect(() => {
     if (!userSettingsLoaded) {
@@ -390,7 +393,8 @@ export function SettingsTab() {
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
     setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
     setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  }, [userSettingsLoaded, syncedSettings.displayName, syncedSettings.shopName, syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userSettingsLoaded]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -1102,7 +1106,7 @@ export function SettingsTab() {
                   type="text"
                   value={localDisplayName}
                   onChange={e => setLocalDisplayName(e.target.value)}
-                  onBlur={e => updateSetting('displayName', e.target.value.trim())}
+                  onKeyDown={e => e.key === 'Enter' && updateSetting('displayName', localDisplayName.trim())}
                   placeholder="e.g. Mike"
                   className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
@@ -1130,7 +1134,7 @@ export function SettingsTab() {
                   type="text"
                   value={localShopName}
                   onChange={e => setLocalShopName(e.target.value)}
-                  onBlur={e => updateSetting('shopName', e.target.value.trim())}
+                  onKeyDown={e => e.key === 'Enter' && updateSetting('shopName', localShopName.trim())}
                   placeholder="e.g. Smith's Auto"
                   className="w-32 h-10 px-3 text-sm bg-muted rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
