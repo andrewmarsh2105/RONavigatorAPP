@@ -123,11 +123,14 @@ export function useUserSettings() {
         spreadsheetViewMode: (row.spreadsheet_view_mode as string | undefined) || 'payroll',
         spreadsheetDensity: (row.spreadsheet_density as string | undefined) || 'comfortable',
         spreadsheetGroupBy: (row.spreadsheet_group_by as string | undefined) || 'date',
-        hoursGoalDaily: (row.hours_goal_daily as number | undefined) || getLocalGoal('hoursGoalDaily'),
-        hoursGoalWeekly: (row.hours_goal_weekly as number | undefined) || getLocalGoal('hoursGoalWeekly'),
-        hourlyRate: (row.hourly_rate as number | undefined) || getLocalGoal('hourlyRate'),
-        displayName: (row.display_name as string | undefined) || getLocalProfileSetting('displayName'),
-        shopName: (row.shop_name as string | undefined) || getLocalProfileSetting('shopName'),
+        // Use ?? (not ||) so DB value 0 or '' is respected and never falls back
+        // to localStorage. The localStorage fallback only applies when the DB
+        // column is absent (null/undefined) — i.e. migration not yet applied.
+        hoursGoalDaily: (row.hours_goal_daily as number | null | undefined) ?? getLocalGoal('hoursGoalDaily'),
+        hoursGoalWeekly: (row.hours_goal_weekly as number | null | undefined) ?? getLocalGoal('hoursGoalWeekly'),
+        hourlyRate: (row.hourly_rate as number | null | undefined) ?? getLocalGoal('hourlyRate'),
+        displayName: (row.display_name as string | null | undefined) ?? getLocalProfileSetting('displayName'),
+        shopName: (row.shop_name as string | null | undefined) ?? getLocalProfileSetting('shopName'),
       });
     } else {
       setSettings(prev => ({
