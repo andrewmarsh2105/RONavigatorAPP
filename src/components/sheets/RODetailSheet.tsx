@@ -10,6 +10,7 @@ import {
   FileText,
   Pencil,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -170,72 +171,59 @@ export function RODetailSheet({
         ) : (
           <div className="flex flex-col h-full">
             {/* ── Header ── */}
-            <div className="flex-shrink-0 border-b border-border bg-card px-4 py-3 space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-base font-bold tracking-tight">
-                        {ro.roNumber ? `RO #${ro.roNumber}` : 'RO (no number)'}
-                      </span>
-                      <button
-                        className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        onClick={() => copyToClipboard("RO #", ro.roNumber)}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDateShort(ro.date)}
-                    </span>
-                    {showPaidDate ? (
-                      <Badge variant="outline" className="text-[10px]">Paid: {formatDateShort(ro.paidDate!)}</Badge>
-                    ) : ro.paidDate ? (
-                      <Badge variant="secondary" className="text-[10px]">Paid</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Unpaid</Badge>
-                    )}
-                    <span>{ro.advisor}</span>
-                    <StatusPill type={ro.laborType} size="sm" />
-                  </div>
-                </div>
-
-                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                  <div className="hours-pill text-base font-bold text-primary">
-                    {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" className="h-7 px-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
-                      <Pencil className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowDeleteConfirm(true)}>
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
+            <div className="flex-shrink-0 border-b border-border/60 bg-card px-4 py-3">
+              {/* Row 1: RO# + hours + close */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[16px] font-extrabold tabular-nums text-foreground tracking-tight">
+                  {ro.roNumber ? `#${ro.roNumber}` : '—'}
+                </span>
+                <button
+                  className="text-muted-foreground/50 hover:text-muted-foreground quiet-transition"
+                  onClick={() => copyToClipboard("RO #", ro.roNumber)}
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+                <span className="hours-pill">{maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h</span>
+                <div className="flex items-center gap-1 ml-auto">
+                  <Button size="sm" className="h-7 px-2.5 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                  <button
+                    onClick={onClose}
+                    className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
-              {(flags.length > 0 || issues.length > 0) && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {flags.length > 0 && (
-                    <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
-                  )}
-                  {issues.length > 0 && (
-                    <Badge variant="destructive" className="text-[10px]">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      {issues.length} check{issues.length === 1 ? "" : "s"}
-                    </Badge>
-                  )}
-                </div>
-              )}
+              {/* Row 2: Labor type + date + advisor + status */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <StatusPill type={ro.laborType} size="sm" />
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  {formatDateShort(ro.date)}
+                </span>
+                <span className="text-[11px] text-muted-foreground">· {ro.advisor}</span>
+                {showPaidDate ? (
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">Paid {formatDateShort(ro.paidDate!)}</span>
+                ) : ro.paidDate ? (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: 'hsl(var(--status-warranty))', background: 'hsl(var(--status-warranty-bg))' }}>Paid</span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">Unpaid</span>
+                )}
+                {flags.length > 0 && (
+                  <FlagBadge flags={flags} onClear={(flagId) => clearFlag(flagId)} />
+                )}
+                {issues.length > 0 && (
+                  <span className="text-[10px] font-bold text-destructive flex items-center gap-0.5">
+                    <AlertTriangle className="h-2.5 w-2.5" />
+                    {issues.length} check{issues.length === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* ── Content ── */}
@@ -419,10 +407,22 @@ export function RODetailSheet({
             </div>
 
             {/* ── Footer ── */}
-            <div className="flex-shrink-0 px-4 py-3 border-t border-border bg-card safe-area-bottom">
-              <Button variant="outline" className="w-full h-12 text-sm" onClick={openFlagDialog}>
-                <Flag className="h-4 w-4 mr-1.5" />
-                Flag
+            <div className="flex-shrink-0 px-4 py-3 border-t border-border/60 bg-card flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-11 text-sm gap-1.5"
+                onClick={openFlagDialog}
+              >
+                <Flag className="h-4 w-4" />
+                Add Flag
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-11 px-3 text-sm gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
               </Button>
             </div>
           </div>

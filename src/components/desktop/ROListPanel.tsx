@@ -1,11 +1,9 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 
 import { useRO } from "@/contexts/ROContext";
 import { useFlagContext } from "@/contexts/FlagContext";
@@ -22,7 +20,7 @@ import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type Da
 import { useSharedDateRange } from "@/hooks/useSharedDateRange";
 import { CustomDateRangeDialog } from "@/components/shared/CustomDateRangeDialog";
 
-import type { RepairOrder } from "@/types/ro";
+import type { RepairOrder, LaborType } from "@/types/ro";
 import type { FlagType } from "@/types/flags";
 import type { ReviewIssue } from "@/lib/reviewRules";
 import { getReviewIssues } from "@/lib/reviewRules";
@@ -38,69 +36,100 @@ interface ROListPanelProps {
 type SortKey = "date" | "ro" | "advisor" | "hours";
 type SortDir = "asc" | "desc";
 
-
-function SortHeader(props: {
+/* ── Sort header button ─────────────────────────── */
+function SortHeader({
+  label, active, dir, onClick, align,
+}: {
   label: string;
   active: boolean;
   dir: SortDir;
   onClick: () => void;
   align?: "left" | "right";
 }) {
-  const Arrow = props.dir === "asc" ? ArrowUp : ArrowDown;
+  const Arrow = dir === "asc" ? ArrowUp : ArrowDown;
   return (
     <button
-      onClick={props.onClick}
+      onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 section-title hover:text-foreground quiet-transition",
-        props.active ? "text-foreground" : "text-muted-foreground",
-        props.align === "right" && "ml-auto",
+        "inline-flex items-center gap-0.5 section-title hover:text-foreground quiet-transition",
+        active ? "text-foreground" : "text-muted-foreground",
+        align === "right" && "ml-auto",
       )}
     >
-      {props.label}
-      {props.active && <Arrow className="icon-row text-primary" />}
+      {label}
+      {active && <Arrow className="h-2.5 w-2.5 text-primary" />}
     </button>
   );
 }
 
-/* ── Status Chips ─────────────────────────────────── */
+/* ── Labor type left-border color ──────────────── */
+const laborBorderColor = (type: LaborType) =>
+  type === "warranty"
+    ? "hsl(var(--status-warranty))"
+    : type === "customer-pay"
+      ? "hsl(var(--status-customer-pay))"
+      : "hsl(var(--status-internal))";
 
-function StatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
+/* ── Compact status indicators ─────────────────── */
+function RowStatusChips({
+  ro, flagsCount, checksCount,
+}: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <Badge
-        variant={status.paid === "Paid" ? "outline" : "secondary"}
-        className={cn(
-          "text-[9px] px-2 py-0.5 font-semibold rounded-full",
-          status.paid === "Paid"
-            ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
-            : "text-muted-foreground",
-        )}
-      >
-        {status.paid}
-      </Badge>
+      {status.paid === "Paid" ? (
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-warranty))" }}>
+          <CheckCircle2 className="h-3 w-3" />
+          <span>Paid</span>
+        </span>
+      ) : (
+        <span className="text-[9px] font-semibold text-muted-foreground leading-none bg-muted/50 px-1.5 py-0.5 rounded">
+          {status.paid}
+        </span>
+      )}
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground leading-none">
           <Clock className="h-2.5 w-2.5" />
-          {status.tbd} TBD
-        </Badge>
+          {status.tbd}
+        </span>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-internal))" }}>
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
-        </Badge>
+        </span>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
-        </Badge>
+        </span>
       )}
     </div>
   );
 }
+
+/* ── Date filter chip row ──────────────────────── */
+function DateChip({
+  label, active, onClick,
+}: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "h-6 px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ── Main Component ─────────────────────────────── */
 
 export const ROListPanel = memo(function ROListPanel({
   selectedROId,
@@ -110,12 +139,17 @@ export const ROListPanel = memo(function ROListPanel({
   compact = false,
 }: ROListPanelProps) {
   const { ros, deleteRO, loadingROs } = useRO();
-  const { flags, userSettings } = useFlagContext();
+  const { flags, userSettings, addFlag } = useFlagContext();
 
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const { dateFilter, setFilter: setDateFilter, customStart, customEnd, applyCustom, cancelCustom, showCustomDialog, requestCustomDialog } = useSharedDateRange("week", "desktop-list");
+  const {
+    dateFilter, setFilter: setDateFilter,
+    customStart, customEnd, applyCustom, cancelCustom,
+    showCustomDialog, requestCustomDialog,
+  } = useSharedDateRange("week", "desktop-list");
+
   const [advisorFilter, setAdvisorFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -128,7 +162,6 @@ export const ROListPanel = memo(function ROListPanel({
     Array.isArray(userSettings.payPeriodEndDates) &&
     userSettings.payPeriodEndDates.length > 0;
 
-  // Date range bounds for the current filter (used both for the advisor dropdown and filteredROs)
   const listBounds = useMemo(() => computeDateRangeBounds({
     filter: dateFilter,
     weekStartDay: userSettings.weekStartDay ?? 0,
@@ -139,7 +172,6 @@ export const ROListPanel = memo(function ROListPanel({
     customEnd,
   }), [dateFilter, userSettings.weekStartDay, userSettings.defaultSummaryRange, userSettings.payPeriodEndDates, hasCustomPayPeriod, customStart, customEnd]);
 
-  // Advisor dropdown options: only advisors who have ROs in the current date range
   const advisors = useMemo(() => {
     const rangeROs = filterROsByDateRange(ros, listBounds);
     const firstSeenByKey = new Map<string, string>();
@@ -151,7 +183,6 @@ export const ROListPanel = memo(function ROListPanel({
     return Array.from(firstSeenByKey.values()).sort(compareAdvisorNames);
   }, [ros, listBounds]);
 
-  // If the selected advisor isn't in the current range, reset to "all"
   useEffect(() => {
     if (advisorFilter !== "all" && !advisors.includes(advisorFilter)) {
       setAdvisorFilter("all");
@@ -190,7 +221,7 @@ export const ROListPanel = memo(function ROListPanel({
 
     const dir = sortDir === "asc" ? 1 : -1;
 
-    const sorted = [...result].sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (sortKey === "date") {
         const byDate = effectiveDate(a).localeCompare(effectiveDate(b)) * dir;
         if (byDate !== 0) return byDate;
@@ -209,8 +240,6 @@ export const ROListPanel = memo(function ROListPanel({
       }
       return 0;
     });
-
-    return sorted;
   }, [ros, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
@@ -230,7 +259,6 @@ export const ROListPanel = memo(function ROListPanel({
       if (!ro.roNumber) continue;
       roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
     }
-
     const map = new Map<string, number>();
     for (const ro of ros) {
       const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
@@ -248,15 +276,12 @@ export const ROListPanel = memo(function ROListPanel({
   }, [deferredQuery, dateFilter, advisorFilter, sortKey, sortDir]);
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
-
-  const rangeBounds = listBounds;
-
-  const rangeChipLabel = useMemo(() => boundsRangeLabel(rangeBounds), [rangeBounds]);
+  const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
 
   const totals = useMemo(() => {
     const totalHours = filteredROs.reduce((sum, ro) => sum + calcHours(ro), 0);
-    return { totalHours, totalAll: filteredROs.length, totalVisible: visible.length };
-  }, [filteredROs, visible.length]);
+    return { totalHours, totalAll: filteredROs.length };
+  }, [filteredROs]);
 
   const toggleSort = useCallback((nextKey: SortKey) => {
     setSortKey((current) => {
@@ -269,126 +294,153 @@ export const ROListPanel = memo(function ROListPanel({
     });
   }, []);
 
-  /* Two-line row grid: Date | RO# | Info (advisor · vehicle + work) | Hours | Status | Actions */
+  const dateOptions = [
+    { value: "all" as const, label: "All" },
+    { value: "today" as const, label: "Today" },
+    { value: "week" as const, label: userSettings.defaultSummaryRange === "two_weeks" ? "2 Wk" : "Week" },
+    { value: "last_week" as const, label: "Last Wk" },
+    { value: "month" as const, label: "Month" },
+    ...(hasCustomPayPeriod ? [{ value: "pay_period" as const, label: "Pay Period" }] : []),
+    { value: "custom" as const, label: "Custom" },
+  ];
+
+  /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
   const gridCols = compact
-    ? "grid-cols-[64px_80px_1fr_56px_130px_36px]"
-    : "grid-cols-[68px_88px_1fr_64px_160px_36px]";
+    ? "grid-cols-[4px_60px_76px_1fr_52px_110px_28px]"
+    : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
 
   return (
     <>
       <div className="flex flex-col h-full bg-card">
-        {/* Header */}
-        <div className="flex-shrink-0 px-3 pt-3 pb-3 border-b border-border/90 bg-gradient-to-b from-primary/[0.13] via-accent/[0.34] to-card space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="page-title text-foreground">{userSettings.shopName || 'Repair Orders'}</h2>
-              <div className="mt-1 inline-flex items-center gap-2 rounded-xl border border-primary/35 bg-primary/[0.14] px-2.5 py-1.5 shadow-[var(--shadow-sm)]">
-                <span className="text-xl font-extrabold tabular-nums text-primary leading-none">
+
+        {/* ── Panel header ─────────────────────────── */}
+        <div className="flex-shrink-0 border-b border-border/60">
+
+          {/* Top: title + Add button */}
+          <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2">
+            <div className="min-w-0">
+              <h2 className="page-title text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[13px] font-extrabold tabular-nums text-primary leading-none">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-xs font-semibold text-foreground/80">{totals.totalAll} total</span>
-                <Badge
-                  variant="outline"
-                  className={cn("gap-1 h-5 text-[10px] px-1.5", dateFilter === "custom" && "cursor-pointer hover:bg-background")}
-                  onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
-                >
-                  <CalendarRange className="h-3 w-3" />
-                  {rangeChipLabel}
-                </Badge>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  · {totals.totalAll} RO{totals.totalAll !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
-            <Button size="sm" onClick={onAddNew} className="h-9 text-xs gap-1.5 rounded-full px-4 bg-primary text-white hover:bg-primary/90 shadow-[var(--shadow-soft)]">
-              <Plus className="icon-row" />
+            <Button
+              size="sm"
+              onClick={onAddNew}
+              className="h-8 text-[11px] gap-1 rounded-lg px-3 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
+              style={{ boxShadow: 'var(--shadow-soft)' }}
+            >
+              <Plus className="h-3.5 w-3.5" />
               Add RO
             </Button>
           </div>
 
-          <div className="space-y-2">
+          {/* Search bar */}
+          <div className="px-3 pb-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 icon-row text-muted-foreground" />
-              <Input
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search RO #, advisor, vehicle, customer, work..."
-                className="h-10 pl-9 bg-card border-border/90 shadow-[var(--shadow-sm)]"
+                placeholder="Search RO, advisor, vehicle, customer, work…"
+                className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+                style={{ boxShadow: 'var(--shadow-sm)' }}
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <div className="min-w-0">
-                <label className="section-title mb-0.5 block">Date filter</label>
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as DateFilterKey)}
-                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground shadow-[var(--shadow-sm)] focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="all">All dates</option>
-                  <option value="today">Today</option>
-                  <option value="week">
-                    {userSettings.defaultSummaryRange === "two_weeks" ? "2 Weeks" : "This week"}
-                  </option>
-                  <option value="last_week">Last week</option>
-                  <option value="month">This month</option>
-                  {hasCustomPayPeriod && <option value="pay_period">Pay period</option>}
-                  <option value="custom">Custom…</option>
-                </select>
-              </div>
-              <div className="min-w-0">
-                <label className="section-title mb-0.5 block">Advisor</label>
-                <select
-                  value={advisorFilter}
-                  onChange={(e) => setAdvisorFilter(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-input bg-card px-2.5 text-xs text-foreground shadow-[var(--shadow-sm)] focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="all">All advisors</option>
-                  {advisors.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
+          {/* Date + advisor filters — compact inline row */}
+          <div className="px-3 pb-2.5 flex items-center gap-2 min-w-0">
+            {/* Date chips */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+              {dateOptions.map(({ value, label }) => (
+                <DateChip
+                  key={value}
+                  label={label}
+                  active={dateFilter === value}
+                  onClick={() => value === "custom" ? requestCustomDialog() : setDateFilter(value as DateFilterKey)}
+                />
+              ))}
+              <span
+                className={cn(
+                  "flex-shrink-0 flex items-center gap-0.5 text-[9px] font-medium text-muted-foreground whitespace-nowrap ml-1",
+                  dateFilter === "custom" && "cursor-pointer hover:text-foreground",
+                )}
+                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+              >
+                <CalendarRange className="h-2.5 w-2.5" />
+                {rangeChipLabel}
+              </span>
             </div>
+
+            {/* Advisor filter — minimal select */}
+            {advisors.length > 0 && (
+              <select
+                value={advisorFilter}
+                onChange={(e) => setAdvisorFilter(e.target.value)}
+                className="h-6 flex-shrink-0 rounded border border-border/60 bg-transparent text-[10px] text-muted-foreground px-1.5 pr-5 focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer max-w-[110px] truncate"
+                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2.5\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
+              >
+                <option value="all">All advisors</option>
+                {advisors.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
-        {/* Grid */}
+        {/* ── List ──────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
           {loadingROs ? (
-            <div className="p-3 space-y-2">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 py-2">
-                  <Skeleton className="h-4 w-12" />
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-20 flex-1" />
-                  <Skeleton className="h-4 w-10" />
+            <div className="divide-y divide-border/30">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 flex-1" />
+                  <Skeleton className="h-3 w-10" />
                 </div>
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
-              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
-                <ClipboardCheck className="h-6 w-6 text-muted-foreground/40" />
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-3">
+                <ClipboardCheck className="h-5 w-5 text-muted-foreground/40" />
               </div>
-              <p className="text-sm font-medium text-foreground/70">No repair orders found</p>
-              <p className="meta-text mt-1 text-center">Try a different search, date filter, or advisor.</p>
+              <p className="text-sm font-semibold text-foreground/70">No repair orders found</p>
+              <p className="meta-text mt-1">Try a different search, date, or advisor.</p>
             </div>
           ) : (
-            <div>
-              {/* Grid header */}
-              <div className={cn("grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/90 shadow-[0_3px_10px_-8px_hsl(var(--foreground)/0.3)]", gridCols)}>
+            <>
+              {/* Column headers */}
+              <div
+                className={cn(
+                  "grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 border-b border-border/50 bg-muted/30 backdrop-blur-sm",
+                  gridCols,
+                )}
+              >
+                {/* Type dot col — no header */}
+                <div />
                 <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
                 <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
                 <button
                   onClick={() => toggleSort("advisor")}
                   className={cn(
-                    "inline-flex items-center gap-1 section-title hover:text-foreground quiet-transition",
+                    "inline-flex items-center gap-0.5 section-title hover:text-foreground quiet-transition",
                     sortKey === "advisor" ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
                   Info
                   {sortKey === "advisor" && (
                     sortDir === "asc"
-                      ? <ArrowUp className="icon-row text-primary" />
-                      : <ArrowDown className="icon-row text-primary" />
+                      ? <ArrowUp className="h-2.5 w-2.5 text-primary" />
+                      : <ArrowDown className="h-2.5 w-2.5 text-primary" />
                   )}
                 </button>
                 <SortHeader label="Hrs" active={sortKey === "hours"} dir={sortDir} onClick={() => toggleSort("hours")} align="right" />
@@ -397,12 +449,13 @@ export const ROListPanel = memo(function ROListPanel({
               </div>
 
               {/* Rows */}
-              <div>
+              <div className="divide-y divide-border/30">
                 {visible.map((ro) => {
                   const hours = calcHours(ro);
                   const flagsCount = flagCountByRO.get(ro.id) ?? 0;
                   const issuesCount = reviewIssueCountByRO.get(ro.id) ?? 0;
                   const selected = selectedROId === ro.id;
+                  const accentColor = laborBorderColor(ro.laborType);
 
                   const workSummary = ro.lines?.length
                     ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 2).join(", ")
@@ -412,42 +465,56 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 py-3 cursor-pointer text-xs border-b border-border/70 row-hover quiet-transition",
+                        "grid gap-x-2 items-start px-3 py-2 cursor-pointer text-xs quiet-transition group",
                         gridCols,
                         selected
-                          ? "bg-primary/16 border-l-[3px] border-l-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.26)]"
-                          : "hover:bg-accent/35",
+                          ? "bg-primary/[0.07] border-l-2 border-l-primary"
+                          : "hover:bg-muted/40",
                       )}
+                      style={selected ? {} : { borderLeft: `2px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
+                      {/* Labor type accent strip */}
+                      <div
+                        className="self-stretch rounded-sm"
+                        style={{ background: accentColor, width: '3px', minHeight: '20px' }}
+                        role="cell"
+                        aria-hidden
+                      />
+
                       {/* Date */}
-                      <div className="meta-text tabular-nums whitespace-nowrap text-foreground/75" role="cell">
+                      <div className="text-[11px] tabular-nums text-muted-foreground whitespace-nowrap leading-snug pt-0.5" role="cell">
                         {formatDateShort(effectiveDate(ro))}
                       </div>
 
-                      {/* RO# */}
-                      <div className="font-bold whitespace-nowrap tabular-nums text-foreground" role="cell">#{ro.roNumber}</div>
+                      {/* RO # */}
+                      <div className="font-extrabold tabular-nums text-foreground leading-snug pt-0.5 text-[12px]" role="cell">
+                        #{ro.roNumber}
+                      </div>
 
                       {/* Info: two-line */}
                       <div className="min-w-0" role="cell">
-                        <p className="text-[11px] font-bold truncate text-foreground">
-                          {ro.advisor} · {vehicleLabel(ro)}
+                        <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
+                          {ro.advisor}
+                          {vehicleLabel(ro) !== "—" && (
+                            <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
+                          )}
                         </p>
-                        <p className="meta-text truncate text-foreground/70">{workSummary}</p>
+                        <p className="text-[10px] text-muted-foreground/75 truncate leading-snug">{workSummary}</p>
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right font-extrabold tabular-nums whitespace-nowrap text-foreground" role="cell">
+                      <div className="text-right font-extrabold tabular-nums text-foreground text-[12px] leading-snug pt-0.5 whitespace-nowrap" role="cell">
                         {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
                       </div>
 
-                      {/* Status chips */}
-                      <div role="cell">
-                        <StatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
+                      {/* Status */}
+                      <div className="pt-0.5" role="cell">
+                        <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
-                      {/* Actions */}
+                      {/* Action menu */}
                       <div onClick={(e) => e.stopPropagation()} role="cell">
                         <ROActionMenu
                           roNumber={ro.roNumber}
@@ -455,7 +522,7 @@ export const ROListPanel = memo(function ROListPanel({
                           onDelete={() => deleteRO(ro.id)}
                           onFlag={() => setFlaggingRO(ro)}
                           existingRONumbers={existingRONumbers}
-                          className="-mr-2"
+                          className="-mr-1 opacity-0 group-hover:opacity-100 quiet-transition"
                         />
                       </div>
                     </div>
@@ -464,27 +531,28 @@ export const ROListPanel = memo(function ROListPanel({
               </div>
 
               {!loadingROs && filteredROs.length > visibleCount && (
-                <div className="px-3 py-2 text-center border-t border-border">
+                <div className="px-3 py-3 text-center border-t border-border/40">
                   <button
                     onClick={() => setVisibleCount((c) => c + 80)}
-                    className="text-sm font-semibold text-primary hover:text-primary/80 quiet-transition"
+                    className="text-[11px] font-semibold text-primary hover:text-primary/80 quiet-transition"
                   >
                     Load more ({filteredROs.length - visibleCount} remaining)
                   </button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex-shrink-0 px-3 py-2 border-t border-border/90 bg-gradient-to-r from-secondary/60 to-accent/45">
-          <div className="flex items-center justify-between meta-text">
-            <span className="tabular-nums">
-              {filteredROs.length} ROs{filteredROs.length > visibleCount ? ` (showing ${visible.length})` : ""}
+        {/* ── Footer ────────────────────────────────── */}
+        <div className="flex-shrink-0 px-3 py-2 border-t border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {filteredROs.length} RO{filteredROs.length !== 1 ? 's' : ''}
+              {filteredROs.length > visibleCount ? ` · showing ${visible.length}` : ''}
             </span>
-            <span className="font-semibold tabular-nums">
-              {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h total
+            <span className="text-[11px] font-bold tabular-nums text-foreground">
+              {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
             </span>
           </div>
         </div>

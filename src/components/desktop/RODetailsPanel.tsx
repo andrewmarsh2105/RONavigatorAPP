@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Clock, Copy, Flag, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, Copy, Flag, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SectionCard } from "@/components/layout/SectionCard";
 import { EmptyState } from "@/components/states/EmptyState";
 import { StatusPill } from "@/components/mobile/StatusPill";
 import { FlagBadge } from "@/components/flags/FlagBadge";
@@ -18,8 +16,7 @@ import { maskHours } from "@/lib/maskHours";
 import { cn } from "@/lib/utils";
 import { calcHours, formatDateLong, vehicleLabel } from "@/lib/roDisplay";
 import { getStatusSummary } from "@/lib/roStatus";
-import { getReviewIssues, type ReviewIssue } from "@/lib/reviewRules";
-import type { FlagType } from "@/types/flags";
+import { getReviewIssues } from "@/lib/reviewRules";
 import type { RepairOrder } from "@/types/ro";
 
 async function copyText(label: string, value: string) {
@@ -30,6 +27,31 @@ async function copyText(label: string, value: string) {
     toast.error("Copy failed");
   }
 }
+
+/* ── Detail row ─────────────────────────────────── */
+function DetailRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  if (!value || value === "—") return null;
+  return (
+    <div className="flex items-start justify-between gap-4 py-1.5 border-b border-border/30 last:border-0">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-shrink-0 pt-0.5">{label}</span>
+      <span className={cn("text-[11px] font-semibold text-foreground text-right", mono && "font-mono")}>{value}</span>
+    </div>
+  );
+}
+
+/* ── Section wrapper ────────────────────────────── */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="section-title mb-1.5">{title}</p>
+      <div className="inset-panel p-3">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main panel ─────────────────────────────────── */
 
 interface RODetailsPanelProps {
   ro: RepairOrder | null;
@@ -65,180 +87,190 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   const hours = calcHours(ro);
   const status = getStatusSummary(ro, flags.length, issues.length);
 
+  const laborBorderColor =
+    ro.laborType === "warranty"
+      ? "hsl(var(--status-warranty))"
+      : ro.laborType === "customer-pay"
+        ? "hsl(var(--status-customer-pay))"
+        : "hsl(var(--status-internal))";
+
   return (
-    <div className="h-full overflow-y-auto">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm border-b border-border/90 px-4 py-3 shadow-[var(--shadow-sm)]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="page-title">RO #{ro.roNumber}</h2>
-              <button
-                className="text-muted-foreground hover:text-foreground quiet-transition"
-                onClick={() => copyText("RO #", ro.roNumber)}
-                title="Copy RO #"
-              >
-                <Copy className="icon-row" />
-              </button>
+    <div className="h-full overflow-y-auto flex flex-col">
+      {/* ── Header ────────────────────────────────── */}
+      <div
+        className="flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/60 border-l-[3px]"
+        style={{ borderLeftColor: laborBorderColor }}
+      >
+        <div className="px-4 py-3">
+          {/* RO # + hours + copy */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[16px] font-extrabold tabular-nums text-foreground tracking-tight">
+                  #{ro.roNumber}
+                </h2>
+                <button
+                  className="text-muted-foreground/60 hover:text-muted-foreground quiet-transition"
+                  onClick={() => copyText("RO #", ro.roNumber)}
+                  title="Copy RO #"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+                <span className="hours-pill">
+                  {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                </span>
+              </div>
+
+              {/* Date · advisor · vehicle */}
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {formatDateLong(ro.date)} · {ro.advisor}
+                {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
+              </p>
             </div>
 
-            <p className="meta-text mt-0.5">
-              {formatDateLong(ro.date)} · {ro.advisor} · {vehicleLabel(ro)}
-            </p>
-
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              <StatusPill type={ro.laborType} size="sm" />
-              <Badge
-                variant={status.paid === "Paid" ? "outline" : "secondary"}
-                className={cn(
-                  "text-[9px] px-2 py-0.5 font-semibold rounded-full",
-                  status.paid === "Paid"
-                    ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
-                    : "text-muted-foreground",
-                )}
-              >
-                {status.paid}
-              </Badge>
-              {status.tbd > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full">
-                  <Clock className="h-2.5 w-2.5" />
-                  {status.tbd} TBD
-                </Badge>
-              )}
-              {status.flags > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
-                  <Flag className="h-2.5 w-2.5" />
-                  {status.flags} Flag
-                </Badge>
-              )}
-              {status.checks > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  {status.checks} Check
-                </Badge>
-              )}
-              <span className="hours-pill text-xs ml-auto">
-                {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setFlagOpen(true)}>
-              <Flag className="icon-row" />
+            {/* Flag button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px] gap-1 flex-shrink-0"
+              onClick={() => setFlagOpen(true)}
+            >
+              <Flag className="h-3 w-3" />
               Flag
             </Button>
+          </div>
+
+          {/* Status pills */}
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <StatusPill type={ro.laborType} size="sm" />
+            {status.paid === "Paid" ? (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded bg-[hsl(var(--status-warranty-bg))]" style={{ color: "hsl(var(--status-warranty))" }}>
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Paid
+              </span>
+            ) : (
+              <span className="text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none">
+                {status.paid}
+              </span>
+            )}
+            {status.tbd > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none">
+                <Clock className="h-2.5 w-2.5" />
+                {status.tbd} TBD
+              </span>
+            )}
+            {status.flags > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                <Flag className="h-2.5 w-2.5" />
+                {status.flags} Flag
+              </span>
+            )}
+            {status.checks > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded leading-none">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                {status.checks} Check
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="p-4 space-y-3 bg-gradient-to-b from-accent/[0.26] via-background to-secondary/32">
-        {/* Details */}
-        <SectionCard title="Details">
-          <div className="inset-panel p-3 space-y-2">
-            <div className="flex justify-between">
-              <span className="meta-text">Advisor</span>
-              <span className="text-xs font-semibold text-foreground">{ro.advisor}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="meta-text">Customer</span>
-              <span className="text-xs font-semibold text-foreground">{ro.customerName || "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="meta-text">Mileage</span>
-              <span className="text-xs font-semibold text-foreground">{ro.mileage || "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="meta-text">Paid date</span>
-              <span className="text-xs font-semibold text-foreground">{ro.paidDate ? formatDateLong(ro.paidDate) : "—"}</span>
-            </div>
-          </div>
-        </SectionCard>
+      {/* ── Body ──────────────────────────────────── */}
+      <div className="flex-1 p-4 space-y-4">
 
-        {/* Vehicle */}
-        <SectionCard title="Vehicle">
-          <div className="inset-panel p-3 space-y-2">
-            <div className="flex justify-between">
-              <span className="meta-text">Vehicle</span>
-              <span className="text-xs font-semibold text-foreground">{vehicleLabel(ro)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="meta-text">VIN</span>
-              <span className="text-xs font-semibold text-foreground font-mono">{ro.vehicle?.vin || "—"}</span>
-            </div>
-          </div>
-        </SectionCard>
+        {/* Details + Vehicle — side by side if room */}
+        <div className="grid grid-cols-1 gap-3">
+          <Section title="Details">
+            <DetailRow label="Advisor" value={ro.advisor} />
+            <DetailRow label="Customer" value={ro.customerName || "—"} />
+            <DetailRow label="Mileage" value={ro.mileage || "—"} />
+            <DetailRow label="Paid date" value={ro.paidDate ? formatDateLong(ro.paidDate) : "—"} />
+            <DetailRow label="Vehicle" value={vehicleLabel(ro)} />
+            <DetailRow label="VIN" value={ro.vehicle?.vin || "—"} mono />
+          </Section>
+        </div>
 
         {/* Lines */}
-        <SectionCard title={`Lines (${ro.lines?.length || 0})`}>
+        <div>
+          <p className="section-title mb-1.5">Lines ({ro.lines?.length || 0})</p>
           {ro.lines?.length ? (
             <div className="space-y-1">
-              {ro.lines.map((l) => (
-                <div key={l.id} className="inset-panel px-3 py-2 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    {(() => {
-                      const description = l.description || "—";
-                      const isExpanded = !!expandedLineIds[l.id];
-                      const canExpand = description.length > 110 || description.includes("\n");
+              {ro.lines.map((l, idx) => (
+                <div key={l.id} className="inset-panel px-3 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      {/* Line number + description */}
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px] font-bold text-muted-foreground/60 flex-shrink-0 mt-0.5">
+                          {idx + 1}.
+                        </span>
+                        <div className="min-w-0">
+                          {(() => {
+                            const description = l.description || "—";
+                            const isExpanded = !!expandedLineIds[l.id];
+                            const canExpand = description.length > 100 || description.includes("\n");
 
-                      return (
-                        <>
-                          <p
-                            className={cn(
-                              "text-xs font-semibold text-foreground whitespace-pre-wrap break-words",
-                              !isExpanded && canExpand && "line-clamp-2",
+                            return (
+                              <>
+                                <p
+                                  className={cn(
+                                    "text-[11px] font-semibold text-foreground whitespace-pre-wrap break-words leading-snug",
+                                    !isExpanded && canExpand && "line-clamp-2",
+                                  )}
+                                >
+                                  {description}
+                                </p>
+                                {canExpand && (
+                                  <button
+                                    type="button"
+                                    className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:underline"
+                                    onClick={() =>
+                                      setExpandedLineIds((prev) => ({ ...prev, [l.id]: !prev[l.id] }))
+                                    }
+                                  >
+                                    {isExpanded ? (
+                                      <><ChevronUp className="h-2.5 w-2.5" />Less</>
+                                    ) : (
+                                      <><ChevronDown className="h-2.5 w-2.5" />More</>
+                                    )}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <StatusPill type={l.laborType || ro.laborType} size="sm" />
+                            {l.isTbd && (
+                              <span className="text-[9px] font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">TBD</span>
                             )}
-                          >
-                            {description}
-                          </p>
-                          {canExpand && (
-                            <button
-                              type="button"
-                              className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                              onClick={() =>
-                                setExpandedLineIds((prev) => ({ ...prev, [l.id]: !prev[l.id] }))
-                              }
-                              aria-expanded={isExpanded}
-                              aria-label={`${isExpanded ? "Collapse" : "Expand"} description for line ${l.lineNo}`}
-                            >
-                              {isExpanded ? (
-                                <>
-                                  <ChevronUp className="h-3 w-3" />
-                                  Show less
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDown className="h-3 w-3" />
-                                  Show more
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <StatusPill type={l.laborType || ro.laborType} size="sm" />
-                      {l.isTbd && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">TBD</Badge>}
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    <span className="hours-pill text-[10px] flex-shrink-0">
+                      {maskHours(Number(l.hoursPaid.toFixed(1)), userSettings.hideTotals ?? false)}h
+                    </span>
                   </div>
-                  <span className="hours-pill text-[10px] flex-shrink-0">
-                    {maskHours(Number(l.hoursPaid.toFixed(1)), userSettings.hideTotals ?? false)}h
-                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="meta-text">No lines</p>
+            <p className="meta-text px-3 py-2">No lines recorded.</p>
           )}
-        </SectionCard>
+        </div>
+
+        {/* Notes */}
+        {ro.notes && (
+          <Section title="Notes">
+            <p className="text-[11px] leading-relaxed">{ro.notes}</p>
+          </Section>
+        )}
 
         {/* Flags & Checks */}
-        <SectionCard title="Flags & Checks">
-          <div className="inset-panel p-3 space-y-2">
+        {(flags.length > 0 || issues.length > 0) && (
+          <Section title="Flags & Checks">
             <FlagBadge flags={flags} onClear={clearFlag} />
-            {issues.length > 0 ? (
+            {issues.length > 0 && (
               <ReviewIndicator
                 issues={issues}
                 onConvertToFlag={(issue, flagType, note) =>
@@ -249,25 +281,27 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
                   if (dupRO) onSelectRO(dupRO);
                 } : undefined}
               />
-            ) : (
-              <p className="meta-text">No checks.</p>
             )}
-          </div>
-        </SectionCard>
-
-        {/* Notes */}
-        <SectionCard title="Notes">
-          {ro.notes ? <p className="text-xs">{ro.notes}</p> : <p className="meta-text">—</p>}
-        </SectionCard>
+          </Section>
+        )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2 pb-4">
-          <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={onEdit}>
-            <Pencil className="icon-row" />
-            Edit
+        <div className="flex items-center gap-2 pt-1 pb-2">
+          <Button
+            size="sm"
+            className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={onEdit}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit RO
           </Button>
-          <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={onDelete}>
-            <Trash2 className="icon-row" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
             Delete
           </Button>
         </div>
