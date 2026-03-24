@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, StickyNote } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Search, ClipboardCheck, AlertTriangle, Flag, Clock, CalendarRange, CheckCircle2, StickyNote, Rows3, Rows4 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ interface ROListPanelProps {
 }
 
 type SortKey = "date" | "ro" | "advisor" | "hours";
+type RowDensity = "normal" | "compact" | "dense";
 type SortDir = "asc" | "desc";
 
 /* ── Sort header button ─────────────────────────── */
@@ -162,6 +163,8 @@ export const ROListPanel = memo(function ROListPanel({
   const [visibleCount, setVisibleCount] = useState(80);
 
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
+  const [density, setDensity] = useState<RowDensity>("normal");
+  const [laborTypeFilter, setLaborTypeFilter] = useState<string[]>([]);
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === "custom" &&
@@ -201,6 +204,10 @@ export const ROListPanel = memo(function ROListPanel({
     if (advisorFilter !== "all") {
       const selectedAdvisor = normalizeAdvisorName(advisorFilter);
       result = result.filter((ro) => normalizeAdvisorName(ro.advisor) === selectedAdvisor);
+    }
+
+    if (laborTypeFilter.length > 0) {
+      result = result.filter((ro) => laborTypeFilter.includes(ro.laborType));
     }
 
     const q = deferredQuery.trim();
@@ -264,7 +271,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   useEffect(() => {
     setVisibleCount(80);
-  }, [deferredQuery, dateFilter, advisorFilter, sortKey, sortDir]);
+  }, [deferredQuery, dateFilter, advisorFilter, laborTypeFilter, sortKey, sortDir]);
 
   const visible = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const rangeChipLabel = useMemo(() => boundsRangeLabel(listBounds), [listBounds]);
@@ -296,9 +303,11 @@ export const ROListPanel = memo(function ROListPanel({
   ];
 
   /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
-  const gridCols = compact
+  const gridCols = (compact || density !== "normal")
     ? "grid-cols-[3px_58px_72px_1fr_48px_100px_24px]"
     : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
+
+  const rowPy = density === "dense" ? "py-1" : density === "compact" ? "py-1.5" : "py-2";
 
   return (
     <>
@@ -307,74 +316,115 @@ export const ROListPanel = memo(function ROListPanel({
         {/* ── Panel header ─────────────────────────── */}
         <div className="flex-shrink-0 border-b border-border/60">
 
-          {/* Top: title + Add button */}
-          <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2">
-            <div className="min-w-0">
-              <h2 className="page-title text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[13px] font-extrabold tabular-nums text-primary leading-none">
+          {/* Top: title + stats + Add button */}
+          <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1.5">
+                <h2 className="text-[14px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
+                <span className="text-[12px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-[11px] text-muted-foreground font-medium">
+                <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
                   · {totals.totalAll} RO{totals.totalAll !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
+            {/* Density toggle */}
+            <button
+              onClick={() => setDensity(d => d === "normal" ? "compact" : d === "compact" ? "dense" : "normal")}
+              className={cn(
+                "h-6 w-6 flex items-center justify-center rounded border quiet-transition flex-shrink-0",
+                density !== "normal"
+                  ? "bg-primary/10 text-primary border-primary/25"
+                  : "text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground",
+              )}
+              title={density === "normal" ? "Switch to compact" : density === "compact" ? "Switch to dense" : "Switch to normal"}
+            >
+              {density === "dense" ? <Rows3 className="h-3 w-3" /> : <Rows4 className="h-3 w-3" />}
+            </button>
             <Button
               size="sm"
               onClick={onAddNew}
-              className="h-8 text-[11px] gap-1 rounded-lg px-3 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
+              className="h-7 text-[10px] gap-1 rounded-lg px-2.5 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
               style={{ boxShadow: 'var(--shadow-soft)' }}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3" />
               Add RO
             </Button>
           </div>
 
           {/* Search bar */}
-          <div className="px-3 pb-2">
+          <div className="px-3 pb-1.5">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name, RO#, VIN, lines, notes…"
-                className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full h-7 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
                 style={{ boxShadow: 'var(--shadow-sm)' }}
               />
             </div>
           </div>
 
-          {/* Date + advisor filters — compact inline row */}
-          <div className="px-3 pb-2.5 flex items-center gap-2 min-w-0">
+          {/* Date + advisor + labor type filters */}
+          <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide">
             {/* Date chips */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1 min-w-0">
-              {dateOptions.map(({ value, label }) => (
-                <DateChip
-                  key={value}
-                  label={label}
-                  active={dateFilter === value}
-                  onClick={() => value === "custom" ? requestCustomDialog() : setDateFilter(value as DateFilterKey)}
-                />
-              ))}
-              <span
-                className={cn(
-                  "flex-shrink-0 flex items-center gap-0.5 text-[9px] font-medium text-muted-foreground whitespace-nowrap ml-1",
-                  dateFilter === "custom" && "cursor-pointer hover:text-foreground",
-                )}
-                onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
-              >
-                <CalendarRange className="h-2.5 w-2.5" />
-                {rangeChipLabel}
-              </span>
-            </div>
+            {dateOptions.map(({ value, label }) => (
+              <DateChip
+                key={value}
+                label={label}
+                active={dateFilter === value}
+                onClick={() => value === "custom" ? requestCustomDialog() : setDateFilter(value as DateFilterKey)}
+              />
+            ))}
+            <span
+              className={cn(
+                "flex-shrink-0 flex items-center gap-0.5 text-[9px] font-medium text-muted-foreground whitespace-nowrap",
+                dateFilter === "custom" && "cursor-pointer hover:text-foreground",
+              )}
+              onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
+            >
+              <CalendarRange className="h-2.5 w-2.5" />
+              {rangeChipLabel}
+            </span>
 
-            {/* Advisor filter — minimal select */}
+            {/* Divider */}
+            <span className="w-px h-3.5 bg-border/60 flex-shrink-0" />
+
+            {/* Quick labor type chips */}
+            {([
+              { type: "warranty", label: "W", color: "hsl(var(--status-warranty))" },
+              { type: "customer-pay", label: "CP", color: "hsl(var(--status-customer-pay))" },
+              { type: "internal", label: "INT", color: "hsl(var(--status-internal))" },
+            ] as const).map(({ type, label, color }) => {
+              const active = laborTypeFilter.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => setLaborTypeFilter(prev =>
+                    prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                  )}
+                  className={cn(
+                    "h-6 px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border",
+                    active ? "text-white" : "bg-transparent border-border/60 hover:border-border",
+                  )}
+                  style={active
+                    ? { backgroundColor: color, borderColor: color }
+                    : { color }}
+                  title={type === "warranty" ? "Warranty" : type === "customer-pay" ? "Customer Pay" : "Internal"}
+                >
+                  {label}
+                </button>
+              );
+            })}
+
+            {/* Advisor filter — minimal select, pushed right */}
             {advisors.length > 0 && (
               <select
                 value={advisorFilter}
                 onChange={(e) => setAdvisorFilter(e.target.value)}
-                className="h-6 flex-shrink-0 rounded border border-border/60 bg-transparent text-[10px] text-muted-foreground px-1.5 pr-5 focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer max-w-[110px] truncate"
+                className="h-6 flex-shrink-0 ml-auto rounded border border-border/60 bg-transparent text-[10px] text-muted-foreground px-1.5 pr-5 focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer max-w-[110px] truncate"
                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2.5\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
               >
                 <option value="all">All advisors</option>
@@ -457,13 +507,13 @@ export const ROListPanel = memo(function ROListPanel({
                       key={ro.id}
                       className={cn(
                         "grid gap-x-2 items-start px-3 cursor-pointer text-xs quiet-transition group",
-                        compact ? "py-1.5" : "py-2",
+                        rowPy,
                         gridCols,
                         selected
-                          ? "bg-primary/[0.07] border-l-2 border-l-primary"
+                          ? "bg-primary/[0.09] border-l-[3px] border-l-primary"
                           : "hover:bg-muted/40",
                       )}
-                      style={selected ? {} : { borderLeft: `2px solid ${accentColor}` }}
+                      style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
@@ -544,16 +594,13 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-2 border-t border-border/50 bg-muted/20">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {filteredROs.length} RO{filteredROs.length !== 1 ? 's' : ''}
-              {filteredROs.length > visibleCount ? ` · showing ${visible.length}` : ''}
-            </span>
-            <span className="text-[11px] font-bold tabular-nums text-foreground">
-              {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
-            </span>
-          </div>
+        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-muted/10">
+          <span className="text-[10px] text-muted-foreground tabular-nums">
+            {filteredROs.length > visibleCount
+              ? `Showing ${visible.length} of ${filteredROs.length} ROs`
+              : `${filteredROs.length} RO${filteredROs.length !== 1 ? 's' : ''}`}
+            {(laborTypeFilter.length > 0 || advisorFilter !== "all") && ' · filtered'}
+          </span>
         </div>
       </div>
 
