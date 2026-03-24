@@ -17,6 +17,7 @@ import {
   type RoRow,
 } from '@/features/ro/data/roMapper';
 import { calcLineHours } from '@/lib/roDisplay';
+import { saveROsToCache, loadROsFromCache } from '@/lib/roLocalCache';
 
 type AdvisorRow = Database["public"]["Tables"]["advisors"]["Row"];
 type LaborReferenceRow = Database["public"]["Tables"]["labor_references"]["Row"];
@@ -76,6 +77,18 @@ export function useROStore() {
   // Tracks pending deletes for undo support: id → { timer, savedRO }
   const pendingDeletes = useRef<Map<string, { timer: ReturnType<typeof setTimeout>; savedRO: RepairOrder }>>(new Map());
 
+  // ── Offline read-cache state ────────────────────────────────────────────
+  /** 'loading' = no data yet | 'cache' = hydrated from IndexedDB | 'live' = from server */
+  const [dataSource, setDataSource] = useState<'loading' | 'cache' | 'live'>('loading');
+  /** ISO timestamp of when the cache was last written (null when showing live data). */
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  /** IDs of ROs added or edited while offline — cleared after the next live fetch. */
+  const [offlinePendingIds, setOfflinePendingIds] = useState<Set<string>>(new Set());
+  /** Whether the cache has been loaded at least once for this user session. */
+  const cacheHydrated = useRef(false);
+  /** Whether the last fetchROs() attempt failed (so we can surface it in the UI). */
+  const [fetchError, setFetchError] = useState(false);
+
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
     const pendingDeletesRef = pendingDeletes.current;
@@ -88,8 +101,18 @@ export function useROStore() {
 
   // Fetch ROs with lines
   const fetchROs = useCallback(async () => {
-    if (!userId) { setROs([]); setLoadingROs(false); return; }
-    setLoadingROs(true);
+    if (!userId) { setROs([]); setLoadingROs(false); setDataSource('loading'); return; }
+
+    // When offline and we already have data, skip the network request entirely.
+    // The cache is already displayed; we'll fetch for real once back online.
+    if (!navigator.onLine && cacheHydrated.current) {
+      setLoadingROs(false);
+      return;
+    }
+
+    // Only show the full-page loading spinner when we have no data at all.
+    if (!cacheHydrated.current) setLoadingROs(true);
+
     try {
       const { data: roRows, error } = await supabase
         .from('ros')
@@ -113,6 +136,15 @@ export function useROStore() {
         dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
       );
       setROs(mapped);
+
+      // Mark as live, clear stale indicators, persist to local cache.
+      setDataSource('live');
+      setCachedAt(null);
+      setFetchError(false);
+      setOfflinePendingIds(new Set());
+      cacheHydrated.current = true;
+      void saveROsToCache(userId, mapped);
+
       const totalLines = (lineRows || []).length;
       pushDebug({ action: `fetchROs OK: ${mapped.length} ROs, ${totalLines} lines` });
 
@@ -186,6 +218,11 @@ export function useROStore() {
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
       pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
+      // Surface the error in the status bar, but keep any cached data visible.
+      setFetchError(true);
+      if (!cacheHydrated.current) {
+        setDataSource('loading'); // truly no data — keep showing empty/loading
+      }
     } finally {
       setLoadingROs(false);
     }
@@ -246,7 +283,45 @@ export function useROStore() {
     }
   }, [userId]);
 
-  useEffect(() => { fetchROs(); }, [fetchROs]);
+  // ── Startup: hydrate from cache, then fetch live data ────────────────────
+  useEffect(() => {
+    if (!userId) {
+      setROs([]);
+      setLoadingROs(false);
+      setDataSource('loading');
+      setCachedAt(null);
+      setFetchError(false);
+      setOfflinePendingIds(new Set());
+      cacheHydrated.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    cacheHydrated.current = false;
+
+    (async () => {
+      // Step 1 — instantly show whatever is cached (no spinner needed).
+      const cached = await loadROsFromCache(userId);
+      if (cancelled) return;
+
+      if (cached && cached.ros.length > 0) {
+        setROs(cached.ros);
+        setCachedAt(cached.savedAt);
+        setDataSource('cache');
+        cacheHydrated.current = true;
+        setLoadingROs(false);
+      }
+
+      // Step 2 — attempt live fetch; on success this replaces cache and sets
+      // dataSource = 'live'.  On failure the cached data stays visible.
+      if (!cancelled) {
+        await fetchROs();
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [userId, fetchROs]);
+
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
   useEffect(() => { fetchAdvisors(); }, [fetchAdvisors]);
 
@@ -269,13 +344,41 @@ export function useROStore() {
   const addRO = useCallback(async (ro: Omit<RepairOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return null;
 
-    // Queue if offline
+    // Queue if offline — also add to local state so the tech can see it immediately.
     if (!isOnline) {
-      const queued = await queueAction('addRO', { ro });
+      const tempId = `offline-${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      const optimisticLines: ROLine[] = (ro.lines || []).map((l, i) => ({
+        ...l,
+        id: l.id || crypto.randomUUID(),
+        lineNo: l.lineNo ?? i + 1,
+        createdAt: l.createdAt || now,
+        updatedAt: l.updatedAt || now,
+      }));
+      const optimisticRO: RepairOrder = {
+        ...ro,
+        id: tempId,
+        lines: optimisticLines,
+        paidHours: calcLineHours(optimisticLines),
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Store the temp local ID alongside the payload so the status bar can
+      // reflect per-RO pending state.
+      const queued = await queueAction('addRO', { ro, localId: tempId });
       if (!queued) return null;
-      toast.info('Saved offline to sync queue');
+
+      setROs(prev => {
+        const updated = [optimisticRO, ...prev];
+        if (userId) void saveROsToCache(userId, updated);
+        return updated;
+      });
+      setOfflinePendingIds(prev => new Set([...prev, tempId]));
+
+      toast.info('Saved offline — will sync when reconnected');
       pushDebug({ action: 'addRO QUEUED (offline)', userId: user.id });
-      return { queuedOffline: true };
+      return optimisticRO;
     }
 
     const { data: newRow, error } = await supabase
@@ -336,11 +439,29 @@ export function useROStore() {
   const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>): Promise<boolean> => {
     if (!user) return false;
 
-    // Queue if offline
+    // Queue if offline — also apply the update locally so the tech sees the change.
     if (!isOnline) {
       const queued = await queueAction('updateRO', { id, updates });
       if (!queued) return false;
-      toast.info('Update saved to offline sync queue');
+
+      setROs(prev => {
+        const updated = prev.map(r => {
+          if (r.id !== id) return r;
+          const newLines = updates.lines ?? r.lines;
+          return {
+            ...r,
+            ...updates,
+            lines: newLines,
+            paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
+            updatedAt: new Date().toISOString(),
+          };
+        });
+        if (userId) void saveROsToCache(userId, updated);
+        return updated;
+      });
+      setOfflinePendingIds(prev => new Set([...prev, id]));
+
+      toast.info('Update saved offline — will sync when reconnected');
       return true;
     }
 
@@ -443,11 +564,15 @@ export function useROStore() {
     const savedRO = rosRef.current.find(r => r.id === id);
     if (!savedRO) return;
 
-    setROs(prev => prev.filter(r => r.id !== id));
+    // Compute the post-delete list once so both setROs and the cache write use
+    // the same value (avoids reading stale state from the ref).
+    const newROs = rosRef.current.filter(r => r.id !== id);
+    setROs(newROs);
+    if (userId) void saveROsToCache(userId, newROs);
 
     if (!isOnline) {
       void queueAction('deleteRO', { id });
-      toast.info('Delete saved to offline sync queue');
+      toast.info('Delete saved offline — will sync when reconnected');
       return;
     }
 
@@ -465,7 +590,9 @@ export function useROStore() {
             pendingDeletes.current.delete(id);
             setROs(prev => {
               if (prev.some(r => r.id === id)) return prev;
-              return [pending.savedRO, ...prev];
+              const restored = [pending.savedRO, ...prev];
+              if (userId) void saveROsToCache(userId, restored);
+              return restored;
             });
           }
         },
@@ -675,6 +802,14 @@ export function useROStore() {
     ros,
     settings,
     loadingROs,
+    /** Where the current `ros` array came from. */
+    dataSource,
+    /** ISO timestamp of the cached snapshot being shown, or null when live. */
+    cachedAt,
+    /** Set of RO IDs that have unsynced local changes. Cleared after a live fetch. */
+    offlinePendingIds,
+    /** True when the last fetchROs attempt failed (network/server error). */
+    fetchError,
     addRO,
     updateRO,
     deleteRO,
