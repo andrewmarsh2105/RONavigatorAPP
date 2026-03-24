@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface SectionCardProps {
   title?: string;
@@ -19,17 +18,23 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <div className={cn("surface-panel overflow-hidden", className)}>
       {(title || rightSlot) && (
-        <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 bg-muted/20 pb-3">
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/20">
           <div>
-            {title && <CardTitle>{title}</CardTitle>}
-            {description && <CardDescription className="mt-1">{description}</CardDescription>}
+            {title && (
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                {title}
+              </h3>
+            )}
+            {description && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+            )}
           </div>
           {rightSlot}
-        </CardHeader>
+        </div>
       )}
-      <CardContent className={cn(title ? "pt-4" : "pt-5", contentClassName)}>{children}</CardContent>
-    </Card>
+      <div className={cn("px-4 py-3", contentClassName)}>{children}</div>
+    </div>
   );
 }

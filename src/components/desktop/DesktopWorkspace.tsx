@@ -39,19 +39,22 @@ const panelVariants = {
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.14, ease: [0.25, 0.1, 0.25, 1] as const },
   },
   exit: {
     opacity: 0,
     y: -4,
-    transition: { duration: 0.12, ease: [0.25, 0.1, 0.25, 1] as const },
+    transition: { duration: 0.1, ease: [0.25, 0.1, 0.25, 1] as const },
   },
 };
 
 type RightPanel = "details" | "editor" | "settings" | "summary" | "none";
 type ViewMode = "split" | "spreadsheet";
 
-function IconButton(props: {
+/* ── Toolbar icon button ─────────────────────────── */
+function ToolbarBtn({
+  title, active, onClick, children,
+}: {
   title: string;
   active?: boolean;
   onClick: () => void;
@@ -60,21 +63,63 @@ function IconButton(props: {
   return (
     <button
       type="button"
-      onClick={props.onClick}
+      onClick={onClick}
       className={cn(
-        "h-9 w-9 flex items-center justify-center rounded-md quiet-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        props.active
-          ? "bg-primary text-primary-foreground"
-          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+        "toolbar-btn",
+        active && "toolbar-btn-active",
       )}
-      title={props.title}
-      aria-label={props.title}
-      aria-pressed={props.active}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
     >
-      {props.children}
+      {children}
     </button>
   );
 }
+
+/* ── Splitter drag handle ────────────────────────── */
+function SplitHandle({
+  isDragging,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+}: {
+  isDragging: boolean;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "w-1.5 flex-shrink-0 cursor-col-resize flex items-center justify-center group rounded-sm quiet-transition",
+        isDragging
+          ? "bg-primary/30"
+          : "bg-border/30 hover:bg-primary/20",
+      )}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      role="separator"
+      aria-orientation="vertical"
+    >
+      <div className="flex flex-col gap-[3px] opacity-50 group-hover:opacity-100 quiet-transition">
+        {[0, 1, 2, 3].map(i => (
+          <div
+            key={i}
+            className={cn(
+              "w-[3px] h-[3px] rounded-full bg-muted-foreground quiet-transition",
+              isDragging && "bg-primary",
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main workspace ──────────────────────────────── */
 
 export function DesktopWorkspace() {
   const { ros, deleteRO } = useRO();
@@ -116,7 +161,6 @@ export function DesktopWorkspace() {
     setIsDragging(false);
   }, []);
 
-  // Row click → details (safe, read-only)
   const handleSelectRO = (ro: RepairOrder) => {
     setSelectedRO(ro);
     setIsAddingNew(false);
@@ -124,7 +168,6 @@ export function DesktopWorkspace() {
     setFocusLineId(null);
   };
 
-  // Flag inbox navigation → editor with focus
   const handleSelectROWithFocus = (roId: string, lineId?: string | null) => {
     const ro = ros.find((r) => r.id === roId);
     if (!ro) {
@@ -141,10 +184,7 @@ export function DesktopWorkspace() {
     setFocusLineId(lineId ?? null);
   };
 
-  // Explicit edit action
-  const handleEditRO = () => {
-    setRightPanel("editor");
-  };
+  const handleEditRO = () => setRightPanel("editor");
 
   const handleAddNew = () => {
     setSelectedRO(null);
@@ -158,7 +198,6 @@ export function DesktopWorkspace() {
   };
 
   const handleCancel = () => {
-    // If we were editing an existing RO, go back to details
     if (selectedRO && !isAddingNew) {
       setRightPanel("details");
       return;
@@ -168,9 +207,7 @@ export function DesktopWorkspace() {
     setRightPanel("none");
   };
 
-  const handleSaveAndAddAnother = () => {
-    handleAddNew();
-  };
+  const handleSaveAndAddAnother = () => handleAddNew();
 
   const handleDeleteFromDetails = () => {
     if (!selectedRO) return;
@@ -200,15 +237,16 @@ export function DesktopWorkspace() {
       <TrialCountdownBanner />
       <OfflineStatusBar />
 
-      {/* App Bar */}
-      <div className="flex-shrink-0 h-12 flex items-center justify-between px-4 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/35 backdrop-blur-sm shadow-[var(--shadow-sm)]">
+      {/* ── App Bar ──────────────────────────────────── */}
+      <div className="flex-shrink-0 h-11 flex items-center justify-between px-3 border-b border-border/60 bg-card">
         <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
 
-        <div className="flex items-center gap-1">
+        {/* Right-side toolbar */}
+        <div className="flex items-center gap-0.5">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
 
           {isPro && (
-            <IconButton
+            <ToolbarBtn
               title="Spreadsheet View"
               active={viewMode === "spreadsheet"}
               onClick={() => {
@@ -219,29 +257,32 @@ export function DesktopWorkspace() {
               }}
             >
               <Table2 className="icon-toolbar" />
-            </IconButton>
+            </ToolbarBtn>
           )}
 
-          <IconButton
+          {/* Thin separator */}
+          <div className="w-px h-5 bg-border/60 mx-1" />
+
+          <ToolbarBtn
             title="Summary & Reports"
             active={rightPanel === "summary"}
             onClick={() => togglePanel("summary")}
           >
             <BarChart3 className="icon-toolbar" />
-          </IconButton>
+          </ToolbarBtn>
 
-          <IconButton
+          <ToolbarBtn
             title="Settings"
             active={rightPanel === "settings"}
             onClick={() => togglePanel("settings")}
           >
             {rightPanel === "settings" ? <X className="icon-toolbar" /> : <Settings className="icon-toolbar" />}
-          </IconButton>
+          </ToolbarBtn>
 
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1 h-9 px-3 rounded-md border border-border/80 bg-accent/35 text-[11px] font-semibold text-primary hover:bg-accent/55 quiet-transition flex items-center gap-2"
+              className="ml-1.5 h-7 px-2.5 rounded-lg border border-primary/30 bg-primary/[0.08] text-[11px] font-bold text-primary hover:bg-primary/15 quiet-transition flex items-center gap-1.5"
               title="Upgrade to Pro"
             >
               <Crown className="h-3 w-3" />
@@ -264,11 +305,19 @@ export function DesktopWorkspace() {
           </Suspense>
         </div>
       ) : (
-        <div className={cn("flex-1 flex min-h-0 p-3 gap-3 bg-gradient-to-b from-primary/[0.04] via-background to-accent/[0.14]", isDragging && "select-none")}>
+        <div
+          className={cn(
+            "flex-1 flex min-h-0 p-2.5 gap-2 bg-muted/20",
+            isDragging && "select-none",
+          )}
+        >
           {/* Left Panel */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden rounded-2xl border border-border/90 bg-card/95 shadow-[var(--shadow-raised)]"
-            style={isWideList ? { flex: "1 1 0%" } : { width: splitter.width }}
+            className="min-w-0 flex-shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card"
+            style={{
+              ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
+              boxShadow: "var(--shadow-raised)",
+            }}
           >
             <ROListPanel
               selectedROId={selectedRO?.id || null}
@@ -279,33 +328,20 @@ export function DesktopWorkspace() {
             />
           </div>
 
-          {/* Draggable splitter + Right Panel */}
+          {/* Splitter + Right Panel */}
           {!isWideList && (
             <>
-              <div
-                className={cn(
-                  "w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center group border-x border-border/80 bg-gradient-to-b from-accent/60 to-secondary/70 hover:from-accent hover:to-secondary quiet-transition rounded-md",
-                  isDragging && "bg-accent",
-                )}
+              <SplitHandle
+                isDragging={isDragging}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-              >
-                <div className="flex flex-col gap-[3px]">
-                  {[0, 1, 2].map(i => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-1 h-1 rounded-full bg-border group-hover:bg-muted-foreground/50 quiet-transition",
-                        isDragging && "bg-muted-foreground/50",
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
+              />
 
-              <div className="flex-1 min-w-0 relative rounded-2xl border border-border/90 bg-card/95 shadow-[var(--shadow-raised)]">
+              <div
+                className="flex-1 min-w-0 relative rounded-xl border border-border/60 bg-card overflow-hidden"
+                style={{ boxShadow: "var(--shadow-raised)" }}
+              >
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
                     <motion.div

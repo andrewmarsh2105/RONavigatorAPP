@@ -21,28 +21,30 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex items-center justify-between px-4 h-12 border-b border-border bg-card",
+        "flex items-center justify-between px-3 h-11 border-b border-border/60 bg-card/97 backdrop-blur-sm",
         sticky && "sticky top-0 z-30",
         className,
       )}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 min-w-0">
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center justify-center h-9 w-9 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="flex items-center justify-center h-8 w-8 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </button>
         )}
         <div className="min-w-0">
-          <h1 className="text-sm font-semibold text-foreground truncate">{title}</h1>
+          <h1 className="text-[14px] font-bold text-foreground truncate tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="text-[11px] text-muted-foreground truncate leading-tight">{subtitle}</p>
+            <p className="text-[10px] text-muted-foreground truncate leading-tight">{subtitle}</p>
           )}
         </div>
       </div>
-      {rightActions && <div className="flex items-center gap-1.5 flex-shrink-0">{rightActions}</div>}
+      {rightActions && (
+        <div className="flex items-center gap-1 flex-shrink-0">{rightActions}</div>
+      )}
     </header>
   );
 }

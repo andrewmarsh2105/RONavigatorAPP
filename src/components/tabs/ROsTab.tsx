@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Filter, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2 } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useRO } from '@/contexts/ROContext';
 import { useFlagContext } from '@/contexts/FlagContext';
@@ -13,7 +12,6 @@ import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog
 import { maskHours } from '@/lib/maskHours';
 import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
-import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
 import { ROActionMenu } from '@/components/shared/ROActionMenu';
@@ -34,47 +32,54 @@ const SpreadsheetView = lazy(() =>
   import('@/components/shared/SpreadsheetView').then((m) => ({ default: m.SpreadsheetView })),
 );
 
-/* ── StatusChips ─────────────────────────────────── */
+/* ── Labor type accent bar color ─────────────────── */
+const laborTypeBarColor = (type: LaborType) =>
+  type === 'warranty'
+    ? 'hsl(var(--status-warranty))'
+    : type === 'customer-pay'
+      ? 'hsl(var(--status-customer-pay))'
+      : 'hsl(var(--status-internal))';
 
-function MobileStatusChips({ ro, flagsCount, checksCount }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
+/* ── Compact inline status indicators ───────────── */
+function InlineStatusChips({
+  ro, flagsCount, checksCount,
+}: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
-
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      <Badge
-        variant={status.paid === "Paid" ? "outline" : "secondary"}
-        className={cn(
-          "text-[10px] px-2 py-0.5 font-semibold rounded-full",
-          status.paid === "Paid"
-            ? "border-[hsl(var(--status-warranty))]/30 text-[hsl(var(--status-warranty))]"
-            : "text-muted-foreground",
-        )}
-      >
-        {status.paid}
-      </Badge>
+    <div className="flex items-center gap-1">
+      {/* Paid status — only show if clearly notable */}
+      {status.paid === 'Paid' ? (
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[hsl(var(--status-warranty))] leading-none">
+          <CheckCircle2 className="h-2.5 w-2.5" />
+        </span>
+      ) : (
+        <span className="text-[9px] font-semibold text-muted-foreground leading-none px-1 rounded bg-muted/60">
+          {status.paid}
+        </span>
+      )}
       {status.tbd > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground leading-none">
           <Clock className="h-2.5 w-2.5" />
-          {status.tbd}
-        </Badge>
+          <span>{status.tbd}</span>
+        </span>
       )}
       {status.flags > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--status-internal))]">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-internal))' }}>
           <Flag className="h-2.5 w-2.5" />
-          {status.flags}
-        </Badge>
+          <span>{status.flags}</span>
+        </span>
       )}
       {status.checks > 0 && (
-        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1 font-semibold rounded-full text-[hsl(var(--destructive))]">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
-          {status.checks}
-        </Badge>
+          <span>{status.checks}</span>
+        </span>
       )}
     </div>
   );
 }
 
-/* ── ROCard ─────────────────────────────────────── */
+/* ── ROCard — dense, purpose-built row card ──────── */
 
 interface ROCardProps {
   ro: RepairOrder;
@@ -92,52 +97,74 @@ const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
 }: ROCardProps) {
-  const roEffectiveDate = effectiveDate(ro);
   const hours = calcHours(ro);
+  const roDate = formatDateShort(effectiveDate(ro));
+  const accentColor = laborTypeBarColor(ro.laborType);
 
-  const laborTypeColor =
-    ro.laborType === 'warranty'
-      ? 'hsl(var(--status-warranty))'
-      : ro.laborType === 'customer-pay'
-        ? 'hsl(var(--status-customer-pay))'
-        : 'hsl(var(--status-internal))';
+  const workSummary = ro.lines?.length
+    ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(' · ')
+    : ro.workPerformed || '—';
+
+  const vehicle = vehicleLabel(ro);
 
   return (
     <div
-      className="card-mobile px-4 py-3.5 group row-hover quiet-transition border-l-4 border border-border/80 shadow-[var(--shadow-card)]"
-      style={{ borderLeftColor: laborTypeColor }}
+      className="ro-row-card bg-card relative overflow-hidden quiet-transition group"
+      style={{ borderLeftColor: accentColor }}
     >
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0 cursor-pointer" onClick={onViewDetails}>
-          {/* Row 1: RO# · hours · status badges */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-base font-extrabold tabular-nums flex-shrink-0 text-foreground">#{ro.roNumber || '—'}</span>
-            <span className="hours-pill flex-shrink-0">{maskHours(hours, hideTotals)}h</span>
-            <span className="meta-text tabular-nums flex-shrink-0 bg-muted/60 px-2 py-0.5 rounded-full">{formatDateShort(roEffectiveDate)}</span>
-            <div className="flex-shrink-0">
-              <MobileStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
-            </div>
+      {/* Clickable body */}
+      <div
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/30 transition-colors duration-100 active:bg-muted/50"
+        onClick={onViewDetails}
+      >
+        {/* Main content */}
+        <div className="flex-1 min-w-0 px-3 py-2.5">
+          {/* Top row: RO# + hours + date + status */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[14px] font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0">
+              #{ro.roNumber || '—'}
+            </span>
+            <span className="hours-pill flex-shrink-0 text-[11px]">
+              {maskHours(hours, hideTotals)}h
+            </span>
+            <StatusPill type={ro.laborType} size="sm" className="flex-shrink-0" />
+            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0 ml-auto">
+              {roDate}
+            </span>
+            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
 
-          {/* Row 2: labor type · advisor/vehicle + work summary */}
-          <div className="flex items-start gap-1.5 mt-2 min-w-0">
-            <StatusPill type={ro.laborType} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="meta-text leading-snug truncate">
+          {/* Bottom row: Advisor · vehicle · work */}
+          <div className="flex items-baseline gap-1 mt-1 min-w-0">
+            {ro.advisor && (
+              <span className="text-[11px] font-semibold text-foreground/80 truncate flex-shrink-0 max-w-[120px]">
                 {ro.advisor}
-                {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
-              </p>
-              <p className="meta-text text-muted-foreground/75 leading-snug line-clamp-2 break-words">
-                {ro.lines?.length
-                  ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(", ")
-                  : ro.workPerformed || "—"}
-              </p>
-            </div>
+              </span>
+            )}
+            {vehicle !== '—' && (
+              <>
+                <span className="text-muted-foreground/40 text-[10px] flex-shrink-0">·</span>
+                <span className="text-[11px] text-muted-foreground truncate flex-shrink-0 max-w-[90px]">
+                  {vehicle}
+                </span>
+              </>
+            )}
+            {workSummary && workSummary !== '—' && (
+              <>
+                <span className="text-muted-foreground/30 text-[10px] flex-shrink-0">—</span>
+                <span className="text-[11px] text-muted-foreground/70 truncate min-w-0">
+                  {workSummary}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Menu */}
-        <div className="flex-shrink-0 pt-0.5">
+        {/* Action menu — flush right, vertically centered */}
+        <div
+          className="flex-shrink-0 flex items-center pr-1.5 pl-1"
+          onClick={(e) => e.stopPropagation()}
+        >
           <ROActionMenu
             roNumber={ro.roNumber}
             onEdit={onEdit}
@@ -170,7 +197,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const navigate = useNavigate();
   const { ros, deleteRO, loadingROs } = useRO();
   const { isPro } = useSubscription();
-  const { flags, userSettings } = useFlagContext();
+  const { flags, userSettings, addFlag } = useFlagContext();
 
   const hasCustomPayPeriod =
     userSettings.payPeriodType === 'custom' &&
@@ -251,8 +278,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     });
   }, [advisorsInRange, setFilters]);
 
-  // Pre-filtered ROs: search + advisor + labor type, sorted — but NO date filter.
-  // SpreadsheetView manages its own local date range independently.
   const preFilteredROs = useMemo(() => {
     let result = ros;
 
@@ -282,7 +307,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return sortROs(result, filters.sortBy);
   }, [ros, deferredSearch, filters]);
 
-  // For cards view: apply date filter on top of pre-filtered ROs
   const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
@@ -320,10 +344,9 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const hasMore = visibleCount < filteredROs.length;
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
-  const goalSettings = userSettings; // use shared FlagContext instance — updates immediately when settings change
+  const goalSettings = userSettings;
   const hoursGoalDaily = goalSettings.hoursGoalDaily;
 
-  // Today's hours for daily goal indicator
   const todayHours = useMemo(() => {
     if (hoursGoalDaily <= 0) return 0;
     const today = new Date().toISOString().slice(0, 10);
@@ -355,136 +378,143 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     setDateRange('all');
   };
 
+  const dateFilterOptions = [
+    { value: 'all' as const, label: 'All' },
+    { value: 'today' as const, label: 'Today' },
+    { value: 'week' as const, label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
+    { value: 'last_week' as const, label: 'Last Wk' },
+    { value: 'month' as const, label: 'Month' },
+    ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
+    { value: 'custom' as const, label: 'Custom' },
+  ];
+
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/90 shadow-[var(--shadow-sm)]">
-        <div className="px-4 pt-2.5">
+      {/* ── Sticky header ───────────────────────────── */}
+      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/60" style={{ boxShadow: '0 1px 8px -4px hsl(220 30% 12% / 0.12)' }}>
 
-          {/* Row 1: Shop name + action icons */}
-          <div className="flex items-center justify-between pb-2 gap-2">
-            <h2 className="page-title text-foreground">{goalSettings.shopName || 'Repair Orders'}</h2>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {goalSettings.displayName && (
-                <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 select-none">
-                  {goalSettings.displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              {/* Spreadsheet view — more prominent, bordered */}
-              <button
-                onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
-                className={cn(
-                  'h-9 w-9 flex items-center justify-center rounded-full quiet-transition relative border',
-                  isPro && viewMode === 'spreadsheet'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-[var(--shadow-soft)]'
-                    : 'text-foreground bg-accent/40 border-border hover:bg-accent'
-                )}
-                title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
-              >
-                {viewMode === 'spreadsheet' && isPro ? <LayoutList className="icon-toolbar" /> : <Table2 className="icon-toolbar" />}
-                {!isPro && (
-                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-primary rounded-full flex items-center justify-center">
-                    <Crown className="h-2 w-2 text-primary-foreground" />
-                  </span>
-                )}
-              </button>
-              {/* Flag Inbox — far right */}
-              <FlagInbox />
-            </div>
-          </div>
+        {/* Top bar: shop name + controls */}
+        <div className="flex items-center h-12 px-3 gap-2 border-b border-border/30">
+          <h2 className="page-title text-foreground flex-1 truncate">
+            {goalSettings.shopName || 'Repair Orders'}
+          </h2>
 
-          {/* Row 2: Compact summary pill + search bar with filter icon */}
-          <div className="flex items-center gap-2 pb-2">
-            {/* Compact blue summary */}
-            <div className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-primary/35 bg-primary/[0.15] px-2 py-1 shadow-[var(--shadow-sm)]">
-              <span className="text-lg font-bold tabular-nums text-primary leading-none tracking-tight">
-                {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-              </span>
-              <span className="text-xs text-muted-foreground tabular-nums font-medium leading-none">
-                {filteredROs.length} ROs
-              </span>
-              {hoursGoalDaily > 0 && (
-                <span className={cn(
-                  'text-[10px] font-semibold tabular-nums leading-none px-1.5 py-0.5 rounded-full',
-                  todayHours >= hoursGoalDaily
-                    ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                    : 'bg-primary/10 text-primary'
-                )}>
-                  {todayHours.toFixed(1)}/{hoursGoalDaily}h
-                </span>
-              )}
-            </div>
-
-            {/* Search bar — filter icon replaces magnifying glass */}
-            <div className="relative flex-1">
-              <button
-                onClick={() => setShowFilters(true)}
-                className={cn(
-                  "absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center quiet-transition z-10",
-                  activeFiltersCount > 0 ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <SlidersHorizontal className="icon-toolbar" />
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search RO #, advisor, vehicle, work..."
-                className="w-full h-9 pl-8 pr-3 rounded-full border border-input bg-card text-sm shadow-[var(--shadow-sm)] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Date filter chips + range label */}
-          {viewMode !== 'spreadsheet' && (
-            <div className="pb-2.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {([
-                  { value: 'all', label: 'All' },
-                  { value: 'today', label: 'Today' },
-                  { value: 'week', label: userSettings.defaultSummaryRange === 'two_weeks' ? '2 Wk' : 'Week' },
-                  { value: 'last_week', label: 'Last Wk' },
-                  { value: 'month', label: 'Month' },
-                  ...(hasCustomPayPeriod ? [{ value: 'pay_period' as const, label: 'Pay Period' }] : []),
-                  { value: 'custom' as const, label: 'Custom' },
-                ] as const).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
-                    className={cn(
-                      'h-8 px-3.5 text-xs font-semibold rounded-full border quiet-transition',
-                      dateFilter === value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card text-muted-foreground border-border hover:bg-accent/50'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-                {/* Date range label — moved out of the summary box, lives here near the chips */}
-                <span
-                  className={cn(
-                    "ml-auto flex items-center gap-1 text-xs font-medium text-muted-foreground",
-                    dateFilter === "custom" && "cursor-pointer hover:text-foreground"
-                  )}
-                  onClick={() => { if (dateFilter === "custom") requestCustomDialog(); }}
-                >
-                  <CalendarRange className="h-3 w-3" />
-                  {rangeChipLabel}
-                </span>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Daily goal indicator */}
+            {hoursGoalDaily > 0 && (
+              <div className={cn(
+                'h-7 px-2 rounded-full text-[10px] font-bold tabular-nums flex items-center gap-1 border',
+                todayHours >= hoursGoalDaily
+                  ? 'bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400'
+                  : 'bg-primary/10 text-primary border-primary/20'
+              )}>
+                <span>{todayHours.toFixed(1)}</span>
+                <span className="opacity-60">/</span>
+                <span>{hoursGoalDaily}h</span>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Avatar */}
+            {goalSettings.displayName && (
+              <div className="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[11px] font-bold flex-shrink-0 select-none">
+                {goalSettings.displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            {/* Spreadsheet toggle */}
+            <button
+              onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
+              className={cn(
+                'h-7 w-7 flex items-center justify-center rounded-md quiet-transition relative border',
+                isPro && viewMode === 'spreadsheet'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
+              )}
+              title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
+            >
+              {viewMode === 'spreadsheet' && isPro ? <LayoutList className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
+              {!isPro && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full flex items-center justify-center">
+                  <Crown className="h-1.5 w-1.5 text-primary-foreground" />
+                </span>
+              )}
+            </button>
+
+            {/* Flag Inbox */}
+            <FlagInbox />
+          </div>
         </div>
+
+        {/* Search + stats bar */}
+        <div className="flex items-center gap-2 px-3 py-2">
+          {/* Hours + RO count pill */}
+          <div className="stat-badge flex-shrink-0">
+            <span className="text-base font-extrabold tabular-nums text-primary leading-none tracking-tight">
+              {maskHours(totalHours, userSettings.hideTotals ?? false)}h
+            </span>
+            <span className="text-[10px] text-muted-foreground font-medium leading-none">
+              {filteredROs.length} RO{filteredROs.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setShowFilters(true)}
+              className={cn(
+                'absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center quiet-transition z-10',
+                activeFiltersCount > 0 ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 bg-primary text-primary-foreground text-[7px] font-bold rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search RO, advisor, vehicle, work..."
+              className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+        </div>
+
+        {/* Date filter chips */}
+        {viewMode !== 'spreadsheet' && (
+          <div className="flex items-center gap-1 px-3 pb-2 overflow-x-auto scrollbar-hide">
+            {dateFilterOptions.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
+                className={cn(
+                  'h-7 px-2.5 text-[11px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
+                  dateFilter === value
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <span
+              className={cn(
+                'ml-auto flex items-center gap-1 text-[10px] font-medium text-muted-foreground flex-shrink-0',
+                dateFilter === 'custom' && 'cursor-pointer hover:text-foreground'
+              )}
+              onClick={() => { if (dateFilter === 'custom') requestCustomDialog(); }}
+            >
+              <CalendarRange className="h-3 w-3" />
+              {rangeChipLabel}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* List content */}
+      {/* ── List content ─────────────────────────────── */}
       {viewMode === 'spreadsheet' && isPro ? (
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
@@ -495,21 +525,18 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pb-32 bg-gradient-to-b from-accent/[0.22] via-background to-secondary/30">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/20">
           {loadingROs ? (
-            <div className="px-4 py-3 space-y-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="card-mobile px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex gap-2">
-                        <Skeleton className="h-3.5 w-14" />
-                        <Skeleton className="h-3.5 w-20" />
-                      </div>
-                      <Skeleton className="h-3 w-40" />
+            <div className="divide-y divide-border/40">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 bg-card">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex gap-2 items-center">
+                      <Skeleton className="h-4 w-16 rounded" />
+                      <Skeleton className="h-4 w-12 rounded-full" />
+                      <Skeleton className="h-4 w-10 rounded-full" />
                     </div>
-                    <Skeleton className="h-5 w-10 rounded-md" />
-                    <Skeleton className="h-5 w-12 rounded-md" />
+                    <Skeleton className="h-3 w-44 rounded" />
                   </div>
                 </div>
               ))}
@@ -544,7 +571,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               }
             />
           ) : (
-            <div className="px-4 py-2.5 space-y-2">
+            <div className="divide-y divide-border/40">
               {visibleROs.map(ro => (
                 <ROCard
                   key={ro.id}
@@ -565,11 +592,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               {hasMore && (
                 <button
                   onClick={() => setVisibleCount(c => c + 50)}
-                  className="w-full h-10 rounded-full border border-border/90 bg-card text-xs font-semibold text-primary hover:bg-muted quiet-transition"
+                  className="w-full h-10 bg-card border-t border-border/40 text-[11px] font-semibold text-primary hover:bg-muted/40 quiet-transition"
                 >
                   Show {Math.min(50, filteredROs.length - visibleCount)} more
                 </button>
               )}
+              {/* Bottom padding for FAB */}
+              <div className="h-24" />
             </div>
           )}
         </div>
@@ -588,15 +617,15 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
       {/* Filter / Sort Bottom Sheet */}
       <BottomSheet isOpen={showFilters} onClose={() => setShowFilters(false)} title="Filter & Sort">
-        <div className="p-4 space-y-5">
-          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
-            <label className="section-title block mb-2">Sort By</label>
+        <div className="p-4 space-y-4">
+          <div className="surface-subtle p-3">
+            <label className="section-title block mb-2.5">Sort By</label>
             <div className="grid grid-cols-2 gap-1.5">
               {([
                 { value: 'date', label: 'Most recent' },
                 { value: 'ro', label: 'RO #' },
-                { value: 'advisor', label: 'Advisor A-Z' },
-                { value: 'customer', label: 'Customer A-Z' },
+                { value: 'advisor', label: 'Advisor A–Z' },
+                { value: 'customer', label: 'Customer A–Z' },
                 { value: 'laborType', label: 'Labor type' },
                 { value: 'hours', label: 'Hours' },
               ] as const).map(o => (
@@ -604,10 +633,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   key={o.value}
                   onClick={() => setFilters(prev => ({ ...prev, sortBy: o.value }))}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-full border quiet-transition min-h-[44px] text-left',
+                    'px-3 py-2 text-[11px] font-semibold rounded-lg border quiet-transition min-h-[40px] text-left',
                     filters.sortBy === o.value
                       ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border'
+                      : 'bg-card text-muted-foreground border-border/70 hover:bg-muted/40'
                   )}
                 >
                   {o.label}
@@ -616,8 +645,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/90 bg-gradient-to-b from-secondary/70 to-card p-3 shadow-[var(--shadow-sm)]">
-            <label className="section-title block mb-2">Labor Type</label>
+          <div className="surface-subtle p-3">
+            <label className="section-title block mb-2.5">Labor Type</label>
             <div className="flex flex-wrap gap-1.5">
               {(['warranty', 'customer-pay', 'internal'] as LaborType[]).map(type => (
                 <Chip
@@ -631,8 +660,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </div>
 
           {advisorsInRange.length > 0 && (
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
-              <label className="section-title block mb-2">Advisor</label>
+            <div className="surface-subtle p-3">
+              <label className="section-title block mb-2.5">Advisor</label>
               <div className="flex flex-wrap gap-1.5">
                 {advisorsInRange.map(advisor => (
                   <Chip
@@ -646,18 +675,18 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               onClick={clearFilters}
-              className="flex-1 h-12 bg-secondary rounded-xl font-medium text-sm"
+              className="flex-1 h-11 bg-muted rounded-xl font-semibold text-sm text-foreground/70 hover:bg-muted/80 quiet-transition"
             >
               Clear All
             </button>
             <button
               onClick={() => setShowFilters(false)}
-              className="flex-1 h-12 bg-primary text-primary-foreground rounded-xl font-semibold text-sm"
+              className="flex-1 h-11 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 quiet-transition"
             >
-              Apply
+              Done
             </button>
           </div>
         </div>

@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Cool-neutral base — lets the blue primary pop */
-    --background: 210 36% 98%;
+    --background: 210 30% 97%;
     --foreground: 222 42% 10%;
 
     --card: 0 0% 100%;
@@ -20,11 +20,11 @@
     --primary: 214 100% 46%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 48% 93%;
+    --secondary: 210 40% 94%;
     --secondary-foreground: 222 30% 16%;
 
-    --muted: 214 34% 92%;
-    --muted-foreground: 218 16% 39%;
+    --muted: 214 30% 93%;
+    --muted-foreground: 218 16% 42%;
 
     --accent: 186 47% 89%;
     --accent-foreground: 194 45% 20%;
@@ -33,44 +33,44 @@
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 30% 81%;
-    --input: 216 30% 81%;
+    --border: 216 28% 84%;
+    --input: 216 28% 84%;
     --ring: 214 95% 53%;
 
-    /* Friendly — notably rounder */
+    /* Notably rounder */
     --radius: 0.875rem;
 
     /* Status colors */
-    --status-warranty: 148 68% 34%;
+    --status-warranty: 148 68% 30%;
     --status-warranty-foreground: 0 0% 100%;
-    --status-warranty-bg: 142 46% 92%;
+    --status-warranty-bg: 142 50% 90%;
 
-    --status-customer-pay: 200 84% 40%;
+    --status-customer-pay: 200 84% 38%;
     --status-customer-pay-foreground: 0 0% 100%;
-    --status-customer-pay-bg: 199 70% 90%;
+    --status-customer-pay-bg: 199 72% 88%;
 
-    --status-internal: 26 85% 45%;
+    --status-internal: 26 85% 42%;
     --status-internal-foreground: 0 0% 100%;
-    --status-internal-bg: 28 82% 92%;
+    --status-internal-bg: 28 82% 90%;
 
     /* Chart colors */
     --chart-period-b: 188 58% 45%;
 
     /* Mobile-safe */
-    --tab-bar-height: 5rem;
+    --tab-bar-height: 4.75rem;
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
 
-    /* Cool, crisp shadows */
-    --shadow-sm: 0 2px 6px 0 hsl(220 35% 12% / 0.09);
-    --shadow-card: 0 8px 18px -10px hsl(218 45% 16% / 0.24), 0 1px 0 hsl(var(--primary) / 0.08), 0 0 0 1px hsl(var(--border) / 0.86);
-    --shadow-raised: 0 18px 34px -18px hsl(218 50% 16% / 0.3), 0 0 0 1px hsl(var(--border) / 0.78);
-    --shadow-soft: 0 4px 10px -4px hsl(220 26% 10% / 0.12);
-    --shadow-fab: 0 14px 28px -8px hsl(var(--primary) / 0.58), 0 6px 14px -6px hsl(var(--primary) / 0.32);
-    --shadow-sheet: 0 -8px 28px -8px hsl(220 20% 10% / 0.16), 0 -1px 0 0 hsl(var(--border) / 0.6);
+    /* Refined shadow system */
+    --shadow-sm: 0 1px 4px 0 hsl(220 35% 12% / 0.07), 0 0 0 1px hsl(220 20% 12% / 0.04);
+    --shadow-card: 0 2px 8px -2px hsl(218 45% 16% / 0.12), 0 1px 0 0 hsl(var(--border) / 0.7), 0 0 0 1px hsl(var(--border) / 0.55);
+    --shadow-raised: 0 8px 24px -8px hsl(218 50% 16% / 0.22), 0 2px 8px -4px hsl(218 40% 16% / 0.12), 0 0 0 1px hsl(var(--border) / 0.7);
+    --shadow-soft: 0 4px 12px -4px hsl(220 26% 10% / 0.1);
+    --shadow-fab: 0 12px 28px -8px hsl(var(--primary) / 0.55), 0 4px 12px -4px hsl(var(--primary) / 0.28);
+    --shadow-sheet: 0 -8px 28px -8px hsl(220 20% 10% / 0.14), 0 -1px 0 0 hsl(var(--border) / 0.55);
 
     /* Sidebar */
-    --sidebar-background: 210 36% 98%;
+    --sidebar-background: 210 30% 97%;
     --sidebar-foreground: 222 28% 10%;
     --sidebar-primary: 214 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -97,10 +97,10 @@
     --foreground: 220 15% 95%;
 
     /* Clearly lighter than bg — cards pop */
-    --card: 222 14% 15%;
+    --card: 222 14% 14%;
     --card-foreground: 220 15% 95%;
 
-    --popover: 222 14% 15%;
+    --popover: 222 14% 14%;
     --popover-foreground: 220 15% 95%;
 
     /* Lighter blue so it pops on dark bg */
@@ -111,7 +111,7 @@
     --secondary-foreground: 220 15% 95%;
 
     --muted: 222 12% 20%;
-    --muted-foreground: 220 8% 64%;
+    --muted-foreground: 220 8% 62%;
 
     --accent: 190 25% 25%;
     --accent-foreground: 220 15% 95%;
@@ -120,26 +120,26 @@
     --destructive: 0 70% 52%;
     --destructive-foreground: 220 15% 95%;
 
-    --border: 221 12% 28%;
-    --input: 221 12% 28%;
+    --border: 221 12% 26%;
+    --input: 221 12% 26%;
     --ring: 214 90% 65%;
 
     --status-warranty: 142 62% 52%;
     --status-warranty-foreground: 142 90% 10%;
-    --status-warranty-bg: 142 34% 17%;
+    --status-warranty-bg: 142 34% 15%;
 
     --status-customer-pay: 199 75% 55%;
     --status-customer-pay-foreground: 199 95% 10%;
-    --status-customer-pay-bg: 199 44% 20%;
+    --status-customer-pay-bg: 199 44% 18%;
 
     --status-internal: 28 88% 60%;
     --status-internal-foreground: 28 90% 10%;
-    --status-internal-bg: 28 44% 17%;
+    --status-internal-bg: 28 44% 15%;
 
     --chart-period-b: 263 65% 68%;
 
-    --shadow-card: 0 1px 4px -1px hsl(0 0% 0% / 0.32), 0 0 0 1px hsl(var(--border) / 0.9);
-    --shadow-raised: 0 12px 36px -16px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(var(--border) / 0.85);
+    --shadow-card: 0 1px 4px -1px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(var(--border) / 0.85);
+    --shadow-raised: 0 12px 36px -16px hsl(0 0% 0% / 0.6), 0 0 0 1px hsl(var(--border) / 0.8);
     --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.28);
     --shadow-fab: 0 10px 32px -8px hsl(var(--primary) / 0.5), 0 4px 10px -4px hsl(var(--primary) / 0.25);
     --shadow-sheet: 0 -4px 24px -4px hsl(0 0% 0% / 0.45), 0 -1px 0 0 hsl(var(--border) / 0.6);
@@ -150,7 +150,7 @@
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 190 25% 25%;
     --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border: 222 10% 24%;
+    --sidebar-border: 222 10% 22%;
     --sidebar-ring: 214 90% 65%;
   }
 }
@@ -168,11 +168,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-    line-height: 1.6;
+    line-height: 1.55;
     padding-top: var(--safe-area-inset-top);
-    background-image:
-      radial-gradient(1100px 460px at 10% -20%, hsl(var(--primary) / 0.12), transparent 60%),
-      radial-gradient(900px 420px at 95% -30%, hsl(var(--accent) / 0.26), transparent 65%);
   }
 
   html, body {
@@ -190,28 +187,39 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* Cards — rounder, softer */
+  /* ── Cards ────────────────────────────────────────── */
   .card-mobile {
-    @apply bg-card rounded-2xl border border-border/90;
+    @apply bg-card rounded-xl border;
+    border-color: hsl(var(--border) / 0.7);
     box-shadow: var(--shadow-card);
   }
 
   .card-raised {
-    @apply bg-card rounded-2xl border border-border/90;
+    @apply bg-card rounded-xl border;
+    border-color: hsl(var(--border) / 0.7);
     box-shadow: var(--shadow-raised);
   }
 
-  /* Hours pill — more prominent, warmer */
-  .hours-pill {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full font-bold text-sm tabular-nums;
-    color: hsl(var(--primary));
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.13));
-    border: 1px solid hsl(var(--primary) / 0.24);
+  /* RO row card — tighter, purpose-built for list density */
+  .ro-row-card {
+    @apply bg-card border-l-[3px] relative;
+    border-color: hsl(var(--border) / 0.6);
+    border-top-color: hsl(var(--border) / 0.4);
+    box-shadow: 0 1px 3px -1px hsl(218 40% 14% / 0.08);
   }
 
-  /* Status pills — fully pill-shaped, no border */
+  /* ── Hours pill ────────────────────────────────────── */
+  .hours-pill {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full font-bold text-xs tabular-nums;
+    color: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.12);
+    border: 1px solid hsl(var(--primary) / 0.2);
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Status pills ──────────────────────────────────── */
   .status-pill {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider;
   }
 
   .status-pill-warranty {
@@ -232,43 +240,61 @@
     color: hsl(var(--status-internal));
   }
 
-  /* Bottom sheet — dramatic top rounding, friendly */
+  /* ── Labor type dot indicator ─────────────────────── */
+  .labor-dot {
+    @apply inline-block w-2 h-2 rounded-full flex-shrink-0;
+  }
+
+  .labor-dot-warranty {
+    background: hsl(var(--status-warranty));
+  }
+
+  .labor-dot-customer-pay {
+    background: hsl(var(--status-customer-pay));
+  }
+
+  .labor-dot-internal {
+    background: hsl(var(--status-internal));
+  }
+
+  /* ── Bottom sheet ──────────────────────────────────── */
   .bottom-sheet {
-    @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-[1.75rem] border-t border-border/40;
+    @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-[1.5rem] border-t border-border/40;
     box-shadow: var(--shadow-sheet);
     padding-bottom: calc(1.25rem + var(--safe-area-inset-bottom));
   }
 
   .bottom-sheet-handle {
-    @apply w-10 h-[5px] bg-muted-foreground/20 rounded-full mx-auto mt-3 mb-2;
+    @apply w-9 h-[4px] rounded-full mx-auto mt-3 mb-2;
+    background: hsl(var(--muted-foreground) / 0.18);
   }
 
-  /* FAB — fully round, glowy */
+  /* ── FAB ───────────────────────────────────────────── */
   .fab {
     @apply fixed z-40 flex items-center justify-center bg-primary text-primary-foreground rounded-full font-semibold;
     box-shadow: var(--shadow-fab);
-    bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + 1rem);
+    bottom: calc(var(--tab-bar-height) + var(--safe-area-inset-bottom) + 0.75rem);
     right: 1rem;
-    height: 56px;
-    min-width: 56px;
+    height: 52px;
+    min-width: 52px;
   }
 
   .fab-extended {
-    @apply fab px-6 gap-2.5;
+    @apply fab px-5 gap-2;
     border-radius: 9999px;
   }
 
-  /* Segmented control */
+  /* ── Segmented control ─────────────────────────────── */
   .segmented-control {
-    @apply inline-flex p-1 bg-secondary border border-border/80 rounded-2xl;
+    @apply inline-flex p-1 bg-secondary border border-border/70 rounded-xl;
   }
 
   .segmented-control-item {
-    @apply px-4 py-2 text-sm font-medium rounded-xl transition-all tap-target;
+    @apply px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all tap-target;
   }
 
   .segmented-control-item-active {
-    @apply bg-primary text-primary-foreground font-semibold;
+    @apply bg-card text-foreground font-semibold;
     box-shadow: var(--shadow-sm);
   }
 
@@ -276,9 +302,9 @@
     @apply text-muted-foreground hover:text-foreground/80 transition-colors;
   }
 
-  /* Chips — pill-shaped */
+  /* ── Chips ─────────────────────────────────────────── */
   .chip {
-    @apply inline-flex items-center gap-1.5 px-4 py-2 bg-secondary border border-border/80 rounded-full text-sm font-medium tap-target transition-all duration-150;
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-secondary border border-border/70 rounded-full text-sm font-medium tap-target transition-all duration-150;
   }
 
   .chip:active {
@@ -287,15 +313,15 @@
 
   .chip-selected {
     @apply bg-primary text-primary-foreground border-transparent;
-    box-shadow: 0 6px 14px -8px hsl(var(--primary) / 0.7);
+    box-shadow: 0 3px 10px -4px hsl(var(--primary) / 0.6);
   }
 
-  /* Tab bar */
+  /* ── Tab bar ───────────────────────────────────────── */
   .tab-bar-pwa {
-    @apply fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl border-t border-border/50;
-    background-color: hsl(var(--card) / 0.96);
-    min-height: calc(56px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    @apply fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl border-t border-border/40;
+    background-color: hsl(var(--card) / 0.97);
+    min-height: calc(52px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .tab-bar-item {
@@ -310,20 +336,21 @@
     @apply text-muted-foreground;
   }
 
-  /* Swipe actions */
+  /* ── Swipe actions ─────────────────────────────────── */
   .swipe-action {
-    @apply absolute inset-y-0 flex items-center justify-center px-6;
+    @apply absolute inset-y-0 flex items-center justify-center px-5;
   }
 
   .swipe-action-edit {
-    @apply swipe-action right-0 bg-primary text-primary-foreground rounded-r-2xl;
+    @apply swipe-action right-0 bg-primary text-primary-foreground;
   }
 
   .swipe-action-duplicate {
-    @apply swipe-action left-0 text-white rounded-l-2xl;
+    @apply swipe-action left-0 text-white;
     background: hsl(var(--status-warranty));
   }
 
+  /* ── Form inputs ───────────────────────────────────── */
   .numeric-input {
     @apply text-center text-3xl font-bold bg-transparent border-0 focus:outline-none focus:ring-0 w-full;
   }
@@ -337,36 +364,67 @@
     @apply focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-shadow;
   }
 
-  /* Typography scale */
-  .page-title    { @apply text-[18px] font-bold tracking-tight; }
-  .page-subtitle { @apply text-[12px] text-muted-foreground; }
-  .section-title { @apply text-[11px] font-semibold uppercase tracking-widest text-muted-foreground; }
-  .meta-text     { @apply text-[12px] text-muted-foreground; }
+  /* ── Typography scale ──────────────────────────────── */
+  .page-title    { @apply text-[17px] font-bold tracking-tight; }
+  .page-subtitle { @apply text-[11px] text-muted-foreground; }
+  .section-title { @apply text-[10px] font-semibold uppercase tracking-widest text-muted-foreground; }
+  .meta-text     { @apply text-[11px] text-muted-foreground; }
 
-  /* Hierarchy */
-  .inset-panel { @apply rounded-2xl border border-border/90 bg-accent/[0.42]; }
-  .row-hover   { @apply hover:bg-muted/60; }
+  /* ── Surfaces ──────────────────────────────────────── */
+  .inset-panel { @apply rounded-lg border bg-muted/30; border-color: hsl(var(--border) / 0.7); }
+  .row-hover   { @apply hover:bg-muted/50; }
+
   .metric-emphasis {
-    @apply inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3 py-2 shadow-sm;
+    @apply inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2;
+    box-shadow: var(--shadow-sm);
   }
   .warning-surface {
-    @apply rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300;
+    @apply rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300;
   }
   .surface-panel {
-    @apply rounded-2xl border border-border/90 bg-card;
+    @apply rounded-xl border bg-card;
+    border-color: hsl(var(--border) / 0.7);
     box-shadow: var(--shadow-card);
   }
   .surface-subtle {
-    @apply rounded-xl border border-border/80 bg-accent/[0.32];
+    @apply rounded-lg border bg-muted/20;
+    border-color: hsl(var(--border) / 0.6);
   }
 
-  /* Icon discipline */
+  /* ── Desktop list row ──────────────────────────────── */
+  .list-row {
+    @apply border-b border-border/40 text-xs cursor-pointer transition-colors duration-100;
+  }
+
+  .list-row-selected {
+    @apply bg-primary/[0.08] border-l-2 border-l-primary;
+  }
+
+  .list-row-default {
+    @apply hover:bg-muted/40;
+  }
+
+  /* ── Icon discipline ───────────────────────────────── */
   .icon-toolbar { @apply h-4 w-4; }
   .icon-row     { @apply h-3.5 w-3.5; }
   .icon-sheet   { @apply h-[18px] w-[18px]; }
 
-  /* Quiet motion */
+  /* ── Motion ────────────────────────────────────────── */
   .quiet-transition { @apply transition-all duration-150 ease-out; }
+
+  /* ── Desktop toolbar button ────────────────────────── */
+  .toolbar-btn {
+    @apply h-8 w-8 flex items-center justify-center rounded-lg quiet-transition text-muted-foreground hover:text-foreground hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .toolbar-btn-active {
+    @apply bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90;
+  }
+
+  /* ── Stats badge ───────────────────────────────────── */
+  .stat-badge {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.1] px-2.5 py-1.5;
+  }
 }
 
 @layer utilities {
@@ -397,5 +455,10 @@
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Stronger text emphasis — for RO numbers, hours, key data */
+  .data-strong {
+    @apply font-bold text-foreground tabular-nums;
   }
 }
