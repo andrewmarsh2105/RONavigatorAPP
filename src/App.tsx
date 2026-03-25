@@ -8,11 +8,9 @@ import { ROProvider } from "@/contexts/ROContext";
 import { FlagProvider } from "@/contexts/FlagContext";
 import { OfflineProvider } from "@/contexts/OfflineContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { SUPABASE_CONFIGURED } from "@/integrations/supabase/client";
-
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/states/ErrorBoundary";
 
 // Lazy-loaded heavy routes
@@ -92,39 +90,6 @@ const LazyFallback = () => (
 );
 
 const App = () => {
-  // If Supabase env vars were absent at build time the client module would
-  // previously throw here, killing React before mount.  We now guard at the
-  // React level so a clear, actionable error screen is shown instead of an
-  // infinite spinner or a blank page.
-  if (!SUPABASE_CONFIGURED) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="max-w-md w-full text-center space-y-4">
-          <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
-          <div>
-            <h1 className="text-lg font-semibold mb-1">App configuration error</h1>
-            <p className="text-muted-foreground text-sm">
-              Supabase environment variables are missing. The app cannot authenticate or load data.
-              Check that <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
-              <code className="font-mono text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code> are set.
-            </p>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            If you are the site owner, set these variables in your hosting platform's environment
-            settings (Netlify → Site settings → Environment variables, Vercel → Project settings →
-            Environment variables), then redeploy.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm cursor-pointer border-0"
-          >
-            Reload
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
   // Outer ErrorBoundary catches crashes in any Provider (AuthProvider,
   // SubscriptionProvider, OfflineProvider, ROProvider, FlagProvider).
