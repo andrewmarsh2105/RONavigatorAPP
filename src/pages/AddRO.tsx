@@ -553,7 +553,7 @@ export default function AddRO() {
               <button
                 type="button"
                 onClick={handleAddLine}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 h-11 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all min-w-[44px]"
               >
                 <Plus className="h-4 w-4" />
                 Line
@@ -562,7 +562,7 @@ export default function AddRO() {
               <button
                 type="button"
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
+                className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
                 aria-label="Paste lines from clipboard"
               >
@@ -573,7 +573,7 @@ export default function AddRO() {
                 type="button"
                 onClick={handleToggleAllTbd}
                 className={cn(
-                  'flex-shrink-0 h-10 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
+                  'flex-shrink-0 h-11 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
                   allLinesTbd
                     ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
                     : 'bg-secondary text-muted-foreground border-border'
@@ -620,7 +620,7 @@ export default function AddRO() {
               <button
                 type="button"
                 onClick={handleAddLine}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-full text-sm font-semibold bg-primary/10 text-primary border border-primary/20 active:scale-[0.96] transition-all"
               >
                 <Plus className="h-4 w-4" />
                 Add Line
@@ -628,7 +628,7 @@ export default function AddRO() {
               <button
                 type="button"
                 onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
+                className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
                 title="Paste lines from clipboard"
                 aria-label="Paste lines from clipboard"
               >
@@ -638,7 +638,7 @@ export default function AddRO() {
                 type="button"
                 onClick={handleToggleAllTbd}
                 className={cn(
-                  'flex-shrink-0 h-10 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
+                  'flex-shrink-0 h-11 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
                   allLinesTbd
                     ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
                     : 'bg-secondary text-muted-foreground border-border'
@@ -737,7 +737,7 @@ export default function AddRO() {
                   key={adv.id}
                   onClick={() => { setAdvisor(adv.name); setShowAdvisorList(false); setAdvisorSearch(''); }}
                   className={cn(
-                    'h-8 px-3 rounded-full text-xs font-medium border transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'h-10 px-3 rounded-full text-xs font-medium border transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     advisor === adv.name
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted text-muted-foreground border-border'
