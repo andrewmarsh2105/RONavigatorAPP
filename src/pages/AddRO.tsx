@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Camera, Plus, Loader2, User, FileText, ClipboardPaste, Crown } from 'lucide-react';
+import { Camera, Plus, Loader2, User, FileText, Crown } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { localDateStr } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -15,7 +15,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useFlagContext } from '@/contexts/FlagContext';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { haptics } from '@/lib/haptics';
-import { parsePastedLines } from '@/lib/parseLines';
 import type { LaborType, ROLine, VehicleInfo, Preset } from '@/types/ro';
 import { cn } from '@/lib/utils';
 import { calcLineHours } from '@/lib/roDisplay';
@@ -317,34 +316,6 @@ export default function AddRO() {
     toast.success(markTbd ? 'All lines marked TBD' : 'TBD cleared from all lines');
   };
 
-  const handlePasteLines = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      const parsed = parsePastedLines(text, laborType);
-      if (!parsed.length) {
-        toast.error('No lines found in clipboard');
-        return;
-      }
-      haptics.light();
-      const newLines: ROLine[] = parsed.map((p, i) => ({
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 9) + i,
-        lineNo: i + 1,
-        description: p.description,
-        hoursPaid: p.hoursPaid,
-        isTbd: p.isTbd,
-        laborType: p.laborType,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
-      const updatedLines = [...newLines, ...lines].map((l, i) => ({ ...l, lineNo: i + 1 }));
-      setLines(updatedLines);
-      setHighlightedLineIds(newLines.map(l => l.id));
-      toast.success(`Pasted ${newLines.length} lines`);
-    } catch (err) {
-      toast.error('Failed to read clipboard');
-    }
-  };
-
   const handleSave = async (addAnother: boolean = false) => {
     if (!roNumber.trim()) { toast.error('RO number is required'); return; }
     if (!advisor.trim()) { toast.error('Advisor is required'); return; }
@@ -561,16 +532,6 @@ export default function AddRO() {
 
               <button
                 type="button"
-                onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
-                title="Paste lines from clipboard"
-                aria-label="Paste lines from clipboard"
-              >
-                <ClipboardPaste className="h-4 w-4" />
-              </button>
-
-              <button
-                type="button"
                 onClick={handleToggleAllTbd}
                 className={cn(
                   'flex-shrink-0 h-11 px-3 rounded-full text-xs font-bold border active:scale-[0.96] transition-all',
@@ -624,15 +585,6 @@ export default function AddRO() {
               >
                 <Plus className="h-4 w-4" />
                 Add Line
-              </button>
-              <button
-                type="button"
-                onClick={handlePasteLines}
-                className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-full text-sm font-medium bg-secondary border border-border active:scale-[0.96] transition-all"
-                title="Paste lines from clipboard"
-                aria-label="Paste lines from clipboard"
-              >
-                <ClipboardPaste className="h-4 w-4" />
               </button>
               <button
                 type="button"
