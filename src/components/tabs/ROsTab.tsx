@@ -494,28 +494,32 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
           {/* Search bar */}
           <div className="relative flex-1">
-            <button
-              onClick={() => setShowFilters(true)}
-              className={cn(
-                'absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center quiet-transition z-10',
-                activeFiltersCount > 0 ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 bg-primary text-primary-foreground text-[7px] font-bold rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search name, RO#, VIN, work, notes…"
-              className="w-full h-7 pl-8 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full h-9 pl-3 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
+
+          {/* Filter button — standalone for easy tap target */}
+          <button
+            onClick={() => setShowFilters(true)}
+            className={cn(
+              'relative flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border quiet-transition',
+              activeFiltersCount > 0
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            )}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Date filter chips + quick labor type chips */}
