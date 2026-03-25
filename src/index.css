@@ -203,17 +203,18 @@
   /* RO row card — tighter, purpose-built for list density */
   .ro-row-card {
     @apply bg-card border-l-[3px] relative;
-    border-color: hsl(var(--border) / 0.6);
-    border-top-color: hsl(var(--border) / 0.4);
-    box-shadow: 0 1px 3px -1px hsl(218 40% 14% / 0.08);
+    border-color: hsl(var(--border) / 0.55);
+    border-top-color: hsl(var(--border) / 0.35);
+    box-shadow: 0 1px 2px -1px hsl(218 40% 14% / 0.06);
   }
 
   /* ── Hours pill ────────────────────────────────────── */
   .hours-pill {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full font-bold text-xs tabular-nums;
+    @apply inline-flex items-center px-1.5 py-px rounded-full font-bold tabular-nums leading-none;
+    font-size: 11px;
     color: hsl(var(--primary));
-    background: hsl(var(--primary) / 0.12);
-    border: 1px solid hsl(var(--primary) / 0.2);
+    background: hsl(var(--primary) / 0.1);
+    border: 1px solid hsl(var(--primary) / 0.22);
     letter-spacing: -0.01em;
   }
 
@@ -423,7 +424,7 @@
 
   /* ── Stats badge ───────────────────────────────────── */
   .stat-badge {
-    @apply inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.1] px-2.5 py-1.5;
+    @apply inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/[0.08] px-2 py-1;
   }
 }
 

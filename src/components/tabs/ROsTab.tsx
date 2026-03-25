@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, StickyNote } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, StickyNote, Rows3, Rows4 } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -97,11 +97,13 @@ interface ROCardProps {
   reviewIssues: ReviewIssue[];
   existingRONumbers: string[];
   hideTotals: boolean;
+  compact?: boolean;
 }
 
 const ROCard = memo(function ROCard({
   ro, onEdit, onDelete, onFlag, onViewDetails,
   flags, reviewIssues, existingRONumbers, hideTotals,
+  compact = false,
 }: ROCardProps) {
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
@@ -124,19 +126,25 @@ const ROCard = memo(function ROCard({
         onClick={onViewDetails}
       >
         {/* Main content */}
-        <div className="flex-1 min-w-0 px-3 py-2">
+        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[5px]' : 'py-2')}>
           {/* Top row: RO# + hours + type + customer name + date + status */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[13px] font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0">
+            <span className={cn(
+              'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0',
+              compact ? 'text-[12px]' : 'text-[13px]',
+            )}>
               #{ro.roNumber || '—'}
             </span>
-            <span className="hours-pill flex-shrink-0 text-[11px]">
+            <span className={cn('hours-pill flex-shrink-0', compact ? 'text-[10px] px-1.5 py-px' : 'text-[11px]')}>
               {maskHours(hours, hideTotals)}h
             </span>
             <StatusPill type={ro.laborType} size="sm" className="flex-shrink-0" />
             {/* Customer name — primary differentiator, fills available space */}
             {ro.customerName ? (
-              <span className="text-[11px] font-semibold text-foreground/90 truncate min-w-0 flex-1">
+              <span className={cn(
+                'font-semibold text-foreground/90 truncate min-w-0 flex-1',
+                compact ? 'text-[10px]' : 'text-[11px]',
+              )}>
                 {ro.customerName}
               </span>
             ) : (
@@ -148,8 +156,8 @@ const ROCard = memo(function ROCard({
             <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
 
-          {/* Bottom row: Advisor · vehicle · work */}
-          <div className="flex items-baseline gap-1 mt-0.5 min-w-0">
+          {/* Bottom row: Advisor · vehicle · work — hidden in compact when no room */}
+          <div className={cn('flex items-baseline gap-1 min-w-0', compact ? 'mt-px' : 'mt-0.5')}>
             {ro.advisor && (
               <span className="text-[10px] font-medium text-foreground/60 truncate flex-shrink-0 max-w-[110px]">
                 {ro.advisor}
@@ -163,13 +171,18 @@ const ROCard = memo(function ROCard({
                 </span>
               </>
             )}
-            {workSummary && workSummary !== '—' && (
+            {!compact && workSummary && workSummary !== '—' && (
               <>
                 <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">—</span>
                 <span className="text-[10px] text-muted-foreground/55 truncate min-w-0">
                   {workSummary}
                 </span>
               </>
+            )}
+            {compact && workSummary && workSummary !== '—' && !ro.advisor && !vehicle && (
+              <span className="text-[10px] text-muted-foreground/50 truncate min-w-0">
+                {workSummary}
+              </span>
             )}
           </div>
         </div>
@@ -225,6 +238,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [flaggingRO, setFlaggingRO] = useState<RepairOrder | null>(null);
   const [viewMode, setViewMode] = useLocalStorageState<'cards' | 'spreadsheet'>('ui.mobile.roTab.viewMode.v1', 'cards');
+  const [density, setDensity] = useLocalStorageState<'normal' | 'compact'>('ui.mobile.roTab.density.v1', 'normal');
   const [visibleCount, setVisibleCount] = useState(50);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -399,8 +413,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
       <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/60" style={{ boxShadow: '0 1px 8px -4px hsl(220 30% 12% / 0.12)' }}>
 
         {/* Top bar: shop name + controls */}
-        <div className="flex items-center h-12 px-3 gap-2 border-b border-border/30">
-          <h2 className="page-title text-foreground flex-1 truncate">
+        <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
+          <h2 className="text-[15px] font-bold tracking-tight text-foreground flex-1 truncate">
             {goalSettings.shopName || 'Repair Orders'}
           </h2>
 
@@ -408,7 +422,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             {/* Daily goal indicator */}
             {hoursGoalDaily > 0 && (
               <div className={cn(
-                'h-7 px-2 rounded-full text-[10px] font-bold tabular-nums flex items-center gap-1 border',
+                'h-6 px-2 rounded-full text-[10px] font-bold tabular-nums flex items-center gap-1 border',
                 todayHours >= hoursGoalDaily
                   ? 'bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400'
                   : 'bg-primary/10 text-primary border-primary/20'
@@ -421,23 +435,39 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
             {/* Avatar */}
             {goalSettings.displayName && (
-              <div className="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[11px] font-bold flex-shrink-0 select-none">
+              <div className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 select-none">
                 {goalSettings.displayName.charAt(0).toUpperCase()}
               </div>
+            )}
+
+            {/* Density toggle */}
+            {viewMode === 'cards' && (
+              <button
+                onClick={() => setDensity(d => d === 'normal' ? 'compact' : 'normal')}
+                className={cn(
+                  'h-6 w-6 flex items-center justify-center rounded-md quiet-transition border',
+                  density === 'compact'
+                    ? 'bg-primary/10 text-primary border-primary/25'
+                    : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
+                )}
+                title={density === 'compact' ? 'Switch to normal density' : 'Switch to compact density'}
+              >
+                {density === 'compact' ? <Rows3 className="h-3 w-3" /> : <Rows4 className="h-3 w-3" />}
+              </button>
             )}
 
             {/* Spreadsheet toggle */}
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
-                'h-7 w-7 flex items-center justify-center rounded-md quiet-transition relative border',
+                'h-6 w-6 flex items-center justify-center rounded-md quiet-transition relative border',
                 isPro && viewMode === 'spreadsheet'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
               )}
               title={isPro ? 'Toggle spreadsheet view' : 'Spreadsheet view — Pro'}
             >
-              {viewMode === 'spreadsheet' && isPro ? <LayoutList className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
+              {viewMode === 'spreadsheet' && isPro ? <LayoutList className="h-3 w-3" /> : <Table2 className="h-3 w-3" />}
               {!isPro && (
                 <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full flex items-center justify-center">
                   <Crown className="h-1.5 w-1.5 text-primary-foreground" />
@@ -451,10 +481,10 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         </div>
 
         {/* Search + stats bar */}
-        <div className="flex items-center gap-2 px-3 py-2">
+        <div className="flex items-center gap-2 px-3 py-1.5">
           {/* Hours + RO count pill */}
           <div className="stat-badge flex-shrink-0">
-            <span className="text-base font-extrabold tabular-nums text-primary leading-none tracking-tight">
+            <span className="text-[15px] font-extrabold tabular-nums text-primary leading-none tracking-tight">
               {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </span>
             <span className="text-[10px] text-muted-foreground font-medium leading-none">
@@ -483,20 +513,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search name, RO#, VIN, work, notes…"
-              className="w-full h-8 pl-8 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full h-7 pl-8 pr-3 rounded-lg border border-input bg-background text-[12px] shadow-[var(--shadow-sm)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
         </div>
 
-        {/* Date filter chips */}
+        {/* Date filter chips + quick labor type chips */}
         {viewMode !== 'spreadsheet' && (
-          <div className="flex items-center gap-1 px-3 pb-2 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-1 px-3 pb-1.5 overflow-x-auto scrollbar-hide">
             {dateFilterOptions.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => value === 'custom' ? requestCustomDialog() : setDateRange(value as DateFilterKey)}
                 className={cn(
-                  'h-7 px-2.5 text-[11px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
+                  'h-6 px-2.5 text-[10px] font-semibold rounded-full border flex-shrink-0 quiet-transition',
                   dateFilter === value
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-transparent text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -505,6 +535,32 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 {label}
               </button>
             ))}
+            {/* Divider */}
+            <span className="w-px h-3.5 bg-border/60 flex-shrink-0 mx-0.5" />
+            {/* Quick labor type chips */}
+            {([
+              { type: 'warranty' as LaborType, label: 'W', color: 'hsl(var(--status-warranty))' },
+              { type: 'customer-pay' as LaborType, label: 'CP', color: 'hsl(var(--status-customer-pay))' },
+              { type: 'internal' as LaborType, label: 'INT', color: 'hsl(var(--status-internal))' },
+            ]).map(({ type, label, color }) => {
+              const active = filters.laborTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleLaborTypeFilter(type)}
+                  className={cn(
+                    'h-6 px-2 text-[9px] font-bold rounded-full flex-shrink-0 quiet-transition border',
+                    active ? 'text-white' : 'bg-transparent border-border/60 hover:border-border',
+                  )}
+                  style={active
+                    ? { backgroundColor: color, borderColor: color }
+                    : { color }}
+                  title={type === 'warranty' ? 'Warranty' : type === 'customer-pay' ? 'Customer Pay' : 'Internal'}
+                >
+                  {label}
+                </button>
+              );
+            })}
             <span
               className={cn(
                 'ml-auto flex items-center gap-1 text-[10px] font-medium text-muted-foreground flex-shrink-0',
@@ -584,6 +640,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                   flags={flagsByROId.get(ro.id) ?? []}
                   reviewIssues={reviewIssuesByROId.get(ro.id) ?? []}
                   hideTotals={userSettings.hideTotals ?? false}
+                  compact={density === 'compact'}
                   onEdit={() => onEditRO(ro)}
                   onFlag={() => setFlaggingRO(ro)}
                   onDelete={() => deleteRO(ro.id)}

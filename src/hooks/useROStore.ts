@@ -49,6 +49,19 @@ function effectiveDateOf(ro: RepairOrder): string {
   return paidDate && paidDate !== '—' ? paidDate : ro.date;
 }
 
+/**
+ * How many days back to treat as the "hot window" for Phase 1 fetching.
+ * ROs dated within this range (plus their lines) are fetched immediately and
+ * rendered before the background Phase 2 load of older headers completes.
+ */
+const HOT_WINDOW_DAYS = 120;
+
+function hotCutoffDateStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - HOT_WINDOW_DAYS);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function paidLinesOf(ro: RepairOrder): ROLine[] {
   return (ro.lines || []).filter(l => !l.isTbd);
 }
@@ -88,6 +101,17 @@ export function useROStore() {
   const cacheHydrated = useRef(false);
   /** Whether the last fetchROs() attempt failed (so we can surface it in the UI). */
   const [fetchError, setFetchError] = useState(false);
+  /**
+   * True once both Phase 1 (hot window) and Phase 2 (older headers) have
+   * completed for the current session. Consumers can show a subtle indicator
+   * while older history is still loading in the background.
+   */
+  const [hasFullHistory, setHasFullHistory] = useState(false);
+  /**
+   * Ref flag used to abort the background Phase 2 load when the component
+   * unmounts or the userId changes mid-flight.
+   */
+  const phase2AbortRef = useRef(false);
 
   // Cancel any in-flight delete timers when the store unmounts
   useEffect(() => {
@@ -99,7 +123,18 @@ export function useROStore() {
     };
   }, []);
 
-  // Fetch ROs with lines
+  // ── Two-phase fetch ────────────────────────────────────────────────────────
+  //
+  // Phase 1 (parallel, immediate):
+  //   • Fetch ROs dated within the last HOT_WINDOW_DAYS days
+  //   • Fetch ALL ro_lines for the user (needed for search & SpreadsheetView)
+  //   Both queries run in parallel so we pay only one round-trip instead of two.
+  //
+  // Phase 2 (background, ~400 ms later):
+  //   • Fetch older RO headers (no extra line query — uses the linesByRO map
+  //     already held in the Phase 1 closure, so old ROs still get their lines).
+  //   • Merges silently into state; UI is already usable from Phase 1.
+  //
   const fetchROs = useCallback(async () => {
     if (!userId) { setROs([]); setLoadingROs(false); setDataSource('loading'); return; }
 
@@ -113,108 +148,119 @@ export function useROStore() {
     // Only show the full-page loading spinner when we have no data at all.
     if (!cacheHydrated.current) setLoadingROs(true);
 
+    // Signal any in-flight Phase 2 from a previous fetch that it should abort.
+    phase2AbortRef.current = true;
+    // Immediately reset so the new Phase 2 we schedule below is allowed to run.
+    phase2AbortRef.current = false;
+
+    const hotCutoff = hotCutoffDateStr();
+
     try {
-      const { data: roRows, error } = await supabase
-        .from('ros')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(10000);
-      if (error) throw error;
+      // ── Phase 1: parallel fetch ──────────────────────────────────────────
+      // Run both Supabase queries concurrently — saves one full network RTT
+      // compared to the old sequential await pattern.
+      const [roResult, lineResult] = await Promise.all([
+        supabase
+          .from('ros')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', hotCutoff)          // Hot window only in Phase 1
+          .order('date', { ascending: false })
+          .limit(3000),
+        supabase
+          .from('ro_lines')
+          .select('*')
+          .eq('user_id', userId)           // ALL lines so search works for old ROs too
+          .order('line_no', { ascending: true })
+          .limit(10000),
+      ]);
 
-      const { data: lineRows, error: lErr } = await supabase
-        .from('ro_lines')
-        .select('*')
-        .eq('user_id', userId)
-        .order('line_no', { ascending: true })
-        .limit(10000);
-      if (lErr) throw lErr;
+      if (roResult.error) throw roResult.error;
+      if (lineResult.error) throw lineResult.error;
 
-      const linesByRO = groupLinesByRoId((lineRows || []) as RoLineRow[]);
+      const roRows = roResult.data || [];
+      const allLineRows = lineResult.data || [];
 
-      const mapped = (roRows || []).map((r) =>
+      // Build a single lines-by-RO map once — reused by Phase 2 at no extra cost.
+      const linesByRO = groupLinesByRoId(allLineRows as RoLineRow[]);
+
+      const hotMapped = roRows.map((r) =>
         dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
       );
-      setROs(mapped);
 
-      // Mark as live, clear stale indicators, persist to local cache.
+      setROs(hotMapped);
       setDataSource('live');
       setCachedAt(null);
       setFetchError(false);
       setOfflinePendingIds(new Set());
       cacheHydrated.current = true;
-      void saveROsToCache(userId, mapped);
+      // Phase 2 may still be pending — don't claim full history yet.
+      setHasFullHistory(false);
 
-      const totalLines = (lineRows || []).length;
-      pushDebug({ action: `fetchROs OK: ${mapped.length} ROs, ${totalLines} lines` });
+      pushDebug({
+        action: `fetchROs Phase1 OK: ${hotMapped.length} ROs (≥${hotCutoff}), ${allLineRows.length} lines`,
+      });
 
-      // Seed sample ROs for brand-new users with no data
-      if (mapped.length === 0 && userId && !localStorage.getItem(`sample.seeded.${userId}`)) {
-        localStorage.setItem(`sample.seeded.${userId}`, '1');
-        const today = new Date();
-        const daysAgo = (n: number) => {
-          const d = new Date(today);
-          d.setDate(d.getDate() - n);
-          return localDateStr(d);
-        };
-        const sampleInputs = [
-          {
-            ro: { roNumber: '100001', date: daysAgo(4), advisor: 'Mike Johnson', notes: 'Sample RO — delete when ready', vehicle: { year: 2021, make: 'Toyota', model: 'Camry' } },
-            lines: [
-              { description: 'Oil & filter change — 5W-30 synthetic', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
-              { description: 'Tire rotation', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
-              { description: 'Multi-point inspection', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100002', date: daysAgo(3), advisor: 'Sarah Lee', vehicle: { year: 2022, make: 'Ford', model: 'F-150' } },
-            lines: [
-              { description: 'Warranty: transmission output shaft seal replacement', hoursPaid: 2.4, laborType: 'warranty' as LaborType },
-              { description: 'Warranty: road test', hoursPaid: 0.5, laborType: 'warranty' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100003', date: daysAgo(2), advisor: 'Mike Johnson', vehicle: { year: 2020, make: 'Honda', model: 'Accord' } },
-            lines: [
-              { description: 'Brake pad replacement — front axle', hoursPaid: 1.5, laborType: 'customer-pay' as LaborType },
-              { description: 'Brake rotor resurface — front', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
-              { description: 'Brake fluid flush', hoursPaid: 0.4, laborType: 'customer-pay' as LaborType },
-            ],
-          },
-          {
-            ro: { roNumber: '100004', date: daysAgo(1), advisor: 'Sarah Lee', vehicle: { year: 2019, make: 'Chevrolet', model: 'Silverado' } },
-            lines: [
-              { description: '60k service: plugs, air filter, cabin filter', hoursPaid: 2.0, laborType: 'internal' as LaborType },
-              { description: 'Engine air induction service', hoursPaid: 0.5, laborType: 'internal' as LaborType },
-            ],
-          },
-        ];
+      // ── Phase 2: background load of older RO headers ─────────────────────
+      // Runs after React has had a chance to paint Phase 1 data.
+      // Uses the `linesByRO` closure from Phase 1 — no extra network request for
+      // lines, so old ROs still get their full line details (no search regression).
+      void (async () => {
+        await new Promise<void>((r) => setTimeout(r, 400));
+        if (phase2AbortRef.current) return; // Cancelled (userId changed / unmount)
 
-        (async () => {
-          const seededROs: RepairOrder[] = [];
-          for (const { ro, lines } of sampleInputs) {
-            const { data: newRow, error: rErr } = await supabase
-              .from('ros')
-              .insert(toRosInsert(userId, ro))
-              .select()
-              .single();
-            if (rErr || !newRow) continue;
-            const lineInserts = toRoLineInserts({ userId, roId: newRow.id, lines, fallbackLaborType: 'customer-pay' });
-            const { data: insertedLines } = await supabase.from('ro_lines').insert(lineInserts).select();
-            seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
+        const { data: oldRows, error: oldErr } = await supabase
+          .from('ros')
+          .select('*')
+          .eq('user_id', userId)
+          .lt('date', hotCutoff)           // Everything older than hot window
+          .order('date', { ascending: false })
+          .limit(7000);
+
+        if (phase2AbortRef.current) return;
+
+        if (oldErr) {
+          pushDebug({ action: 'fetchROs Phase2 FAIL', error: oldErr.message });
+          // Still mark history complete so UI doesn't hang in limbo
+          setHasFullHistory(true);
+          void saveROsToCache(userId, hotMapped);
+          return;
+        }
+
+        const oldData = oldRows || [];
+        pushDebug({ action: `fetchROs Phase2 OK: ${oldData.length} older RO headers` });
+
+        if (oldData.length === 0) {
+          // No old ROs — this user's full dataset is already in Phase 1
+          setHasFullHistory(true);
+          void saveROsToCache(userId, hotMapped);
+          return;
+        }
+
+        // Build old RO objects. Lines come from the Phase 1 linesByRO closure —
+        // the line query already fetched ALL user lines, so old ROs get them too.
+        const oldMapped = oldData.map((r) =>
+          dbToRepairOrder(r as RoRow, linesByRO.get((r as RoRow).id) || [])
+        );
+
+        setROs((prev) => {
+          if (phase2AbortRef.current) return prev;
+          const existingIds = new Set(prev.map((r) => r.id));
+          const uniqueOld = oldMapped.filter((r) => !existingIds.has(r.id));
+          if (uniqueOld.length === 0) {
+            void saveROsToCache(userId, prev);
+            return prev;
           }
-          if (seededROs.length > 0) {
-            // Merge into existing state rather than replace — avoids overwriting any RO
-            // the user added between fetchROs completing and the seeding IIFE finishing.
-            setROs(prev => {
-              const existingIds = new Set(prev.map(r => r.id));
-              const newOnes = seededROs.filter(r => !existingIds.has(r.id)).reverse();
-              return [...newOnes, ...prev];
-            });
-            toast('Sample ROs added — explore the app, then delete them when ready', { duration: 6000 });
-          }
-        })();
-      }
+          const merged = [...prev, ...uniqueOld];
+          void saveROsToCache(userId, merged);
+          return merged;
+        });
+        setHasFullHistory(true);
+      })();
+
+      const totalLines = allLineRows.length;
+      pushDebug({ action: `fetchROs lines loaded: ${totalLines}` });
+
     } catch (err: unknown) {
       console.error('Failed to fetch ROs', err);
       pushDebug({ action: 'fetchROs FAIL', error: errorMessage(err) });
@@ -292,6 +338,7 @@ export function useROStore() {
       setCachedAt(null);
       setFetchError(false);
       setOfflinePendingIds(new Set());
+      setHasFullHistory(false);
       cacheHydrated.current = false;
       return;
     }
@@ -319,7 +366,12 @@ export function useROStore() {
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // Signal any in-flight Phase 2 background load to abort cleanly so it
+      // doesn't write stale data into the new user's state.
+      phase2AbortRef.current = true;
+    };
   }, [userId, fetchROs]);
 
   useEffect(() => { fetchPresets(); }, [fetchPresets]);
@@ -432,7 +484,13 @@ export function useROStore() {
       .order('line_no', { ascending: true });
 
     const newRO = dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]);
-    setROs(prev => [newRO, ...prev]);
+    // Write new RO into cache immediately so it's available offline without
+    // waiting for the next full fetchROs() call.
+    setROs((prev) => {
+      const updated = [newRO, ...prev];
+      void saveROsToCache(user.id, updated);
+      return updated;
+    });
     return newRO;
   }, [user, isOnline, queueAction]);
 
@@ -539,18 +597,28 @@ export function useROStore() {
 
     if (updatedRow) {
       const updated = dbToRepairOrder(updatedRow as RoRow, (updatedLines || []) as RoLineRow[]);
-      setROs(prev => prev.map(r => r.id === id ? updated : r));
+      // Keep cache in sync after an online edit so the updated RO is visible
+      // if the user goes offline before the next full fetch.
+      setROs((prev) => {
+        const next = prev.map((r) => (r.id === id ? updated : r));
+        void saveROsToCache(user.id, next);
+        return next;
+      });
     } else {
       // Re-fetch failed — apply optimistic update from the data we sent
-      setROs(prev => prev.map(r => {
-        if (r.id !== id) return r;
-        return {
-          ...r,
-          ...updates,
-          lines: updates.lines ?? r.lines,
-          paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
-        };
-      }));
+      setROs((prev) => {
+        const next = prev.map((r) => {
+          if (r.id !== id) return r;
+          return {
+            ...r,
+            ...updates,
+            lines: updates.lines ?? r.lines,
+            paidHours: updates.lines ? calcLineHours(updates.lines) : r.paidHours,
+          };
+        });
+        void saveROsToCache(user.id, next);
+        return next;
+      });
     }
 
     return true;
@@ -785,18 +853,109 @@ export function useROStore() {
 
   const clearAllTbdLines = useCallback(async () => {
     if (!user) return;
-    // Collect all TBD line IDs
-    const tbdLineIds = ros.flatMap(ro => ro.lines.filter(l => l.isTbd).map(l => l.id));
+
+    // Read from ref so we always see the current state without adding `ros` to
+    // deps (which would recreate the callback on every RO change).
+    const tbdLineIds = rosRef.current.flatMap((ro) =>
+      ro.lines.filter((l) => l.isTbd).map((l) => l.id)
+    );
     if (tbdLineIds.length === 0) return;
 
-    const { error } = await supabase.from('ro_lines').update({ is_tbd: false }).in('id', tbdLineIds);
+    const { error } = await supabase
+      .from('ro_lines')
+      .update({ is_tbd: false })
+      .in('id', tbdLineIds);
+
     if (error) {
       toast.error('Failed to clear TBD status');
       return;
     }
+
+    // Apply the change in-memory — no need to re-fetch the entire dataset just
+    // to flip a boolean field we already know changed.
+    setROs((prev) => {
+      const updated = prev.map((ro) => ({
+        ...ro,
+        lines: ro.lines.map((l) => (l.isTbd ? { ...l, isTbd: false } : l)),
+      }));
+      if (userId) void saveROsToCache(userId, updated);
+      return updated;
+    });
+
     toast.success(`Cleared TBD from ${tbdLineIds.length} line(s)`);
-    await fetchROs();
-  }, [user, ros, fetchROs]);
+  }, [user, userId]);
+
+  /**
+   * Opt-in sample data seeder. Called by the onboarding flow when the user
+   * explicitly requests demo ROs. No-ops if sample data was already seeded for
+   * this user, or if the user already has ROs.
+   */
+  const seedSampleData = useCallback(async () => {
+    if (!userId) return;
+    if (localStorage.getItem(`sample.seeded.${userId}`)) return;
+    localStorage.setItem(`sample.seeded.${userId}`, '1');
+
+    const today = new Date();
+    const daysAgo = (n: number) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - n);
+      return localDateStr(d);
+    };
+
+    const sampleInputs = [
+      {
+        ro: { roNumber: '100001', date: daysAgo(4), advisor: 'Mike Johnson', notes: 'Sample RO — delete when ready', vehicle: { year: 2021, make: 'Toyota', model: 'Camry' } },
+        lines: [
+          { description: 'Oil & filter change — 5W-30 synthetic', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+          { description: 'Tire rotation', hoursPaid: 0.3, laborType: 'customer-pay' as LaborType },
+          { description: 'Multi-point inspection', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100002', date: daysAgo(3), advisor: 'Sarah Lee', vehicle: { year: 2022, make: 'Ford', model: 'F-150' } },
+        lines: [
+          { description: 'Warranty: transmission output shaft seal replacement', hoursPaid: 2.4, laborType: 'warranty' as LaborType },
+          { description: 'Warranty: road test', hoursPaid: 0.5, laborType: 'warranty' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100003', date: daysAgo(2), advisor: 'Mike Johnson', vehicle: { year: 2020, make: 'Honda', model: 'Accord' } },
+        lines: [
+          { description: 'Brake pad replacement — front axle', hoursPaid: 1.5, laborType: 'customer-pay' as LaborType },
+          { description: 'Brake rotor resurface — front', hoursPaid: 0.5, laborType: 'customer-pay' as LaborType },
+          { description: 'Brake fluid flush', hoursPaid: 0.4, laborType: 'customer-pay' as LaborType },
+        ],
+      },
+      {
+        ro: { roNumber: '100004', date: daysAgo(1), advisor: 'Sarah Lee', vehicle: { year: 2019, make: 'Chevrolet', model: 'Silverado' } },
+        lines: [
+          { description: '60k service: plugs, air filter, cabin filter', hoursPaid: 2.0, laborType: 'internal' as LaborType },
+          { description: 'Engine air induction service', hoursPaid: 0.5, laborType: 'internal' as LaborType },
+        ],
+      },
+    ];
+
+    const seededROs: RepairOrder[] = [];
+    for (const { ro, lines } of sampleInputs) {
+      const { data: newRow, error: rErr } = await supabase
+        .from('ros')
+        .insert(toRosInsert(userId, ro))
+        .select()
+        .single();
+      if (rErr || !newRow) continue;
+      const lineInserts = toRoLineInserts({ userId, roId: newRow.id, lines, fallbackLaborType: 'customer-pay' });
+      const { data: insertedLines } = await supabase.from('ro_lines').insert(lineInserts).select();
+      seededROs.push(dbToRepairOrder(newRow as RoRow, (insertedLines || []) as RoLineRow[]));
+    }
+
+    if (seededROs.length > 0) {
+      setROs(prev => {
+        const existingIds = new Set(prev.map(r => r.id));
+        const newOnes = seededROs.filter(r => !existingIds.has(r.id)).reverse();
+        return [...newOnes, ...prev];
+      });
+    }
+  }, [userId]);
 
   return {
     ros,
@@ -810,6 +969,13 @@ export function useROStore() {
     offlinePendingIds,
     /** True when the last fetchROs attempt failed (network/server error). */
     fetchError,
+    /**
+     * True once both Phase 1 (hot window) and the background Phase 2 (older
+     * headers) have finished loading.  False during the ~400 ms window after
+     * Phase 1 completes while Phase 2 is still in flight.
+     * Consumers may use this to show a subtle "loading older history…" badge.
+     */
+    hasFullHistory,
     addRO,
     updateRO,
     deleteRO,
@@ -822,5 +988,6 @@ export function useROStore() {
     getDaySummaries,
     getAdvisorSummaries,
     getWeekTotal,
+    seedSampleData,
   };
 }
