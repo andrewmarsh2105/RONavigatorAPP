@@ -61,7 +61,7 @@ function InlineStatusChips({
       {status.tbd > 0 && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground leading-none">
           <Clock className="h-2.5 w-2.5" />
-          <span>{status.tbd}</span>
+          <span>{status.allTbd ? 'All' : status.tbd}</span>
         </span>
       )}
       {status.flags > 0 && (

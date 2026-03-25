@@ -156,7 +156,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
             {status.tbd > 0 && (
               <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded leading-none">
                 <Clock className="h-2.5 w-2.5" />
-                {status.tbd} TBD
+                {status.allTbd ? 'TBD All' : `${status.tbd} TBD`}
               </span>
             )}
             {status.flags > 0 && (

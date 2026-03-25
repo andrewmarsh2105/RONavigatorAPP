@@ -188,6 +188,12 @@ export function LinesGrid({
 
   const totalHours = calcLineHours(lines);
   const tbdCount = lines.filter((l) => l.isTbd).length;
+  const allLinesTbd = lines.length > 0 && tbdCount === lines.length;
+
+  const handleToggleAllTbd = () => {
+    const markTbd = !allLinesTbd;
+    onLinesChange(lines.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
+  };
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
@@ -389,11 +395,28 @@ export function LinesGrid({
         <div className="px-3 py-3 text-sm text-muted-foreground">
           Total ({lines.length} lines)
           {tbdCount > 0 && (
-            <span className="ml-2 text-warning text-xs font-medium">• {tbdCount} TBD</span>
+            <span className="ml-2 text-warning text-xs font-medium">
+              • {allLinesTbd ? 'TBD All' : `${tbdCount} TBD`}
+            </span>
           )}
         </div>
         <div className="px-3 py-3" />
-        <div className="px-3 py-3" />
+        <div className="px-2 py-3 flex items-center justify-center">
+          {!readOnly && lines.length > 0 && (
+            <button
+              onClick={handleToggleAllTbd}
+              className={cn(
+                'px-2 py-1 rounded text-[10px] font-bold transition-colors',
+                allLinesTbd
+                  ? 'bg-warning/20 text-warning border border-warning/40'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+              title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines TBD'}
+            >
+              All
+            </button>
+          )}
+        </div>
         <div className="px-3 py-3 text-right text-primary tabular-nums">{totalHours.toFixed(1)}h</div>
         <div className="px-3 py-3" />
       </div>

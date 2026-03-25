@@ -93,7 +93,7 @@ function RowStatusChips({
       {status.tbd > 0 && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground leading-none">
           <Clock className="h-2.5 w-2.5" />
-          {status.tbd}
+          {status.allTbd ? 'All' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (

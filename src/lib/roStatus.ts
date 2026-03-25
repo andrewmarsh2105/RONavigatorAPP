@@ -14,17 +14,20 @@ export function getPaidLabel(ro: RepairOrder): "Paid" | "Unpaid" {
 }
 
 export function getStatusSummary(ro: RepairOrder, flagsCount: number, checksCount: number) {
+  const lines = ro.lines || [];
   const tbd = getTbdCount(ro);
+  const allTbd = lines.length > 0 && tbd === lines.length;
   const paid = getPaidLabel(ro);
 
   return {
     paid,
     tbd,
+    allTbd,
     flags: flagsCount,
     checks: checksCount,
     summary: [
       paid,
-      tbd ? `${tbd} TBD` : null,
+      allTbd ? 'TBD All' : tbd ? `${tbd} TBD` : null,
       flagsCount ? `${flagsCount} Flag` : null,
       checksCount ? `${checksCount} Check` : null,
     ].filter(Boolean).join(" • "),
