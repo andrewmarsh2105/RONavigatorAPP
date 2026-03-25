@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, Plus, Trash2, Check, ChevronDown, AlertTriangle, FileImage, Camera, Image, Loader2, Clock, X, ZoomIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -87,6 +87,8 @@ export function ScanReviewScreen({
   const [conflictResolutions, setConflictResolutions] = useState<Record<string, 'keep' | 'replace'>>({});
   /** IDs of newly-added lines (from the most recent page append) — highlighted briefly */
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
+  /** ID of the most recently manually-added line, used to scroll into view */
+  const [manualNewLineId, setManualNewLineId] = useState<string | null>(null);
   /** Full-screen lightbox image URL */
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const addPageCameraRef = useRef<HTMLInputElement>(null);
@@ -113,12 +115,24 @@ export function ScanReviewScreen({
     setData(latestExtracted);
   }, [latestExtracted]);
 
-  // Auto-scroll to top when new page lines arrive
+  // Auto-scroll to top when new page lines arrive (multi-page scan append)
   useEffect(() => {
     if (newLineIds.size > 0 && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [newLineIds]);
+
+  // Scroll to a manually added line
+  useEffect(() => {
+    if (!manualNewLineId) return;
+    requestAnimationFrame(() => {
+      const el = scrollContainerRef.current?.querySelector(`[data-line-id="${manualNewLineId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      setManualNewLineId(null);
+    });
+  }, [manualNewLineId]);
 
   const existingNormalized = useMemo(
     () => new Set(existingLineDescriptions.map(normalizeDesc).filter(t => t.length > 0)),
@@ -152,6 +166,7 @@ export function ScanReviewScreen({
     const updated = { ...data, lines: [newLine, ...data.lines] };
     setData(updated);
     onUpdateData(updated);
+    setManualNewLineId(newLine.id);
   };
 
   const removeLine = (lineId: string) => {
@@ -932,11 +947,22 @@ interface LineRowProps {
 }
 
 function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge, onUpdate, onRemove }: LineRowProps) {
+  const [rawHours, setRawHours] = useState<string>(() => (line.hours > 0 ? String(line.hours) : ''));
+  const hoursFocusedRef = useRef(false);
+
+  // Sync from parent when not focused (e.g. page append)
+  useEffect(() => {
+    if (!hoursFocusedRef.current) {
+      setRawHours(line.hours > 0 ? String(line.hours) : '');
+    }
+  }, [line.hours]);
+
   return (
     <motion.div
       layout
       initial={isNew ? { opacity: 0, y: -8 } : false}
       animate={{ opacity: 1, y: 0 }}
+      data-line-id={line.id}
       className={cn(
         'p-3 rounded-xl border-2 transition-colors',
       isNew ? 'border-primary/60 bg-primary/10' : isDuplicate ? 'border-yellow-400/60 bg-yellow-50/50 dark:bg-yellow-900/10' : 'bg-muted/50 border-border'
@@ -964,10 +990,22 @@ function LineRow({ line, idx, showConfidence, isNew, isDuplicate, showPageBadge,
             <input
               type="text"
               inputMode="decimal"
-              value={line.hours || ''}
+              value={rawHours}
               onChange={e => {
                 const val = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
-                onUpdate(line.id, 'hours', parseFloat(val) || 0);
+                setRawHours(val);
+                const parsed = parseFloat(val);
+                if (!isNaN(parsed)) {
+                  onUpdate(line.id, 'hours', parsed);
+                }
+              }}
+              onFocus={() => { hoursFocusedRef.current = true; }}
+              onBlur={() => {
+                hoursFocusedRef.current = false;
+                const parsed = parseFloat(rawHours);
+                const committed = isNaN(parsed) ? 0 : parsed;
+                onUpdate(line.id, 'hours', committed);
+                setRawHours(committed > 0 ? String(committed) : '');
               }}
               placeholder="Hours"
               className="w-20 h-8 px-2 bg-background rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
