@@ -80,8 +80,33 @@ export function CompactLinesGrid({
     handleLineChange(index, { hoursPaid: Math.max(0, value) });
   };
 
+  const allLinesTbd = lines.length > 0 && lines.every(l => l.isTbd);
+
+  const handleToggleAllTbd = () => {
+    triggerHaptic();
+    const markTbd = !allLinesTbd;
+    onLinesChange(lines.map(l => ({ ...l, isTbd: markTbd, updatedAt: new Date().toISOString() })));
+  };
+
   return (
     <div className="space-y-1.5" ref={topRef}>
+      {/* TBD All toggle */}
+      {!readOnly && lines.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleToggleAllTbd}
+            className={cn(
+              'h-8 px-3 rounded-md text-xs font-bold transition-all flex-shrink-0 border',
+              allLinesTbd
+                ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700'
+                : 'bg-secondary border-border text-muted-foreground hover:border-amber-300 hover:text-amber-600'
+            )}
+            title={allLinesTbd ? 'Clear TBD from all lines' : 'Mark all lines TBD'}
+          >
+            TBD All
+          </button>
+        </div>
+      )}
       {/* Compact Lines List - No presets here, they're in parent */}
       <AnimatePresence initial={false}>
         {lines.map((line, index) => {
