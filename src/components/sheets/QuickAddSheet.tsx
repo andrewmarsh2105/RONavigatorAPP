@@ -55,11 +55,13 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
   const [mileage, setMileage] = useState(editingRO?.mileage || '');
   const [showDetailsOpen, setShowDetailsOpen] = useState(false);
 
-  // RO cap — free users limited to RO_MONTHLY_CAP ROs/month
+  // RO cap — free users limited to RO_MONTHLY_CAP ROs/month.
+  // Uses ro.date (local YYYY-MM-DD) so midnight-Pacific creates don't slip into
+  // the wrong month due to UTC createdAt string comparisons.
   const monthlyROCount = useMemo(() => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+    return ros.filter(r => r.date && r.date >= monthStart).length;
   }, [ros]);
   const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 

@@ -65,11 +65,11 @@ export default function AddRO() {
   // Form state — advisor must be declared before the rangeFilteredAdvisors useMemo below
   const [advisor, setAdvisor] = useState(editingRO?.advisor || '');
 
-  // RO cap
+  // RO cap — use ro.date (local YYYY-MM-DD) to avoid UTC createdAt timezone drift.
   const monthlyROCount = useMemo(() => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+    return ros.filter(r => r.date && r.date >= monthStart).length;
   }, [ros]);
   const isAtCap = !isPro && !editingRO && monthlyROCount >= RO_MONTHLY_CAP;
 

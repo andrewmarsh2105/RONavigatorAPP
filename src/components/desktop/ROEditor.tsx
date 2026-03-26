@@ -45,11 +45,11 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   const { userSettings, getFlagsForRO, addFlag, clearFlag } = useFlagContext();
   const { isPro } = useSubscription();
 
-  // RO cap
+  // RO cap — use ro.date (local YYYY-MM-DD) to avoid UTC createdAt timezone drift.
   const monthlyROCount = useMemo(() => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    return ros.filter(r => r.createdAt && r.createdAt >= monthStart).length;
+    return ros.filter(r => r.date && r.date >= monthStart).length;
   }, [ros]);
   const isAtCap = !isPro && isNew && monthlyROCount >= RO_MONTHLY_CAP;
 

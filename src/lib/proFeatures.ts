@@ -7,7 +7,7 @@
  */
 
 /** Free-tier monthly RO cap. */
-export const RO_MONTHLY_CAP = 150;
+export const RO_MONTHLY_CAP = 25;
 
 /** Every defined upgrade trigger context in the app. */
 export type UpgradeTrigger =

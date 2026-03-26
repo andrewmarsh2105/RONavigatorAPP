@@ -211,9 +211,17 @@ export function AccountSheet({
           {hasBillingIssue && (
             <div className="mx-4 mb-3 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
               <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-700 dark:text-red-400 leading-snug">
-                We couldn't renew your Pro subscription. Open billing to update payment details.
-              </p>
+              <div className="flex-1">
+                <p className="text-xs text-red-700 dark:text-red-400 leading-snug">
+                  We couldn't renew your Pro subscription.{' '}
+                  <button
+                    onClick={() => { onClose(); openPortal(); }}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    Fix payment
+                  </button>
+                </p>
+              </div>
             </div>
           )}
         </div>
