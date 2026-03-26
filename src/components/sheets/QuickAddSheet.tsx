@@ -187,12 +187,12 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
       fullScreen
     >
       <div className="flex flex-col h-full min-h-0">
-        <div className="p-4 space-y-4 pb-36">
-          {/* Scan RO Photo — Hero intake action, Pro only */}
-          {isPro && (
+        {/* Scan RO Photo — pinned above scroll, Pro only */}
+        {isPro && (
+          <div className="px-4 pt-4 flex-shrink-0">
             <button
               onClick={onScanPhoto}
-              className="w-full px-5 py-4 bg-primary rounded-2xl flex items-center gap-4 text-primary-foreground tap-target touch-feedback sticky top-0 z-10"
+              className="w-full px-5 py-4 bg-primary rounded-2xl flex items-center gap-4 text-primary-foreground tap-target touch-feedback"
               style={{ boxShadow: '0 6px 20px -6px hsl(214 100% 46% / 0.55), 0 2px 6px -2px hsl(214 100% 46% / 0.25)' }}
             >
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
@@ -204,8 +204,9 @@ export function QuickAddSheet({ isOpen, onClose, editingRO, onScanPhoto }: Quick
               </div>
               <ChevronRight className="h-5 w-5 opacity-50 flex-shrink-0" />
             </button>
-          )}
-
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4 pb-36">
           {/* ── RO Details card: number · date · advisor grouped ── */}
           <div className="bg-card rounded-2xl overflow-hidden border border-border/60" style={{ boxShadow: 'var(--shadow-card)' }}>
             {/* Card header */}
