@@ -42,6 +42,7 @@ const outcomes = [
 ];
 
 const freeFeatures = [
+  'Up to 25 ROs per month',
   'Pay period summaries',
   'Flag inbox & resolution',
   'Offline mode',
@@ -60,7 +61,7 @@ const proFeatures = [
 const faqs = [
   {
     q: 'Is RO Navigator really free?',
-    a: 'Yes. The free plan includes pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required.',
+    a: 'Yes. The free plan includes up to 25 ROs per month, pay period summaries, flag inbox, offline mode, and quick-add presets — no credit card required. Need more? Pro has no cap.',
   },
   {
     q: 'Who is RO Navigator built for?',
