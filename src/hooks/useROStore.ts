@@ -382,9 +382,9 @@ export function useROStore() {
 
     return () => {
       cancelled = true;
-      // Signal any in-flight Phase 2 background load to abort cleanly so it
-      // doesn't write stale data into the new user's state.
-      phase2AbortRef.current = true;
+      // Increment generation so any in-flight Phase 2 background load aborts
+      // cleanly and doesn't write stale data into the new user's state.
+      phase2Generation.current++;
     };
   }, [userId, fetchROs]);
 
