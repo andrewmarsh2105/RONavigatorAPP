@@ -657,20 +657,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <EmptyState
               icon={ClipboardList}
               variant={ros.length === 0 ? 'welcome' : 'filtered'}
-              title={ros.length === 0 ? 'No ROs yet' : 'Nothing matches'}
+              title={ros.length === 0 ? 'Ready to track your hours' : 'No ROs match your filters'}
               description={
                 ros.length === 0
-                  ? 'Track every repair order so you always know your hours.'
-                  : 'Try a different search or filter.'
+                  ? 'Add your first repair order — it takes about 10 seconds. You\'ll see your hours, totals, and pay period summary right away.'
+                  : 'Try adjusting your date range, search, or filters.'
               }
               actions={
                 ros.length === 0 ? (
                   <button
                     onClick={() => navigate('/add-ro')}
-                    className="h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground rounded-full flex items-center gap-2 active:scale-[0.97] transition-transform"
+                    className="h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground rounded-full flex items-center gap-2 active:scale-[0.97] transition-transform shadow-[var(--shadow-soft)]"
                   >
                     <Plus className="h-4 w-4" />
-                    Create Your First RO
+                    Add Your First RO
                   </button>
                 ) : activeFiltersCount > 0 ? (
                   <button
