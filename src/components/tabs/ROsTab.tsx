@@ -359,6 +359,13 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return counts;
   }, [ros]);
 
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchQuery, filters, dateFilter]);
+
+  const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
+  const hasMore = visibleCount < filteredROs.length;
+
   const reviewIssuesByROId = useMemo(() => {
     const issuesMap = new Map<string, ReviewIssue[]>();
     for (const ro of visibleROs) {
@@ -367,13 +374,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     }
     return issuesMap;
   }, [visibleROs, roNumberCounts, ros]);
-
-  useEffect(() => {
-    setVisibleCount(50);
-  }, [searchQuery, filters, dateFilter]);
-
-  const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
-  const hasMore = visibleCount < filteredROs.length;
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
 
