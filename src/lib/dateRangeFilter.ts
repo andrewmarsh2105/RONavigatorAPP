@@ -150,11 +150,15 @@ export function effectiveDate(ro: RepairOrder): string {
 
 export function filterROsByDateRange(ros: RepairOrder[], bounds: DateRangeBounds | null): RepairOrder[] {
   if (!bounds) return ros;
-  // Use simple string comparison instead of Date parsing — YYYY-MM-DD format
-  // sorts lexicographically, saving a regex match + Date construction per RO.
   const { start, end } = bounds;
+  // Pre-compute numeric keys for bounds once
+  const startKey = toDayKey(start);
+  const endKey = toDayKey(end);
+  if (isNaN(startKey) || isNaN(endKey)) return ros;
+  // Use numeric comparison — handles non-zero-padded date strings correctly
+  // while only parsing each RO date once per filter pass.
   return ros.filter((ro) => {
-    const d = effectiveDate(ro);
-    return d >= start && d <= end;
+    const dKey = toDayKey(effectiveDate(ro));
+    return !isNaN(dKey) && dKey >= startKey && dKey <= endKey;
   });
 }
