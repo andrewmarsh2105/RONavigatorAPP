@@ -258,7 +258,7 @@ export function useROStore() {
         );
 
         setROs((prev) => {
-          if (phase2AbortRef.current) return prev;
+          if (phase2Generation.current !== myGeneration) return prev;
           const existingIds = new Set(prev.map((r) => r.id));
           const uniqueOld = oldMapped.filter((r) => !existingIds.has(r.id));
           if (uniqueOld.length === 0) {
