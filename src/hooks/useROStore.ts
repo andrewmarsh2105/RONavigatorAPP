@@ -231,7 +231,7 @@ export function useROStore() {
           .order('date', { ascending: false })
           .limit(7000);
 
-        if (phase2AbortRef.current) return;
+        if (phase2Generation.current !== myGeneration) return;
 
         if (oldErr) {
           pushDebug({ action: 'fetchROs Phase2 FAIL', error: oldErr.message });
