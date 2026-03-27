@@ -640,15 +640,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/20">
           {loadingROs ? (
             <div className="divide-y divide-border/40">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 bg-card">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 bg-card" style={{ opacity: 1 - i * 0.08 }}>
                   <div className="flex-1 space-y-1.5">
                     <div className="flex gap-2 items-center">
                       <Skeleton className="h-4 w-16 rounded" />
-                      <Skeleton className="h-4 w-12 rounded-full" />
-                      <Skeleton className="h-4 w-10 rounded-full" />
+                      <Skeleton className="h-3 w-12 rounded" />
+                      <div className="flex-1" />
+                      <Skeleton className="h-5 w-10 rounded" />
+                      <Skeleton className="h-4 w-6 rounded-full" />
                     </div>
-                    <Skeleton className="h-3 w-44 rounded" />
+                    <div className="flex gap-2 items-center">
+                      <Skeleton className="h-3 w-20 rounded" />
+                      <Skeleton className="h-3 w-32 rounded" />
+                    </div>
                   </div>
                 </div>
               ))}
