@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import type { ROLine, LaborType, Preset } from '@/types/ro';
 import { DecimalHoursInput } from '@/components/shared/DecimalHoursInput';
 import { PresetSearchRail } from '@/components/shared/PresetSearchRail';
+import { cn } from '@/lib/utils';
 
 interface LineItemEditorProps {
   lines: ROLine[];
@@ -26,7 +27,6 @@ function createEmptyLine(lineNo: number): ROLine {
   };
 }
 
-// Haptic feedback helper
 function triggerHaptic() {
   if ('vibrate' in navigator) {
     navigator.vibrate(10);
@@ -46,7 +46,6 @@ export function LineItemEditor({
   const handleAddLine = () => {
     triggerHaptic();
     const newLine = createEmptyLine(1);
-    // Add at top and renumber
     const updatedLines = [newLine, ...lines].map((line, i) => ({
       ...line,
       lineNo: i + 1,
@@ -77,17 +76,14 @@ export function LineItemEditor({
   const handlePresetSelect = (preset: Preset) => {
     triggerHaptic();
     
-    // Show animation on the preset button
     setAnimatingPresetId(preset.id);
     setTimeout(() => setAnimatingPresetId(null), 600);
     
-    // Add to recently added
     setRecentlyAddedPresets(prev => {
       const updated = [preset.id, ...prev.filter(id => id !== preset.id)].slice(0, 3);
       return updated;
     });
 
-    // Create new line at bottom to avoid viewport jump while users add multiple presets
     const newLine: ROLine = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       lineNo: lines.length + 1,
@@ -99,16 +95,14 @@ export function LineItemEditor({
       updatedAt: new Date().toISOString(),
     };
     
-    // Add at bottom and renumber all lines
     const updatedLines = [...lines, newLine].map((line, i) => ({
       ...line,
       lineNo: i + 1,
     }));
     onLinesChange(updatedLines);
     
-    // Show toast feedback
     const presetHours = Number(preset.defaultHours || 0).toFixed(1);
-    toast.success(`Added ${preset.name} -${presetHours}hrs`);
+    toast.success(`Added ${preset.name} — ${presetHours}h`);
     onPresetApplied?.(preset);
   };
 
@@ -116,13 +110,29 @@ export function LineItemEditor({
   const hasEmptyHours = lines.some(line => line.description && !line.hoursPaid);
 
   return (
-    <div className="space-y-4">
-      {/* ── Presets section ── */}
+    <div className="space-y-3">
+      {/* ── Presets ── */}
       {presets.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 rounded-full bg-primary/40" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Quick Presets</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-3.5 rounded-full bg-primary/50" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Quick Presets
+              </span>
+            </div>
+            {recentlyAddedPresets.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                {recentlyAddedPresets.map(id => {
+                  const preset = presets.find(p => p.id === id);
+                  return preset ? (
+                    <span key={id} className="px-2 py-0.5 bg-primary/8 border border-primary/15 rounded text-[10px] font-medium text-primary tabular-nums">
+                      ✓ {preset.name}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
           <PresetSearchRail
             presets={presets}
@@ -134,127 +144,113 @@ export function LineItemEditor({
         </div>
       )}
 
-      {/* Recently Added Indicator */}
-      {recentlyAddedPresets.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Recently added:</span>
-          {recentlyAddedPresets.map(id => {
-            const preset = presets.find(p => p.id === id);
-            return preset ? (
-              <span key={id} className="px-2 py-1 bg-primary/10 rounded-full">
-                {preset.name}
-              </span>
-            ) : null;
-          })}
-        </div>
-      )}
-
       {hasEmptyHours && (
-        <div className="p-3 bg-warning/10 border border-warning/30 rounded-xl text-sm text-warning">
-          ⚠️ Some lines have descriptions but no hours
+        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg">
+          <span className="text-amber-600 text-sm">⚠️</span>
+          <span className="text-xs font-medium text-amber-700">Some lines have descriptions but no hours</span>
         </div>
       )}
 
-      {/* ── Add Line CTA ── */}
+      {/* ── Add Line ── */}
       <button
         onClick={handleAddLine}
-        className="w-full h-13 rounded-2xl flex items-center justify-center gap-2.5 font-semibold tap-target touch-feedback active:scale-[0.98] transition-all text-primary-foreground"
+        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm tap-target touch-feedback active:scale-[0.98] transition-all bg-primary text-primary-foreground"
         style={{
-          background: 'linear-gradient(135deg, hsl(214 100% 50%) 0%, hsl(214 100% 42%) 100%)',
-          boxShadow: '0 4px 14px -3px hsl(214 100% 46% / 0.45), 0 2px 6px -2px hsl(214 100% 46% / 0.25)',
-          minHeight: '48px',
+          boxShadow: '0 4px 14px -3px hsl(var(--primary) / 0.4)',
         }}
       >
-        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-          <Plus className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-white font-bold">Add Line</span>
+        <Plus className="h-4 w-4" />
+        <span>Add Line</span>
       </button>
 
-      {/* ── Lines section ── */}
+      {/* ── Lines ── */}
       {lines.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-4 rounded-full bg-primary/40" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Lines</span>
-            <span className="ml-auto text-[10px] font-bold text-primary/70 tabular-nums">{lines.reduce((s, l) => s + l.hoursPaid, 0).toFixed(1)}h total</span>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between px-0.5">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-3.5 rounded-full bg-primary/50" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Lines
+              </span>
+              <span className="text-[10px] text-muted-foreground/60">({lines.length})</span>
+            </div>
+            <span className="text-xs font-bold text-primary tabular-nums">
+              {totalHours.toFixed(1)}h
+            </span>
           </div>
+
           <AnimatePresence initial={false}>
             {lines.map((line, index) => (
               <motion.div
                 key={line.id}
-                initial={{ opacity: 0, y: -8 }}
+                initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mb-3 last:mb-0"
+                transition={{ duration: 0.15 }}
               >
-                <div
-                  className="bg-card rounded-2xl overflow-hidden border border-border/60"
-                  style={{ boxShadow: 'var(--shadow-card)' }}
+                <div className="bg-card rounded-xl border border-border/60 overflow-hidden"
+                  style={{ boxShadow: 'var(--shadow-sm)' }}
                 >
-                  {/* Line card header */}
-                  <div className="flex items-center px-4 py-2.5 bg-primary/5 border-b border-primary/10">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70 flex-1">
-                      Line {line.lineNo}
-                    </span>
+                  {/* Compact single-row: line number + description + hours + delete */}
+                  <div className="flex items-center gap-0 px-1">
+                    {/* Line number indicator */}
+                    <div className="flex-shrink-0 w-7 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-muted-foreground/50 tabular-nums">
+                        {line.lineNo}
+                      </span>
+                    </div>
+
+                    {/* Description */}
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={line.description}
+                        onChange={(e) => handleLineChange(index, { description: e.target.value })}
+                        placeholder="Job description..."
+                        className="w-full h-11 px-2 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/40"
+                      />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="w-px h-6 bg-border/50 flex-shrink-0" />
+
+                    {/* Hours */}
+                    <div className="flex-shrink-0 w-[72px]">
+                      <DecimalHoursInput
+                        value={line.hoursPaid}
+                        onChange={(v) => handleHoursInput(index, v)}
+                        placeholder="0.0"
+                        className="w-full h-11 px-2 bg-transparent text-sm font-bold text-center tabular-nums focus:outline-none focus:bg-primary/5 transition-colors"
+                      />
+                    </div>
+
+                    {/* Delete */}
                     <button
                       onClick={() => handleRemoveLine(index)}
-                      className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-destructive/50 hover:text-destructive tap-target touch-feedback rounded-lg transition-colors"
+                      className="flex-shrink-0 w-9 h-11 flex items-center justify-center text-muted-foreground/40 hover:text-destructive active:text-destructive transition-colors"
                       aria-label="Remove line"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  {/* Line card body */}
-                  <div className="p-4 space-y-3">
-                    {/* Description Input */}
-                    <input
-                      type="text"
-                      value={line.description}
-                      onChange={(e) => handleLineChange(index, { description: e.target.value })}
-                      placeholder="Job description..."
-                      className="w-full h-11 px-3.5 bg-background rounded-xl border border-border/60 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-shadow"
-                    />
-
-                    {/* Hours and Labor Type Row */}
-                    <div className="flex gap-3">
-                      {/* Hours Input */}
-                      <div className="flex-1">
-                        <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                          Hours Paid
-                        </label>
-                        <DecimalHoursInput
-                          value={line.hoursPaid}
-                          onChange={(v) => handleHoursInput(index, v)}
-                          placeholder="0.0"
-                          className="w-full h-12 px-4 bg-background rounded-xl border border-border/60 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-shadow"
-                        />
-                      </div>
-
-                      {/* Labor Type (Optional) */}
-                      {showLaborType && (
-                        <div className="flex-1">
-                          <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                            Type
-                          </label>
-                          <select
-                            value={line.laborType || ''}
-                            onChange={(e) => handleLineChange(index, {
-                              laborType: e.target.value as LaborType | undefined,
-                            })}
-                            className="w-full h-12 px-3 bg-background rounded-xl border border-border/60 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
-                          >
-                            <option value="">Default</option>
-                            <option value="warranty">Warranty</option>
-                            <option value="customer-pay">Customer Pay</option>
-                            <option value="internal">Internal</option>
-                          </select>
-                        </div>
-                      )}
+                  {/* Labor type row (optional) */}
+                  {showLaborType && (
+                    <div className="px-8 pb-2">
+                      <select
+                        value={line.laborType || ''}
+                        onChange={(e) => handleLineChange(index, {
+                          laborType: e.target.value as LaborType | undefined,
+                        })}
+                        className="h-7 px-2 bg-muted/50 rounded text-[11px] border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-shadow"
+                      >
+                        <option value="">Default</option>
+                        <option value="warranty">Warranty</option>
+                        <option value="customer-pay">Customer Pay</option>
+                        <option value="internal">Internal</option>
+                      </select>
                     </div>
-                  </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -264,8 +260,8 @@ export function LineItemEditor({
 
       {/* Empty state */}
       {lines.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No lines yet. Add a line or select a preset above.</p>
+        <div className="text-center py-6 text-muted-foreground">
+          <p className="text-sm">No lines yet. Add a line or select a preset.</p>
         </div>
       )}
     </div>
