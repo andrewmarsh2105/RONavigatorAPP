@@ -506,7 +506,7 @@ export function SummaryTab() {
             {/* ── More Detail (collapsed) ── */}
             <div className="px-4">
               <Accordion type="single" collapsible>
-                <AccordionItem value="more" className="border border-border/60 rounded-xl bg-card overflow-hidden">
+                <AccordionItem value="more" className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
                   <AccordionTrigger className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:no-underline">
                     More Detail
                   </AccordionTrigger>
