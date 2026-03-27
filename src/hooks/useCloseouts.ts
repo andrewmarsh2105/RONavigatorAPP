@@ -120,7 +120,7 @@ export function useCloseouts() {
         closedAt: row.closed_at,
         totals: row.totals as CloseoutSnapshot['totals'],
         breakdowns: row.breakdowns as CloseoutSnapshot['breakdowns'],
-        roSnapshot: (row.ro_snapshot || []) as ROSnapshot[],
+        roSnapshot: (row.ro_snapshot || []) as unknown as ROSnapshot[],
         roIds: row.ro_ids || [],
       })));
     }
