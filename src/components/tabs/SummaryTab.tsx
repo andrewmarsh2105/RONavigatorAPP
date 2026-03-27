@@ -460,9 +460,9 @@ export function SummaryTab() {
               </div>
 
               {/* Hours by Advisor */}
-              <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="px-4 pt-3 pb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60">Hours by Advisor</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">Hours by Advisor</span>
                 </div>
                 {report.byAdvisor.length === 0 ? (
                   <div className="px-4 pb-3 text-xs text-muted-foreground">No data for this range</div>
