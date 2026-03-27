@@ -18,17 +18,17 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <div className={cn("surface-panel overflow-hidden", className)}>
+    <div className={cn("bg-card border border-border/70 overflow-hidden", className)} style={{ borderRadius: 'var(--radius)' }}>
       {(title || rightSlot) && (
-        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/20">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border/50">
           <div>
             {title && (
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                 {title}
               </h3>
             )}
             {description && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">{description}</p>
             )}
           </div>
           {rightSlot}

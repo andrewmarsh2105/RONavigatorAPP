@@ -113,33 +113,28 @@ const ROCard = memo(function ROCard({
 
   return (
     <div
-      className="ro-row-card bg-card relative overflow-hidden quiet-transition group"
+      className="ro-row-card bg-card relative overflow-hidden group"
       style={{ borderLeftColor: accentColor }}
     >
-      {/* Clickable body */}
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/30 transition-colors duration-100 active:bg-muted/50"
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/25 transition-colors duration-75 active:bg-muted/40"
         onClick={onViewDetails}
       >
-        {/* Main content */}
-        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[6px]' : 'py-2')}>
+        <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[5px]' : 'py-2')}>
           {/* Row 1: RO# · Date · Customer — left | Hours + Type — right */}
           <div className="flex items-center gap-1.5 min-w-0">
-            {/* RO number — primary identifier */}
             <span className={cn(
-              'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0',
+              'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0 font-mono',
               compact ? 'text-[12px]' : 'text-[13px]',
             )}>
               #{ro.roNumber || '—'}
             </span>
-            {/* Date */}
             <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
               {roDate}
             </span>
-            {/* Customer name — fills remaining space */}
             {ro.customerName ? (
               <span className={cn(
-                'font-medium text-foreground/80 truncate min-w-0 flex-1',
+                'font-medium text-foreground/70 truncate min-w-0 flex-1',
                 compact ? 'text-[10px]' : 'text-[11px]',
               )}>
                 {ro.customerName}
@@ -147,56 +142,54 @@ const ROCard = memo(function ROCard({
             ) : (
               <span className="flex-1" />
             )}
-            {/* Hours — the #1 number a tech looks for */}
+            {/* Hours — monospace, the #1 number a tech looks for */}
             <span className={cn(
-              'flex-shrink-0 font-extrabold tabular-nums leading-none rounded px-1.5 py-0.5',
+              'flex-shrink-0 font-bold tabular-nums leading-none px-1.5 py-0.5 font-mono',
               compact ? 'text-[12px]' : 'text-[13px]',
-              hours === 0 ? 'text-muted-foreground bg-muted/60' : 'text-foreground',
-            )} style={hours > 0 ? { backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)` } : undefined}>
+              hours === 0 ? 'text-muted-foreground bg-muted/50' : 'text-foreground',
+            )} style={{
+              borderRadius: '3px',
+              ...(hours > 0 ? { backgroundColor: `color-mix(in srgb, ${accentColor} 10%, transparent)` } : {}),
+            }}>
               {maskHours(hours, hideTotals)}h
             </span>
-            {/* Labor type badge */}
+            {/* Labor type tag */}
             <span
-              className="text-[8px] font-bold leading-none px-1 py-0.5 rounded flex-shrink-0 text-white"
-              style={{ backgroundColor: accentColor }}
+              className="text-[8px] font-bold leading-none px-1 py-0.5 flex-shrink-0 text-white"
+              style={{ backgroundColor: accentColor, borderRadius: '2px' }}
             >
               {ltLabel}
             </span>
           </div>
 
           {/* Row 2: Advisor · Vehicle · Work summary — left | Status — right */}
-          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[2px]' : 'mt-1')}>
-            {/* Advisor */}
+          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[2px]' : 'mt-0.5')}>
             {ro.advisor && (
-              <span className="text-[10px] font-semibold text-foreground/55 truncate flex-shrink-0 max-w-[100px]">
+              <span className="text-[10px] font-semibold text-foreground/50 truncate flex-shrink-0 max-w-[100px]">
                 {ro.advisor}
               </span>
             )}
-            {/* Vehicle */}
             {vehicle !== '—' && (
               <>
-                <span className="text-muted-foreground/30 text-[9px] flex-shrink-0">·</span>
-                <span className="text-[10px] text-muted-foreground/60 truncate flex-shrink-0 max-w-[90px]">
+                <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">·</span>
+                <span className="text-[10px] text-muted-foreground/50 truncate flex-shrink-0 max-w-[90px]">
                   {vehicle}
                 </span>
               </>
             )}
-            {/* Work summary — fills remaining space, hidden in compact */}
             {workSummary && !compact && (
               <>
-                <span className="text-muted-foreground/25 text-[8px] flex-shrink-0">—</span>
-                <span className="text-[10px] text-muted-foreground/50 truncate min-w-0 flex-1">
+                <span className="text-muted-foreground/20 text-[8px] flex-shrink-0">—</span>
+                <span className="text-[10px] text-muted-foreground/40 truncate min-w-0 flex-1">
                   {workSummary}
                 </span>
               </>
             )}
-            {/* Push status chips right */}
             <span className="flex-1 min-w-[4px]" />
             <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
         </div>
 
-        {/* Action menu — flush right, vertically centered */}
         <div
           className="flex-shrink-0 flex items-center pr-1.5 pl-0.5"
           onClick={(e) => e.stopPropagation()}
@@ -438,7 +431,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/60" style={{ boxShadow: '0 1px 8px -4px hsl(220 30% 12% / 0.12)' }}>
+      <div className="sticky top-0 z-30 bg-card border-b border-border/60">
 
         {/* Top bar: shop name + controls */}
         <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
@@ -512,7 +505,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex items-center gap-2 px-3 py-1.5">
           {/* Hours + RO count pill */}
           <div className="stat-badge flex-shrink-0">
-            <span className="text-[15px] font-extrabold tabular-nums text-primary leading-none tracking-tight">
+            <span className="text-[15px] font-bold tabular-nums text-primary leading-none tracking-tight font-mono">
               {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </span>
             <span className="text-[10px] text-muted-foreground font-medium leading-none">
