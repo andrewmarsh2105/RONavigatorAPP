@@ -505,7 +505,7 @@ export function useROStore() {
       return updated;
     });
     return newRO;
-  }, [user, isOnline, queueAction]);
+  }, [user, userId, isOnline, queueAction]);
 
   const updateRO = useCallback(async (id: string, updates: Partial<RepairOrder>): Promise<boolean> => {
     if (!user) return false;
@@ -635,7 +635,7 @@ export function useROStore() {
     }
 
     return true;
-  }, [user, isOnline, queueAction]);
+  }, [user, userId, isOnline, queueAction]);
 
   const deleteRO = useCallback((id: string) => {
     if (!user) return;
@@ -699,7 +699,7 @@ export function useROStore() {
     }, 5000);
 
     pendingDeletes.current.set(id, { timer, savedRO: roToRestore });
-  }, [user, isOnline, queueAction]);
+  }, [user, userId, isOnline, queueAction]);
 
   const duplicateRO = useCallback(async (id: string, newRONumber?: string, isPro?: boolean) => {
     const ro = ros.find(r => r.id === id);

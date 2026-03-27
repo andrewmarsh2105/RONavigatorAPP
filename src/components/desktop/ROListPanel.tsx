@@ -238,7 +238,7 @@ export const ROListPanel = memo(function ROListPanel({
       }
       return 0;
     });
-  }, [ros, advisorFilter, deferredQuery, listBounds, sortKey, sortDir]);
+  }, [ros, advisorFilter, laborTypeFilter, deferredQuery, listBounds, sortKey, sortDir]);
 
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 

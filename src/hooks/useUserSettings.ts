@@ -52,6 +52,18 @@ const defaults: UserSettings = {
   shopName: '',
 };
 
+// ── Goals / rate local-storage helpers ────────────────────────────────────
+// If the DB columns (hours_goal_daily, hours_goal_weekly, hourly_rate) haven't
+// been applied yet the upsert will fail.  We persist these values to
+// localStorage as a reliable fallback so the UI never shows "save failed".
+const GOAL_LS_KEYS = {
+  hoursGoalDaily:  'ro-tracker-goal-daily',
+  hoursGoalWeekly: 'ro-tracker-goal-weekly',
+  hourlyRate:      'ro-tracker-hourly-rate',
+} as const;
+type GoalKey = keyof typeof GOAL_LS_KEYS;
+const isGoalKey = (k: string): k is GoalKey => k in GOAL_LS_KEYS;
+
 export function useUserSettings() {
   const { user } = useAuth();
   // Use user.id (stable string) so token refreshes (which create a new user object
@@ -64,18 +76,6 @@ export function useUserSettings() {
   const profileCloudSyncUnavailableRef = useRef(false);
   const hasShownProfileCloudSyncToastRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
-
-  // ── Goals / rate local-storage helpers ────────────────────────────────────
-  // If the DB columns (hours_goal_daily, hours_goal_weekly, hourly_rate) haven't
-  // been applied yet the upsert will fail.  We persist these values to
-  // localStorage as a reliable fallback so the UI never shows "save failed".
-  const GOAL_LS_KEYS = {
-    hoursGoalDaily:  'ro-tracker-goal-daily',
-    hoursGoalWeekly: 'ro-tracker-goal-weekly',
-    hourlyRate:      'ro-tracker-hourly-rate',
-  } as const;
-  type GoalKey = keyof typeof GOAL_LS_KEYS;
-  const isGoalKey = (k: string): k is GoalKey => k in GOAL_LS_KEYS;
 
   const getLocalGoal = useCallback((key: GoalKey): number => {
     const raw = localStorage.getItem(GOAL_LS_KEYS[key]);
@@ -143,7 +143,7 @@ export function useUserSettings() {
       }));
     }
     setLoaded(true);
-  }, [getLocalProfileSetting, userId]);
+  }, [getLocalGoal, getLocalProfileSetting, userId]);
 
   // Sign-out: reset to defaults immediately so no previous user's data is visible.
   // Sign-in / token-refresh re-auth: keep current settings visible while the fetch
@@ -245,7 +245,7 @@ export function useUserSettings() {
       setSettings(prev => ({ ...prev, [key]: previousValue }));
       toast.error('Failed to save setting. Please try again.');
     }
-  }, [persistProfileSettingLocally, userId]);
+  }, [persistLocalGoal, persistProfileSettingLocally, userId]);
 
   return { settings, loaded, updateSetting };
 }
