@@ -335,15 +335,15 @@ export function SummaryTab() {
 
             {/* ══════════ HERO KPI ══════════ */}
             <div className="px-4">
-              <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: 'var(--shadow-card)' }}>
+              <div className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}>
                 {/* Primary: Total Hours — dominant */}
                 <div className="px-4 pt-4 pb-3">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60 mb-1">Total Hours</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1">Total Hours</div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[42px] font-extrabold tabular-nums tracking-tight text-primary leading-none">
+                    <span className="text-[42px] font-bold tabular-nums tracking-tight text-primary leading-none font-mono">
                       {maskHours(report.totalHours, hideTotals)}
                     </span>
-                    <span className="text-lg font-bold text-primary/40">h</span>
+                    <span className="text-lg font-bold text-primary/30 font-mono">h</span>
                   </div>
                 </div>
 
