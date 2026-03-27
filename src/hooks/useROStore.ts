@@ -544,7 +544,7 @@ export function useROStore() {
       if (error) {
         const msg = error.message || '';
         console.error('updateRO DB error:', error);
-        pushDebug({ action: 'updateRO FAIL', roId: id, error: msg, code: error.code });
+        pushDebug({ action: 'updateRO FAIL', roId: id, error: msg });
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
           const queued = await queueAction('updateRO', { id, updates });
           if (queued) {

@@ -164,8 +164,8 @@ export function useCloseouts() {
       period_end: report.endDate,
       range_type: rangeType,
       totals,
-      breakdowns,
-      ro_snapshot: roSnapshot,
+      breakdowns: breakdowns as unknown as CloseoutInsert['breakdowns'],
+      ro_snapshot: roSnapshot as unknown as CloseoutInsert['ro_snapshot'],
       ro_ids: roIds,
     };
 
