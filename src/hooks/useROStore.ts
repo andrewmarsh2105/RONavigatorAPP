@@ -150,9 +150,9 @@ export function useROStore() {
     if (!cacheHydrated.current) setLoadingROs(true);
 
     // Signal any in-flight Phase 2 from a previous fetch that it should abort.
-    phase2AbortRef.current = true;
-    // Immediately reset so the new Phase 2 we schedule below is allowed to run.
-    phase2AbortRef.current = false;
+    // We use a generation counter so each fetchROs call gets its own identity;
+    // the old Phase 2 checks whether the generation has changed since it started.
+    const myGeneration = ++phase2Generation.current;
 
     const hotCutoff = hotCutoffDateStr();
 
