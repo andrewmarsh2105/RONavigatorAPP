@@ -46,23 +46,22 @@ function InlineStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
-  const hasNotes = !!(ro.notes && ro.notes.trim());
   return (
-    <div className="flex items-center gap-1">
-      {/* Paid status — only show if clearly notable */}
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {/* Paid/Unpaid — bold visual signal */}
       {status.paid === 'Paid' ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[hsl(var(--status-warranty))] leading-none">
-          <CheckCircle2 className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-warranty))' }}>
+          <CheckCircle2 className="h-3 w-3" />
         </span>
       ) : (
-        <span className="text-[9px] font-semibold text-muted-foreground leading-none px-1 rounded bg-muted/60">
-          {status.paid}
+        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+          OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
           <Clock className="h-2.5 w-2.5" />
-          <span>{status.allTbd ? 'All' : status.tbd}</span>
+          <span>{status.allTbd ? 'ALL' : status.tbd}</span>
         </span>
       )}
       {status.flags > 0 && (
@@ -75,11 +74,6 @@ function InlineStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           <span>{status.checks}</span>
-        </span>
-      )}
-      {hasNotes && (
-        <span className="inline-flex items-center text-[9px] font-bold text-muted-foreground/60 leading-none" title="Has notes">
-          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
