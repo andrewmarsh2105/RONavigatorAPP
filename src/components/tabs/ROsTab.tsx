@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useDeferredValue, memo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, StickyNote, Rows3, Rows4 } from 'lucide-react';
+import { SlidersHorizontal, Table2, LayoutList, ClipboardList, Loader2, Clock, Flag, AlertTriangle, CalendarRange, Plus, Crown, CheckCircle2, Rows3, Rows4 } from 'lucide-react';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -10,7 +10,6 @@ import { computeDateRangeBounds, filterROsByDateRange, boundsRangeLabel, type Da
 import { useSharedDateRange } from '@/hooks/useSharedDateRange';
 import { CustomDateRangeDialog } from '@/components/shared/CustomDateRangeDialog';
 import { maskHours } from '@/lib/maskHours';
-import { StatusPill } from '@/components/mobile/StatusPill';
 import { BottomSheet } from '@/components/mobile/BottomSheet';
 import { Chip } from '@/components/mobile/Chip';
 import { RODetailSheet } from '@/components/sheets/RODetailSheet';
@@ -46,23 +45,22 @@ function InlineStatusChips({
   ro, flagsCount, checksCount,
 }: { ro: RepairOrder; flagsCount: number; checksCount: number }) {
   const status = getStatusSummary(ro, flagsCount, checksCount);
-  const hasNotes = !!(ro.notes && ro.notes.trim());
   return (
-    <div className="flex items-center gap-1">
-      {/* Paid status — only show if clearly notable */}
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {/* Paid/Unpaid — bold visual signal */}
       {status.paid === 'Paid' ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[hsl(var(--status-warranty))] leading-none">
-          <CheckCircle2 className="h-2.5 w-2.5" />
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: 'hsl(var(--status-warranty))' }}>
+          <CheckCircle2 className="h-3 w-3" />
         </span>
       ) : (
-        <span className="text-[9px] font-semibold text-muted-foreground leading-none px-1 rounded bg-muted/60">
-          {status.paid}
+        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+          OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
           <Clock className="h-2.5 w-2.5" />
-          <span>{status.allTbd ? 'All' : status.tbd}</span>
+          <span>{status.allTbd ? 'ALL' : status.tbd}</span>
         </span>
       )}
       {status.flags > 0 && (
@@ -75,11 +73,6 @@ function InlineStatusChips({
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
           <AlertTriangle className="h-2.5 w-2.5" />
           <span>{status.checks}</span>
-        </span>
-      )}
-      {hasNotes && (
-        <span className="inline-flex items-center text-[9px] font-bold text-muted-foreground/60 leading-none" title="Has notes">
-          <StickyNote className="h-2.5 w-2.5" />
         </span>
       )}
     </div>
@@ -110,41 +103,38 @@ const ROCard = memo(function ROCard({
   const hours = calcHours(ro);
   const roDate = formatDateShort(effectiveDate(ro));
   const accentColor = laborTypeBarColor(ro.laborType);
+  const ltLabel = ro.laborType === 'warranty' ? 'W' : ro.laborType === 'customer-pay' ? 'CP' : 'INT';
 
   const workSummary = ro.lines?.length
     ? ro.lines.map((l) => l.description).filter(Boolean).slice(0, 3).join(' · ')
-    : ro.workPerformed || '—';
+    : ro.workPerformed || '';
 
   const vehicle = vehicleLabel(ro);
 
   return (
     <div
-      className="ro-row-card bg-card relative overflow-hidden quiet-transition group"
+      className="ro-row-card bg-card relative overflow-hidden group"
       style={{ borderLeftColor: accentColor }}
     >
-      {/* Clickable body */}
       <div
-        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/30 transition-colors duration-100 active:bg-muted/50"
+        className="flex items-stretch gap-0 cursor-pointer hover:bg-muted/25 transition-colors duration-75 active:bg-muted/40"
         onClick={onViewDetails}
       >
-        {/* Main content */}
         <div className={cn('flex-1 min-w-0 px-3', compact ? 'py-[5px]' : 'py-2')}>
-          {/* Top row: RO# + hours + type + customer name + date + status */}
+          {/* Row 1: RO# · Date · Customer — left | Hours + Type — right */}
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={cn(
-              'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0',
+              'font-extrabold tabular-nums text-foreground tracking-tight leading-none flex-shrink-0 font-mono',
               compact ? 'text-[12px]' : 'text-[13px]',
             )}>
               #{ro.roNumber || '—'}
             </span>
-            <span className={cn('hours-pill flex-shrink-0', compact ? 'text-[10px] px-1.5 py-px' : 'text-[11px]')}>
-              {maskHours(hours, hideTotals)}h
+            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
+              {roDate}
             </span>
-            <StatusPill type={ro.laborType} size="sm" className="flex-shrink-0" />
-            {/* Customer name — primary differentiator, fills available space */}
             {ro.customerName ? (
               <span className={cn(
-                'font-semibold text-foreground/90 truncate min-w-0 flex-1',
+                'font-medium text-foreground/70 truncate min-w-0 flex-1',
                 compact ? 'text-[10px]' : 'text-[11px]',
               )}>
                 {ro.customerName}
@@ -152,46 +142,56 @@ const ROCard = memo(function ROCard({
             ) : (
               <span className="flex-1" />
             )}
-            <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
-              {roDate}
+            {/* Hours — monospace, the #1 number a tech looks for */}
+            <span className={cn(
+              'flex-shrink-0 font-bold tabular-nums leading-none px-1.5 py-0.5 font-mono',
+              compact ? 'text-[12px]' : 'text-[13px]',
+              hours === 0 ? 'text-muted-foreground bg-muted/50' : 'text-foreground',
+            )} style={{
+              borderRadius: '3px',
+              ...(hours > 0 ? { backgroundColor: `color-mix(in srgb, ${accentColor} 10%, transparent)` } : {}),
+            }}>
+              {maskHours(hours, hideTotals)}h
             </span>
-            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
+            {/* Labor type tag */}
+            <span
+              className="text-[8px] font-bold leading-none px-1 py-0.5 flex-shrink-0 text-white"
+              style={{ backgroundColor: accentColor, borderRadius: '2px' }}
+            >
+              {ltLabel}
+            </span>
           </div>
 
-          {/* Bottom row: Advisor · vehicle · work — hidden in compact when no room */}
-          <div className={cn('flex items-baseline gap-1 min-w-0', compact ? 'mt-px' : 'mt-0.5')}>
+          {/* Row 2: Advisor · Vehicle · Work summary — left | Status — right */}
+          <div className={cn('flex items-center gap-1 min-w-0', compact ? 'mt-[2px]' : 'mt-0.5')}>
             {ro.advisor && (
-              <span className="text-[10px] font-medium text-foreground/60 truncate flex-shrink-0 max-w-[110px]">
+              <span className="text-[10px] font-semibold text-foreground/50 truncate flex-shrink-0 max-w-[100px]">
                 {ro.advisor}
               </span>
             )}
             {vehicle !== '—' && (
               <>
-                <span className="text-muted-foreground/30 text-[9px] flex-shrink-0">·</span>
-                <span className="text-[10px] text-muted-foreground/70 truncate flex-shrink-0 max-w-[90px]">
+                <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">·</span>
+                <span className="text-[10px] text-muted-foreground/50 truncate flex-shrink-0 max-w-[90px]">
                   {vehicle}
                 </span>
               </>
             )}
-            {!compact && workSummary && workSummary !== '—' && (
+            {workSummary && !compact && (
               <>
-                <span className="text-muted-foreground/25 text-[9px] flex-shrink-0">—</span>
-                <span className="text-[10px] text-muted-foreground/55 truncate min-w-0">
+                <span className="text-muted-foreground/20 text-[8px] flex-shrink-0">—</span>
+                <span className="text-[10px] text-muted-foreground/40 truncate min-w-0 flex-1">
                   {workSummary}
                 </span>
               </>
             )}
-            {compact && workSummary && workSummary !== '—' && !ro.advisor && !vehicle && (
-              <span className="text-[10px] text-muted-foreground/50 truncate min-w-0">
-                {workSummary}
-              </span>
-            )}
+            <span className="flex-1 min-w-[4px]" />
+            <InlineStatusChips ro={ro} flagsCount={flags.length} checksCount={reviewIssues.length} />
           </div>
         </div>
 
-        {/* Action menu — flush right, vertically centered */}
         <div
-          className="flex-shrink-0 flex items-center pr-1.5 pl-1"
+          className="flex-shrink-0 flex items-center pr-1.5 pl-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           <ROActionMenu
@@ -332,6 +332,8 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const filteredROs = useMemo(() => filterROsByDateRange(preFilteredROs, rangeBounds), [preFilteredROs, rangeBounds]);
 
+  // Stable set of RO numbers — only recomputed when the list of RO numbers
+  // actually changes (not on every ros reference change).
   const existingRONumbers = useMemo(() => ros.map((r) => r.roNumber), [ros]);
 
   const flagsByROId = useMemo(() => {
@@ -345,18 +347,16 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
     return map;
   }, [flags]);
 
-  const reviewIssuesByROId = useMemo(() => {
-    const roNumberCounts = new Map<string, number>();
+  // Only compute review issues for VISIBLE ROs, not the entire dataset.
+  // The duplicate-RO-number counts still scan all ros (cheap Map build),
+  // but the expensive getReviewIssues() call only runs for visible rows.
+  const roNumberCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const ro of ros) {
       if (!ro.roNumber) continue;
-      roNumberCounts.set(ro.roNumber, (roNumberCounts.get(ro.roNumber) ?? 0) + 1);
+      counts.set(ro.roNumber, (counts.get(ro.roNumber) ?? 0) + 1);
     }
-    const issuesMap = new Map<string, ReviewIssue[]>();
-    for (const ro of ros) {
-      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
-      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
-    }
-    return issuesMap;
+    return counts;
   }, [ros]);
 
   useEffect(() => {
@@ -365,6 +365,15 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
 
   const visibleROs = useMemo(() => filteredROs.slice(0, visibleCount), [filteredROs, visibleCount]);
   const hasMore = visibleCount < filteredROs.length;
+
+  const reviewIssuesByROId = useMemo(() => {
+    const issuesMap = new Map<string, ReviewIssue[]>();
+    for (const ro of visibleROs) {
+      const count = ro.roNumber ? (roNumberCounts.get(ro.roNumber) ?? 0) : 0;
+      issuesMap.set(ro.id, count > 1 ? getReviewIssues(ro, ros) : []);
+    }
+    return issuesMap;
+  }, [visibleROs, roNumberCounts, ros]);
 
   const totalHours = useMemo(() => filteredROs.reduce((s, ro) => s + calcHours(ro), 0), [filteredROs]);
 
@@ -422,7 +431,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/60" style={{ boxShadow: '0 1px 8px -4px hsl(220 30% 12% / 0.12)' }}>
+      <div className="sticky top-0 z-30 bg-card border-b border-border/60">
 
         {/* Top bar: shop name + controls */}
         <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
@@ -496,7 +505,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div className="flex items-center gap-2 px-3 py-1.5">
           {/* Hours + RO count pill */}
           <div className="stat-badge flex-shrink-0">
-            <span className="text-[15px] font-extrabold tabular-nums text-primary leading-none tracking-tight">
+            <span className="text-[15px] font-bold tabular-nums text-primary leading-none tracking-tight font-mono">
               {maskHours(totalHours, userSettings.hideTotals ?? false)}h
             </span>
             <span className="text-[10px] text-muted-foreground font-medium leading-none">
@@ -624,15 +633,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
         <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/20">
           {loadingROs ? (
             <div className="divide-y divide-border/40">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 bg-card">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 bg-card" style={{ opacity: 1 - i * 0.08 }}>
                   <div className="flex-1 space-y-1.5">
                     <div className="flex gap-2 items-center">
                       <Skeleton className="h-4 w-16 rounded" />
-                      <Skeleton className="h-4 w-12 rounded-full" />
-                      <Skeleton className="h-4 w-10 rounded-full" />
+                      <Skeleton className="h-3 w-12 rounded" />
+                      <div className="flex-1" />
+                      <Skeleton className="h-5 w-10 rounded" />
+                      <Skeleton className="h-4 w-6 rounded-full" />
                     </div>
-                    <Skeleton className="h-3 w-44 rounded" />
+                    <div className="flex gap-2 items-center">
+                      <Skeleton className="h-3 w-20 rounded" />
+                      <Skeleton className="h-3 w-32 rounded" />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -641,20 +655,20 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <EmptyState
               icon={ClipboardList}
               variant={ros.length === 0 ? 'welcome' : 'filtered'}
-              title={ros.length === 0 ? 'No ROs yet' : 'Nothing matches'}
+              title={ros.length === 0 ? 'Ready to track your hours' : 'No ROs match your filters'}
               description={
                 ros.length === 0
-                  ? 'Track every repair order so you always know your hours.'
-                  : 'Try a different search or filter.'
+                  ? 'Add your first repair order — it takes about 10 seconds. You\'ll see your hours, totals, and pay period summary right away.'
+                  : 'Try adjusting your date range, search, or filters.'
               }
               actions={
                 ros.length === 0 ? (
                   <button
                     onClick={() => navigate('/add-ro')}
-                    className="h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground rounded-full flex items-center gap-2 active:scale-[0.97] transition-transform"
+                    className="h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground rounded-full flex items-center gap-2 active:scale-[0.97] transition-transform shadow-[var(--shadow-soft)]"
                   >
                     <Plus className="h-4 w-4" />
-                    Create Your First RO
+                    Add Your First RO
                   </button>
                 ) : activeFiltersCount > 0 ? (
                   <button
