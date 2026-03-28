@@ -84,15 +84,15 @@ const LineRow = memo(function LineRow({
   return (
     <tr
       className={cn(
-        'cursor-pointer transition-colors border-t border-border/40',
+        'cursor-pointer transition-colors',
         isSelected
-          ? 'bg-primary/8 hover:bg-primary/12 ring-1 ring-inset ring-primary/20'
-          : cn(rowBg, 'hover:bg-accent/50'),
+          ? 'bg-primary/10 hover:bg-primary/14 border-l-[3px] border-l-primary'
+          : cn(rowBg, 'hover:bg-accent/40 border-l-[3px]', borderColorClass),
       )}
       onClick={() => line.ro && onSelectRO(line.ro)}
     >
       {showCheckbox && (
-        <td className={cn(cellPx, cellPy, 'w-9 text-center')} onClick={(e) => e.stopPropagation()}>
+        <td className={cn(cellPx, cellPy, 'w-8 text-center')} onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => line.ro && onToggleSelect(line.ro.id)}
@@ -100,17 +100,15 @@ const LineRow = memo(function LineRow({
           />
         </td>
       )}
-      {activeCols.map((col, ci) => (
+      {activeCols.map((col) => (
         <td
           key={col.id}
           className={cn(
             cellPx, cellPy,
             col.align === 'right' && 'text-right',
             col.align === 'center' && 'text-center',
-            col.id === 'description' ? 'truncate overflow-hidden' : 'whitespace-nowrap overflow-hidden',
-            ci === 0 && !showCheckbox && `border-l-[3px] ${borderColorClass}`,
-            showCheckbox && ci === 0 && `border-l-[3px] ${borderColorClass}`,
-            'align-top',
+            col.id === 'description' ? 'truncate overflow-hidden max-w-[1px]' : 'whitespace-nowrap overflow-hidden',
+            'align-middle',
           )}
         >
           {renderCellValue(col.id, line)}
