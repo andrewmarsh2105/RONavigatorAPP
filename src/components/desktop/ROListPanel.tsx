@@ -319,7 +319,7 @@ export const ROListPanel = memo(function ROListPanel({
       <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0 border-b border-border/60">
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.6)' }}>
 
           {/* Top: title + stats + Add button */}
           <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
