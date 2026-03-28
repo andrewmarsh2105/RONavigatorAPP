@@ -417,9 +417,9 @@ export function SettingsTab() {
     return (
       <div className="flex flex-col h-full overflow-y-auto">
         {/* Header */}
-        <div className="panel-header px-5 pt-4 pb-3">
+        <div className="panel-header px-4 pt-3 pb-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold tracking-tight">Settings</h1>
+            <h1 className="text-[15px] font-bold tracking-tight">Settings</h1>
             <SegmentedControl
               options={[
                 { value: 'settings', label: 'Settings' },
@@ -432,7 +432,7 @@ export function SettingsTab() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-5 max-w-2xl mx-auto w-full">
+          <div className="p-4 max-w-2xl mx-auto w-full">
             {settingsView === 'settings' ? (
               <div className="space-y-5">
                 {/* ═══ Account & Identity — top hero section ═══ */}
