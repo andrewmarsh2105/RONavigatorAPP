@@ -305,7 +305,7 @@ export const ROListPanel = memo(function ROListPanel({
 
   return (
     <>
-      <div className="flex flex-col h-full bg-card">
+      <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
         <div className="flex-shrink-0 border-b border-border/60">
@@ -504,8 +504,8 @@ export const ROListPanel = memo(function ROListPanel({
                         rowPy,
                         gridCols,
                         selected
-                          ? "bg-primary/[0.09] border-l-[3px] border-l-primary"
-                          : "hover:bg-muted/40",
+                          ? "list-row-selected bg-primary/[0.08]"
+                          : "hover:bg-muted/30",
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}
@@ -588,7 +588,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-muted/10">
+        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-background">
           <span className="text-[10px] text-muted-foreground tabular-nums">
             {filteredROs.length > visibleCount
               ? `Showing ${visible.length} of ${filteredROs.length} ROs`
