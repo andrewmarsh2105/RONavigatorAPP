@@ -286,7 +286,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
       </div>
 
       {/* ═══ Sticky action bar ═══ */}
-      <div className="flex-shrink-0 border-t border-border/60 bg-card px-4 py-2">
+      <div className="panel-action-bar">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
