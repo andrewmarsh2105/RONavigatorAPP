@@ -598,10 +598,10 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t bg-background" style={{ borderColor: 'hsl(var(--border) / 0.4)' }}>
-          <span className="text-[10px] text-muted-foreground tabular-nums">
+        <div className="flex-shrink-0 px-3 py-1 border-t bg-background/80" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+          <span className="text-[9px] text-muted-foreground/50 tabular-nums">
             {filteredROs.length > visibleCount
-              ? `Showing ${visible.length} of ${filteredROs.length} ROs`
+              ? `${visible.length} of ${filteredROs.length}`
               : `${filteredROs.length} RO${filteredROs.length !== 1 ? 's' : ''}`}
             {(laborTypeFilter.length > 0 || advisorFilter !== "all") && ' · filtered'}
           </span>
