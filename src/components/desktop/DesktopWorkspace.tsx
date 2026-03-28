@@ -302,16 +302,15 @@ export function DesktopWorkspace() {
       ) : (
         <div
           className={cn(
-            "flex-1 flex min-h-0 p-2.5 gap-2 bg-muted/20",
+            "flex-1 flex min-h-0",
             isDragging && "select-none",
           )}
         >
-          {/* Left Panel */}
+          {/* Left Panel — Queue */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card"
+            className="min-w-0 flex-shrink-0 overflow-hidden workspace-queue border-r border-border/50"
             style={{
               ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
-              boxShadow: "var(--shadow-raised)",
             }}
           >
             <ROListPanel
@@ -323,7 +322,7 @@ export function DesktopWorkspace() {
             />
           </div>
 
-          {/* Splitter + Right Panel */}
+          {/* Splitter + Right Panel — Workspace */}
           {!isWideList && (
             <>
               <SplitHandle
@@ -334,8 +333,7 @@ export function DesktopWorkspace() {
               />
 
               <div
-                className="flex-1 min-w-0 relative rounded-xl border border-border/60 bg-card overflow-hidden"
-                style={{ boxShadow: "var(--shadow-raised)" }}
+                className="flex-1 min-w-0 relative bg-card overflow-hidden"
               >
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
