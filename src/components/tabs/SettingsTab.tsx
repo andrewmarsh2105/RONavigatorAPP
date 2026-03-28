@@ -437,7 +437,7 @@ export function SettingsTab() {
               <div className="space-y-4">
                 {/* ═══ Account & Identity — top hero section ═══ */}
                 <div
-                  className="bg-card border border-border/60 overflow-hidden"
+                  className="bg-card border border-border/40 overflow-hidden"
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   {/* Identity row */}
