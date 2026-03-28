@@ -88,69 +88,65 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
   return (
     <div className="h-full flex flex-col bg-card">
 
-      {/* ═══ Header — hero identification band ═══ */}
+      {/* ═══ Header — identification strip ═══ */}
       <div
         className="panel-header"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
-        {/* Primary row: RO# + hours hero + actions */}
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-2.5 pb-2">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <h2 className="text-[18px] font-extrabold tabular-nums text-foreground tracking-tight leading-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-[17px] font-extrabold tabular-nums text-foreground tracking-tight leading-none">
                 #{ro.roNumber}
               </h2>
               <button
-                className="text-muted-foreground/50 hover:text-muted-foreground quiet-transition flex-shrink-0"
+                className="text-muted-foreground/30 hover:text-muted-foreground quiet-transition flex-shrink-0"
                 onClick={() => copyText("RO #", ro.roNumber)}
                 title="Copy RO #"
               >
-                <Copy className="h-3 w-3" />
+                <Copy className="h-2.5 w-2.5" />
               </button>
               <StatusPill type={ro.laborType} size="sm" />
             </div>
 
-            {/* Hours — hero metric */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="hours-pill text-[13px] px-2.5 py-1">
-                {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-              </span>
-            </div>
+            <span className="hours-pill text-[13px] px-2.5 py-0.5 flex-shrink-0">
+              {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+            </span>
           </div>
 
-          {/* Secondary: date, advisor, vehicle + status badges */}
-          <div className="flex items-center justify-between gap-2 mt-1.5">
-            <p className="text-[11px] text-muted-foreground truncate">
+          {/* Compact secondary line */}
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <p className="text-[10px] text-muted-foreground/60 truncate">
               {formatDateLong(ro.date)} · {ro.advisor}
               {vehicleLabel(ro) !== "—" && <> · {vehicleLabel(ro)}</>}
             </p>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               {status.paid === "Paid" ? (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
-                  <CheckCircle2 className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
+                  <CheckCircle2 className="h-2 w-2" />
                   PAID
                 </span>
               ) : (
-                <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                <span className="text-[8px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
                   OPEN
                 </span>
               )}
               {status.tbd > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-sm leading-none">
-                  <Clock className="h-2.5 w-2.5" />
-                  {status.allTbd ? 'TBD' : `${status.tbd} TBD`}
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold bg-muted/60 text-muted-foreground px-1 py-0.5 rounded-sm leading-none">
+                  <Clock className="h-2 w-2" />
+                  {status.allTbd ? 'TBD' : status.tbd}
                 </span>
               )}
               {status.flags > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
-                  <Flag className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.5 rounded-sm leading-none" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
+                  <Flag className="h-2 w-2" />
                   {status.flags}
                 </span>
               )}
               {status.checks > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-sm leading-none">
-                  <AlertTriangle className="h-2.5 w-2.5" />
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-destructive bg-destructive/8 px-1 py-0.5 rounded-sm leading-none">
+                  <AlertTriangle className="h-2 w-2" />
                   {status.checks}
                 </span>
               )}
