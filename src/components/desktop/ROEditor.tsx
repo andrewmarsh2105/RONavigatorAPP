@@ -271,7 +271,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header Strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-2.5 space-y-2">
+      <div className="panel-header px-4 py-2.5 space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
