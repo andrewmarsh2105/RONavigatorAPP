@@ -247,9 +247,9 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Notes ─────────────────────────────────── */}
         {ro.notes && (
-          <div className="px-4 pb-3">
-            <p className="section-title mb-1">Notes</p>
-            <p className="text-[11px] text-foreground/80 leading-relaxed bg-muted/15 border border-border/30 rounded-md px-3 py-2">
+          <div className="px-4 pb-2.5">
+            <p className="data-header mb-1">Notes</p>
+            <p className="text-[11px] text-foreground/70 leading-relaxed bg-muted/10 border border-border/20 rounded px-3 py-1.5">
               {ro.notes}
             </p>
           </div>
