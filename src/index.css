@@ -421,7 +421,9 @@
 
   /* ── Unified panel header (top sticky) ────────────── */
   .panel-header {
-    @apply flex-shrink-0 sticky top-0 z-10 bg-card/98 backdrop-blur-sm border-b;
+    @apply flex-shrink-0 sticky top-0 z-10 border-b;
+    background: hsl(var(--card) / 0.98);
+    backdrop-filter: blur(8px);
     border-color: hsl(var(--border) / 0.5);
   }
 
