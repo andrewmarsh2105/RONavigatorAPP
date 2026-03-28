@@ -577,7 +577,7 @@ export function SummaryTab() {
         <CustomDatePickers />
 
         {/* ── Two-column grid: KPI left, breakdowns right ── */}
-        <div className="grid grid-cols-[1fr_1fr] gap-4 items-start">
+        <div className="grid grid-cols-[1fr_1fr] gap-3 items-start">
 
           {/* LEFT COLUMN: KPI + Goals + Export */}
           <div className="space-y-3">
