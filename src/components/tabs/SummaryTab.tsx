@@ -39,12 +39,11 @@ import { getDayRange, getWeekRange, getMonthRange, getTwoWeekRange, getLastWeekR
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// ── Section divider ───────────────────────────────────────
+// ── Section label — no decorative line, just a clear header ──
 function SectionDivider({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 px-4">
-      <span className="text-[10px] font-bold text-muted-foreground/45 uppercase tracking-[0.12em] whitespace-nowrap">{children}</span>
-      <div className="flex-1 h-px bg-border/25" />
+    <div className="px-4 pt-5 pb-1.5">
+      <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.15em]">{children}</span>
     </div>
   );
 }
@@ -345,225 +344,218 @@ export function SummaryTab() {
               </div>
             )}
 
-            {/* ══════════ HERO KPI ══════════ */}
-            <div className="px-4">
-              <div className="bg-card rounded-2xl border border-border/50 overflow-hidden" style={{ boxShadow: 'var(--shadow-card)' }}>
+            {/* ══════════ HERO KPI — flat full-bleed readout ══════════ */}
+            <div className="px-4 pt-5 pb-4 border-b border-border/20">
 
-                {/* Primary zone — subtle tinted header */}
-                <div className="px-5 pt-5 pb-4" style={{ background: 'linear-gradient(160deg, hsl(var(--primary) / 0.045) 0%, transparent 55%)' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/55 mb-2">Total Hours</div>
-                  <div className="flex items-baseline gap-2 mb-5">
-                    <span className="text-[52px] font-bold tabular-nums tracking-tight leading-none text-primary font-mono">
-                      {maskHours(report.totalHours, hideTotals)}
-                    </span>
-                    <span className="text-2xl font-bold text-primary/25 font-mono">h</span>
-                  </div>
+              {/* Label */}
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/45 mb-2">
+                Total Hours
+              </div>
 
-                  {/* Secondary stat grid — 3 distinct KPIs */}
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border/30">
-                    <div className="pr-4">
-                      <div className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.09em] mb-0.5">ROs</div>
-                      <div className="text-xl font-bold tabular-nums leading-tight">{report.totalROs}</div>
-                    </div>
-                    <div className="px-4">
-                      <div className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.09em] mb-0.5">Avg / RO</div>
-                      <div className="text-xl font-bold tabular-nums leading-tight">
-                        {maskHours(avgPerRO, hideTotals)}<span className="text-sm font-normal text-muted-foreground/45">h</span>
+              {/* Primary number — direct, no card wrapping */}
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-[56px] font-bold tabular-nums tracking-tight leading-none text-primary font-mono">
+                  {maskHours(report.totalHours, hideTotals)}
+                </span>
+                <span className="text-3xl font-bold text-primary/20 font-mono">h</span>
+              </div>
+
+              {/* Secondary stats — inline, not a grid */}
+              <div className="flex items-center gap-4 mb-4 flex-wrap">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold tabular-nums">{report.totalROs}</span>
+                  <span className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.08em] ml-0.5">ROs</span>
+                </div>
+                <div className="w-px h-3.5 bg-border/50 flex-shrink-0" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold tabular-nums">{maskHours(avgPerRO, hideTotals)}</span>
+                  <span className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.08em] ml-0.5">h/RO</span>
+                </div>
+                <div className="w-px h-3.5 bg-border/50 flex-shrink-0" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold tabular-nums">{report.totalLines}</span>
+                  <span className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.08em] ml-0.5">lines</span>
+                </div>
+              </div>
+
+              {/* Labor type pills + attention items */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
+                  <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
+                )) : (
+                  <span className="text-[11px] text-muted-foreground/55">No data</span>
+                )}
+                {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
+                  <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+                    {report.flaggedCount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Flag className="h-3 w-3 text-orange-500" />
+                        <span className="text-[11px] font-bold tabular-nums text-orange-500">{report.flaggedCount} flagged</span>
                       </div>
-                    </div>
-                    <div className="pl-4">
-                      <div className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-[0.09em] mb-0.5">Lines</div>
-                      <div className="text-xl font-bold tabular-nums leading-tight">{report.totalLines}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Labor type + attention items strip */}
-                <div className="border-t border-border/25 px-5 py-3 flex items-center gap-2.5 flex-wrap">
-                  {report.byLaborType.length > 0 ? report.byLaborType.map(lt => (
-                    <StatusPill key={lt.laborType} type={lt.laborType} hours={lt.totalHours} size="sm" />
-                  )) : (
-                    <span className="text-[11px] text-muted-foreground/55">No data</span>
-                  )}
-                  {(report.flaggedCount > 0 || report.tbdLineCount > 0) && (
-                    <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-                      {report.flaggedCount > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Flag className="h-3 w-3 text-orange-500" />
-                          <span className="text-[11px] font-bold tabular-nums text-orange-500">{report.flaggedCount} flagged</span>
-                        </div>
-                      )}
-                      {report.tbdLineCount > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="h-3 w-3 text-amber-500" />
-                          <span className="text-[11px] font-bold tabular-nums text-amber-500">
-                            {report.tbdLineCount} TBD{!hideTotals && ` · ${report.tbdHours.toFixed(1)}h excl.`}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Goals + Earnings */}
-                {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
-                  <div className="border-t border-border/25 px-5 py-4 space-y-3">
-                    {hoursGoalDaily > 0 && rangeMode === 'day' && (
-                      <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
                     )}
-                    {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
-                      <GoalBar label="Weekly Goal" current={report.totalHours} goal={hoursGoalWeekly} hide={hideTotals} />
-                    )}
-                    {hourlyRate > 0 && !hideTotals && (
-                      <div className="flex items-center justify-between pt-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign className="h-3.5 w-3.5 text-green-600" />
-                          <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted-foreground/60">Est. Earnings</span>
-                        </div>
-                        <span className="text-lg font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
+                    {report.tbdLineCount > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-amber-500" />
+                        <span className="text-[11px] font-bold tabular-nums text-amber-500">
+                          {report.tbdLineCount} TBD{!hideTotals && ` · ${report.tbdHours.toFixed(1)}h excl.`}
+                        </span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Goals + Earnings — own section below KPI */}
+            {(hoursGoalDaily > 0 || hoursGoalWeekly > 0 || hourlyRate > 0) && (
+              <div className="px-4 py-4 border-b border-border/20 space-y-3">
+                {hoursGoalDaily > 0 && rangeMode === 'day' && (
+                  <GoalBar label="Daily Goal" current={report.totalHours} goal={hoursGoalDaily} hide={hideTotals} />
+                )}
+                {hoursGoalWeekly > 0 && rangeMode !== 'day' && (
+                  <GoalBar label="Weekly Goal" current={report.totalHours} goal={hoursGoalWeekly} hide={hideTotals} />
+                )}
+                {hourlyRate > 0 && !hideTotals && (
+                  <div className="flex items-center justify-between pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5 text-green-600" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted-foreground/60">Est. Earnings</span>
+                    </div>
+                    <span className="text-lg font-bold tabular-nums text-green-600">${(report.totalHours * hourlyRate).toFixed(0)}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ══════════ BREAKDOWN ══════════ */}
             <SectionDivider>Breakdown</SectionDivider>
 
-            <div className="px-4 space-y-3">
-
-              {/* ── Hours by Day ── */}
-              <div className="bg-card rounded-2xl border border-border/50 overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                <div className="px-4 pt-3.5 pb-2.5 flex items-center justify-between border-b border-border/20">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">Hours by Day</span>
-                  <span className="text-[10px] tabular-nums text-muted-foreground/40">{report.byDay.length}d</span>
-                </div>
-                <div className="divide-y divide-border/20">
-                  {report.byDay.map((day) => {
-                    const date = new Date(day.date + 'T12:00:00');
-                    const isToday = day.date === todayStr;
-                    const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
-                    const isEmpty = day.totalHours === 0;
-                    return (
-                      <div
-                        key={day.date}
-                        className={cn('flex items-center gap-3 px-4 py-2.5', isToday && 'bg-primary/[0.035]', isEmpty && 'opacity-40')}
-                      >
-                        {/* Day + date */}
-                        <div className="flex-shrink-0 w-9 text-left">
-                          <div className={cn('text-[10px] font-bold uppercase tracking-wide leading-tight', isToday ? 'text-primary' : 'text-muted-foreground/50')}>
-                            {dayNames[date.getDay()]}
-                          </div>
-                          <div className={cn('text-[15px] font-bold tabular-nums leading-tight', isToday ? 'text-primary' : 'text-foreground/80')}>
-                            {date.getDate()}
-                          </div>
+            {/* ── Hours by Day — flat section ── */}
+            <div className="border-b border-border/20">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-foreground/40">By Day</span>
+                <span className="text-[10px] tabular-nums text-muted-foreground/35">{report.byDay.length}d</span>
+              </div>
+              <div className="divide-y divide-border/15">
+                {report.byDay.map((day) => {
+                  const date = new Date(day.date + 'T12:00:00');
+                  const isToday = day.date === todayStr;
+                  const barWidth = maxDayHours > 0 ? (day.totalHours / maxDayHours) * 100 : 0;
+                  const isEmpty = day.totalHours === 0;
+                  return (
+                    <div
+                      key={day.date}
+                      className={cn('flex items-center gap-3 px-4 py-2.5', isToday && 'bg-primary/[0.035]', isEmpty && 'opacity-40')}
+                    >
+                      <div className="flex-shrink-0 w-9 text-left">
+                        <div className={cn('text-[10px] font-bold uppercase tracking-wide leading-tight', isToday ? 'text-primary' : 'text-muted-foreground/50')}>
+                          {dayNames[date.getDay()]}
                         </div>
-                        {/* Inline bar */}
-                        <div className="flex-1 min-w-0 h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full transition-all', isToday ? 'bg-primary' : 'bg-primary/45')}
-                            style={{ width: `${barWidth}%` }}
-                          />
-                        </div>
-                        {/* Hours */}
-                        <div className="flex-shrink-0 text-right w-12">
-                          <span className={cn('text-sm font-bold tabular-nums', isEmpty ? 'text-muted-foreground/30' : isToday ? 'text-primary' : '')}>
-                            {maskHours(day.totalHours, hideTotals)}h
-                          </span>
-                        </div>
-                        {/* RO count */}
-                        <div className="flex-shrink-0 text-right w-8">
-                          <span className="text-[10px] text-muted-foreground/40 tabular-nums">
-                            {day.roCount > 0 ? day.roCount : ''}
-                          </span>
+                        <div className={cn('text-[15px] font-bold tabular-nums leading-tight', isToday ? 'text-primary' : 'text-foreground/80')}>
+                          {date.getDate()}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-                {/* Footer */}
-                <div className="flex items-center gap-3 px-4 py-2.5 border-t border-border/20 bg-muted/15">
-                  <div className="flex-shrink-0 w-9">
-                    <span className="text-[10px] font-bold text-muted-foreground/45 uppercase tracking-wide">Total</span>
-                  </div>
-                  <div className="flex-1" />
-                  <div className="flex-shrink-0 text-right w-12">
-                    <span className="text-sm font-bold tabular-nums text-primary">{maskHours(report.totalHours, hideTotals)}h</span>
-                  </div>
-                  <div className="flex-shrink-0 text-right w-8">
-                    <span className="text-[10px] text-muted-foreground/45 tabular-nums">{report.totalROs}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Hours by Advisor ── */}
-              <div className="bg-card rounded-2xl border border-border/50 overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                <div className="px-4 pt-3.5 pb-2.5 border-b border-border/20">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55">Hours by Advisor</span>
-                </div>
-                {report.byAdvisor.length === 0 ? (
-                  <div className="px-4 py-4 text-xs text-muted-foreground/55">No data for this range</div>
-                ) : (
-                  <>
-                    <div className="divide-y divide-border/20">
-                      {visibleAdvisors.map((adv, idx) => (
-                        <div key={adv.advisor} className="flex items-center gap-3 px-4 py-3">
-                          <div className="flex-shrink-0 w-5 text-center">
-                            <span className="text-[11px] font-bold text-muted-foreground/25 tabular-nums">{idx + 1}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold truncate">{adv.advisor || '—'}</div>
-                            {!hideTotals && (adv.warrantyHours > 0 || adv.customerPayHours > 0 || adv.internalHours > 0) && (
-                              <div className="flex gap-2 mt-0.5 flex-wrap">
-                                {adv.warrantyHours > 0 && (
-                                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-warranty))' }}>
-                                    W {adv.warrantyHours.toFixed(1)}h
-                                  </span>
-                                )}
-                                {adv.customerPayHours > 0 && (
-                                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-customer-pay))' }}>
-                                    CP {adv.customerPayHours.toFixed(1)}h
-                                  </span>
-                                )}
-                                {adv.internalHours > 0 && (
-                                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-internal))' }}>
-                                    I {adv.internalHours.toFixed(1)}h
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0">
-                            <span className="text-[10px] text-muted-foreground/45 tabular-nums">{adv.roCount} RO{adv.roCount !== 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="flex-shrink-0 text-right w-12">
-                            <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
-                          </div>
-                        </div>
-                      ))}
+                      <div className="flex-1 min-w-0 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all', isToday ? 'bg-primary' : 'bg-primary/45')}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                      <div className="flex-shrink-0 text-right w-12">
+                        <span className={cn('text-sm font-bold tabular-nums', isEmpty ? 'text-muted-foreground/30' : isToday ? 'text-primary' : '')}>
+                          {maskHours(day.totalHours, hideTotals)}h
+                        </span>
+                      </div>
+                      <div className="flex-shrink-0 text-right w-8">
+                        <span className="text-[10px] text-muted-foreground/40 tabular-nums">
+                          {day.roCount > 0 ? day.roCount : ''}
+                        </span>
+                      </div>
                     </div>
-                    {hasMoreAdvisors && (
-                      <button
-                        onClick={() => setShowAllAdvisors(!showAllAdvisors)}
-                        className="w-full py-2.5 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border/20"
-                      >
-                        {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
-                      </button>
-                    )}
-                  </>
-                )}
+                  );
+                })}
+              </div>
+              {/* Footer */}
+              <div className="flex items-center gap-3 px-4 py-2.5 border-t border-border/15 bg-muted/15">
+                <div className="flex-shrink-0 w-9">
+                  <span className="text-[10px] font-bold text-muted-foreground/45 uppercase tracking-wide">Total</span>
+                </div>
+                <div className="flex-1" />
+                <div className="flex-shrink-0 text-right w-12">
+                  <span className="text-sm font-bold tabular-nums text-primary">{maskHours(report.totalHours, hideTotals)}h</span>
+                </div>
+                <div className="flex-shrink-0 text-right w-8">
+                  <span className="text-[10px] text-muted-foreground/45 tabular-nums">{report.totalROs}</span>
+                </div>
               </div>
             </div>
 
-            {/* ── Labor Detail (collapsed) ── */}
-            <div className="px-4">
+            {/* ── Hours by Advisor — flat section ── */}
+            <div className="border-b border-border/20">
+              <div className="px-4 py-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.11em] text-foreground/40">By Advisor</span>
+              </div>
+              {report.byAdvisor.length === 0 ? (
+                <div className="px-4 pb-4 text-xs text-muted-foreground/55">No data for this range</div>
+              ) : (
+                <>
+                  <div className="divide-y divide-border/15">
+                    {visibleAdvisors.map((adv, idx) => (
+                      <div key={adv.advisor} className="flex items-center gap-3 px-4 py-3">
+                        <div className="flex-shrink-0 w-5 text-center">
+                          <span className="text-[11px] font-bold text-muted-foreground/25 tabular-nums">{idx + 1}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate">{adv.advisor || '—'}</div>
+                          {!hideTotals && (adv.warrantyHours > 0 || adv.customerPayHours > 0 || adv.internalHours > 0) && (
+                            <div className="flex gap-2 mt-0.5 flex-wrap">
+                              {adv.warrantyHours > 0 && (
+                                <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-warranty))' }}>
+                                  W {adv.warrantyHours.toFixed(1)}h
+                                </span>
+                              )}
+                              {adv.customerPayHours > 0 && (
+                                <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-customer-pay))' }}>
+                                  CP {adv.customerPayHours.toFixed(1)}h
+                                </span>
+                              )}
+                              {adv.internalHours > 0 && (
+                                <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-internal))' }}>
+                                  I {adv.internalHours.toFixed(1)}h
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className="text-[10px] text-muted-foreground/45 tabular-nums">{adv.roCount} RO{adv.roCount !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex-shrink-0 text-right w-12">
+                          <span className="text-sm font-bold tabular-nums">{maskHours(adv.totalHours, hideTotals)}h</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {hasMoreAdvisors && (
+                    <button
+                      onClick={() => setShowAllAdvisors(!showAllAdvisors)}
+                      className="w-full py-2.5 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-colors border-t border-border/20"
+                    >
+                      {showAllAdvisors ? 'Show less' : `View all ${report.byAdvisor.length} advisors`}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* ── Labor Detail — flat accordion ── */}
+            <div className="border-b border-border/20">
               <Accordion type="single" collapsible>
-                <AccordionItem value="more" className="bg-card rounded-2xl border border-border/50 overflow-hidden [&>*:last-child]:rounded-b-2xl">
-                  <AccordionTrigger className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.11em] text-muted-foreground/55 hover:no-underline hover:bg-muted/20 transition-colors [&>svg]:text-muted-foreground/30 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                <AccordionItem value="more" className="border-0">
+                  <AccordionTrigger className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.11em] text-foreground/40 hover:no-underline hover:bg-muted/20 transition-colors [&>svg]:text-muted-foreground/30 [&>svg]:h-3.5 [&>svg]:w-3.5">
                     Labor Detail
                   </AccordionTrigger>
-                  <AccordionContent className="border-t border-border/20">
+                  <AccordionContent className="border-t border-border/15">
                     <div className="px-4 pb-4 pt-3 space-y-4">
                       {/* Labor Type Breakdown */}
                       <div>

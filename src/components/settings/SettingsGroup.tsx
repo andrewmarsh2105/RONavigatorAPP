@@ -6,16 +6,16 @@ interface SettingsGroupProps {
 
 export function SettingsGroup({ title, description, children }: SettingsGroupProps) {
   return (
-    <div className="space-y-1.5">
-      <div className="px-1">
-        <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.12em]">
+    <div>
+      <div className="px-4 pt-5 pb-2">
+        <h3 className="text-[11px] font-bold text-foreground/55 uppercase tracking-[0.1em]">
           {title}
         </h3>
         {description && (
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5">{description}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-0.5">{description}</p>
         )}
       </div>
-      <div className="bg-card border border-border/70 divide-y divide-border/50" style={{ borderRadius: 'var(--radius)' }}>
+      <div className="bg-card border-t border-b border-border/50 divide-y divide-border/40">
         {children}
       </div>
     </div>

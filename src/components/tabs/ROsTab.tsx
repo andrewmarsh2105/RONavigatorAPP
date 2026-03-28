@@ -440,32 +440,45 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* ── Sticky header ───────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-card border-b border-border/60">
+      <div className="sticky top-0 z-30 bg-background border-b border-border/50">
 
-        {/* Top bar: shop name + controls */}
-        <div className="flex items-center h-10 px-3 gap-2 border-b border-border/30">
-          <h2 className="text-[15px] font-bold tracking-tight text-foreground flex-1 truncate">
-            {goalSettings.shopName || 'Repair Orders'}
-          </h2>
+        {/* Top bar: shop name · hours readout · controls */}
+        <div className="flex items-center h-11 px-3 gap-2">
+          {/* Left: shop name + live hours readout */}
+          <div className="flex-1 min-w-0 flex items-baseline gap-2">
+            <h2 className="text-[12px] font-semibold text-muted-foreground/65 truncate flex-shrink-0 leading-none">
+              {goalSettings.shopName || 'Repair Orders'}
+            </h2>
+            {viewMode !== 'spreadsheet' && (
+              <div className="flex items-baseline gap-1 flex-shrink-0">
+                <span className="text-[17px] font-black tabular-nums text-primary leading-none tracking-tight font-mono">
+                  {maskHours(totalHours, userSettings.hideTotals ?? false)}h
+                </span>
+                <span className="text-[10px] text-muted-foreground/45 font-medium leading-none">
+                  {filteredROs.length}
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Daily goal indicator */}
-            {hoursGoalDaily > 0 && (
+            {hoursGoalDaily > 0 && viewMode !== 'spreadsheet' && (
               <div className={cn(
-                'h-6 px-2 rounded-full text-[10px] font-bold tabular-nums flex items-center gap-1 border',
+                'h-6 px-2 rounded text-[10px] font-bold tabular-nums flex items-center gap-1 border',
                 todayHours >= hoursGoalDaily
                   ? 'bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400'
                   : 'bg-primary/10 text-primary border-primary/20'
               )}>
                 <span>{todayHours.toFixed(1)}</span>
-                <span className="opacity-60">/</span>
+                <span className="opacity-50">/</span>
                 <span>{hoursGoalDaily}h</span>
               </div>
             )}
 
             {/* Avatar */}
             {goalSettings.displayName && (
-              <div className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 select-none">
+              <div className="h-6 w-6 rounded bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0 select-none">
                 {goalSettings.displayName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -475,7 +488,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               <button
                 onClick={() => setDensity(d => d === 'normal' ? 'compact' : 'normal')}
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded-md quiet-transition border',
+                  'h-6 w-6 flex items-center justify-center rounded quiet-transition border',
                   density === 'compact'
                     ? 'bg-primary/10 text-primary border-primary/25'
                     : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -490,7 +503,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <button
               onClick={() => isPro ? setViewMode(v => v === 'cards' ? 'spreadsheet' : 'cards') : setShowUpgrade(true)}
               className={cn(
-                'h-6 w-6 flex items-center justify-center rounded-md quiet-transition relative border',
+                'h-6 w-6 flex items-center justify-center rounded quiet-transition relative border',
                 isPro && viewMode === 'spreadsheet'
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'text-muted-foreground bg-transparent border-border/60 hover:bg-muted/50 hover:text-foreground'
@@ -517,7 +530,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
             <button
               onClick={() => setShowUpgrade(true)}
               className={cn(
-                'flex-shrink-0 h-7 px-2 rounded-md border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
+                'flex-shrink-0 h-7 px-2 rounded border text-[9px] font-semibold flex items-center gap-1 quiet-transition',
                 monthlyROCount >= RO_MONTHLY_CAP
                   ? 'bg-red-500/10 text-red-600 border-red-500/30 dark:text-red-400'
                   : monthlyROCount >= RO_MONTHLY_CAP - 5
@@ -608,11 +621,11 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
               })}
             </div>
 
-            {/* Pinned right: range label + totals stat badge */}
-            <div className="flex-shrink-0 flex items-center gap-1.5 pl-2 border-l border-border/40">
+            {/* Pinned right: range label only — totals live in the header bar */}
+            <div className="flex-shrink-0 flex items-center gap-1 pl-2 border-l border-border/40">
               <span
                 className={cn(
-                  'text-[9px] text-muted-foreground/55 hidden sm:flex items-center gap-0.5 flex-shrink-0',
+                  'text-[9px] text-muted-foreground/50 flex items-center gap-0.5 flex-shrink-0',
                   dateFilter === 'custom' && 'cursor-pointer hover:text-foreground'
                 )}
                 onClick={() => { if (dateFilter === 'custom') requestCustomDialog(); }}
@@ -620,14 +633,6 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
                 <CalendarRange className="h-2.5 w-2.5" />
                 {rangeChipLabel}
               </span>
-              <div className="stat-badge py-0.5 px-1.5 gap-1">
-                <span className="text-[13px] font-bold tabular-nums text-primary leading-none tracking-tight font-mono">
-                  {maskHours(totalHours, userSettings.hideTotals ?? false)}h
-                </span>
-                <span className="text-[9px] text-muted-foreground font-medium leading-none">
-                  {filteredROs.length}
-                </span>
-              </div>
             </div>
           </div>
         )}
@@ -644,7 +649,7 @@ export function ROsTab({ onEditRO, onViewModeChange }: ROsTabProps) {
           </Suspense>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/20">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {loadingROs ? (
             <div className="divide-y divide-border/40">
               {Array.from({ length: 8 }).map((_, i) => (
