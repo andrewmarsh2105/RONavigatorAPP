@@ -143,12 +143,19 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
       ? 'text-[hsl(var(--status-customer-pay))]'
       : 'text-[hsl(var(--status-internal))]';
 
+  const typeBg = line.laborType === 'warranty'
+    ? 'hsl(var(--status-warranty) / 0.1)'
+    : line.laborType === 'customer-pay'
+      ? 'hsl(var(--status-customer-pay) / 0.1)'
+      : 'hsl(var(--status-internal) / 0.1)';
+
   const isPaid = !!line.ro?.paidDate;
+  const meta = [line.customer, line.vehicle].filter(Boolean).join(' · ');
 
   return (
     <div
       className={cn(
-        'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/40',
+        'flex items-start gap-2 px-3 py-2.5 border-l-[3px] border-b border-border/30',
         'cursor-pointer active:bg-accent/50 transition-colors',
         borderColorClass,
         isSelected ? 'bg-primary/8' : 'bg-card',
@@ -168,32 +175,34 @@ const MobileLineCard = memo(function MobileLineCard({ line, onSelectRO, isSelect
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="font-bold text-xs text-foreground shrink-0">#{line.roNumber}</span>
           <span className={cn(
-            'text-[9px] font-bold px-1.5 py-0 rounded-full uppercase tracking-wide',
+            'inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0',
             isPaid
               ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
-              : 'bg-muted text-muted-foreground',
+              : 'bg-muted/60 text-muted-foreground',
           )}>
-            {isPaid ? 'Paid' : 'Open'}
+            {isPaid ? '● Paid' : '○ Open'}
           </span>
           {flagCount > 0 && (
-            <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20" />
+            <Flag className="h-3 w-3 text-amber-500 fill-amber-500/20 shrink-0" />
           )}
-          {line.customer && (
-            <span className="text-[11px] text-muted-foreground truncate">{line.customer}</span>
+          {meta && (
+            <span className="text-[11px] text-muted-foreground/70 truncate">{meta}</span>
           )}
         </div>
         <p className="text-sm text-foreground leading-snug line-clamp-2">
-          {line.description || <span className="italic text-muted-foreground">No description</span>}
+          {line.description || <span className="italic text-muted-foreground/50">No description</span>}
         </p>
       </div>
-      <div className="flex flex-col items-end gap-0.5 shrink-0 ml-1">
-        <span className={cn('text-base font-bold tabular-nums leading-none', line.isTbd && 'line-through text-amber-500')}>
+      <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+        <span className={cn('text-[15px] font-bold tabular-nums leading-none', line.isTbd && 'line-through text-amber-500')}>
           {line.hours.toFixed(1)}h
         </span>
-        <span className={cn('text-[10px] font-semibold uppercase tracking-wide', typeColor)}>
-          {line.type}
+        <span
+          className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide', typeColor)}
+          style={{ backgroundColor: typeBg }}
+        >
+          {line.type}{line.isTbd ? ' TBD' : ''}
         </span>
-        {line.isTbd && <span className="text-[9px] font-bold text-amber-500">TBD</span>}
       </div>
     </div>
   );
@@ -299,14 +308,14 @@ function DateFilterBar({ dateRange, computedRangeLabel, hasCustomPayPeriod, isMo
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-0 rounded-lg border border-border overflow-hidden bg-card">
+      <div className="flex items-center gap-0 rounded-lg border border-border/60 overflow-hidden bg-muted/25" style={{ boxShadow: 'var(--shadow-sm)' }}>
         {filterOpts.map((opt, idx) => (
           <button
             key={opt.value}
             onClick={() => opt.value === 'custom' ? onCustomRequest() : onSelect(opt.value)}
             className={cn(
-              'px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors whitespace-nowrap',
-              idx > 0 && 'border-l border-border/60',
+              'px-2.5 py-1.5 text-[11px] font-semibold tracking-wide transition-colors whitespace-nowrap',
+              idx > 0 && 'border-l border-border/40',
               dateRange === opt.value
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -798,7 +807,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-accent/20' : 'bg-card';
+    groupIndex % 2 === 1 ? 'bg-muted/12' : 'bg-card';
 
   const showCheckbox = selectionMode || selectedROIds.size > 0;
 
@@ -806,7 +815,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   if (filteredROs.length === 0) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border/90 bg-gradient-to-r from-card to-accent/40 flex-wrap">
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border/50 bg-card flex-wrap">
           {!isCloseout && (
             <DateFilterBar
               dateRange={dateRange}
@@ -830,7 +839,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   return (
     <div className="h-full flex flex-col">
       {/* ─── Toolbar ─── */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border/90 bg-gradient-to-r from-card via-card to-accent/40 backdrop-blur-sm flex-wrap shadow-[var(--shadow-sm)]">
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 bg-card backdrop-blur-sm flex-wrap" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {!isCloseout && (
             <DateFilterBar
@@ -844,16 +853,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           )}
 
           {/* View mode */}
-          <div className="flex rounded-lg border border-border/90 overflow-hidden bg-accent/35 shadow-[var(--shadow-sm)]">
+          <div className="flex rounded-lg border border-border/60 overflow-hidden bg-muted/30" style={{ boxShadow: 'var(--shadow-sm)' }}>
             {(['payroll', 'audit'] as ViewMode[]).map(m => (
               <button
                 key={m}
                 onClick={() => handleViewModeChange(m)}
                 className={cn(
-                  'px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors',
+                  'px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors',
                   viewMode === m
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-transparent text-muted-foreground hover:bg-accent/35',
+                    : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
                 )}
               >
                 {m}
@@ -1018,29 +1027,40 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
               return (
                 <div
                   key={`header-${i}`}
-                  className="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 bg-secondary/95 backdrop-blur-sm border-b border-t border-border shadow-[0_2px_6px_-4px_hsl(var(--foreground)/0.2)]"
+                  className="sticky top-0 z-10 flex items-center justify-between px-3 py-2 bg-secondary/98 backdrop-blur-sm border-b border-border/60 shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.15)]"
                 >
-                  <span className="text-xs font-bold uppercase tracking-wide text-foreground">{sub.label}</span>
-                  <span className="text-xs font-bold tabular-nums text-foreground">{maskHours(sub.hours, hideTotals)}h</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground">{sub.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    {sub.cpHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-customer-pay))' }}>CP {sub.cpHours!.toFixed(1)}</span>
+                    )}
+                    {sub.wHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-warranty))' }}>W {sub.wHours!.toFixed(1)}</span>
+                    )}
+                    {sub.iHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-internal))' }}>I {sub.iHours!.toFixed(1)}</span>
+                    )}
+                    <span className="text-sm font-bold tabular-nums text-foreground pl-1.5 border-l border-border/50">{maskHours(sub.hours, hideTotals)}h</span>
+                  </div>
                 </div>
               );
             }
             if (row.rowType === 'roSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
               return (
-                <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-accent/20 border-b border-border/40">
-                  <span className="text-xs font-semibold text-muted-foreground">{sub.label}</span>
-                  <div className="flex items-center gap-2">
-                    {(sub.cpHours! > 0 || sub.wHours! > 0 || sub.iHours! > 0) && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {[
-                          sub.cpHours ? `CP ${sub.cpHours.toFixed(1)}` : '',
-                          sub.wHours ? `W ${sub.wHours.toFixed(1)}` : '',
-                          sub.iHours ? `I ${sub.iHours.toFixed(1)}` : '',
-                        ].filter(Boolean).join(' · ')}
-                      </span>
+                <div key={`rosub-${i}`} className="flex items-center justify-between px-3 py-1.5 bg-muted/25 border-y border-border/25">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{sub.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    {sub.cpHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-customer-pay))' }}>CP {sub.cpHours!.toFixed(1)}</span>
                     )}
-                    <span className="text-xs font-bold tabular-nums text-primary">{maskHours(sub.hours, hideTotals)}h</span>
+                    {sub.wHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-warranty))' }}>W {sub.wHours!.toFixed(1)}</span>
+                    )}
+                    {sub.iHours! > 0 && (
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-internal))' }}>I {sub.iHours!.toFixed(1)}</span>
+                    )}
+                    <span className="text-xs font-bold tabular-nums text-foreground border-l border-border/50 pl-1.5">{maskHours(sub.hours, hideTotals)}h</span>
                   </div>
                 </div>
               );
@@ -1048,9 +1068,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
             if (row.rowType === 'periodSubtotal') {
               const sub = row as SpreadsheetSubtotalRow;
               return (
-                <div key={`period-${i}`} className="flex items-center justify-between px-3 py-2.5 bg-primary/10 border-t-2 border-border">
-                  <span className="text-sm font-bold uppercase tracking-wide text-foreground">{sub.label}</span>
-                  <span className="text-lg font-bold tabular-nums text-foreground">{maskHours(sub.hours, hideTotals)}h</span>
+                <div key={`period-${i}`} className="flex items-center justify-between px-4 py-3 bg-primary/8 border-t-2 border-primary/20">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/60">{sub.label}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {sub.cpHours! > 0 && (
+                        <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-customer-pay))' }}>CP {sub.cpHours!.toFixed(1)}h</span>
+                      )}
+                      {sub.wHours! > 0 && (
+                        <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-warranty))' }}>W {sub.wHours!.toFixed(1)}h</span>
+                      )}
+                      {sub.iHours! > 0 && (
+                        <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'hsl(var(--status-internal))' }}>I {sub.iHours!.toFixed(1)}h</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xl font-bold tabular-nums text-foreground">{maskHours(sub.hours, hideTotals)}h</span>
                 </div>
               );
             }
@@ -1081,10 +1114,10 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
         /* ─── Desktop Table ─── */
         <div className="flex-1 overflow-auto" ref={tableRef}>
           <table className={cn('min-w-[900px] w-full border-collapse', textSize)}>
-            <thead className="sticky top-0 z-20 border-b-2 border-border">
-              <tr className="bg-secondary/98 backdrop-blur-sm shadow-[0_2px_6px_-4px_hsl(var(--foreground)/0.18)]">
+            <thead className="sticky top-0 z-20 border-b-2 border-border/60">
+              <tr className="bg-card/98 backdrop-blur-sm shadow-[0_2px_8px_-4px_hsl(var(--foreground)/0.12)]">
                 {showCheckbox && (
-                  <th className={cn(cellPx, cellPy, 'w-9 text-center bg-secondary/98')}>
+                  <th className={cn(cellPx, cellPy, 'w-9 text-center bg-card/98')}>
                     <Checkbox
                       checked={selectedROIds.size === filteredROs.length && filteredROs.length > 0}
                       onCheckedChange={(checked) => checked ? handleSelectAll() : deselectAll()}
@@ -1097,7 +1130,7 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                     key={col.id}
                     className={cn(
                       cellPx, cellPy,
-                      'font-semibold text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap bg-secondary/98 overflow-hidden',
+                      'font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70 whitespace-nowrap bg-card/98 overflow-hidden',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
                     )}
@@ -1119,20 +1152,20 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   const afterCols = colCount - spanCols - 1 - (typeIdx > hrsIdx ? 1 : 0);
 
                   return (
-                    <tr key={`rosub-${i}`} className="border-t border-border/60 bg-accent/15">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-muted-foreground text-[11px] text-right')}>
+                    <tr key={`rosub-${i}`} className="border-t border-border/40 bg-muted/20">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-semibold text-muted-foreground text-[11px] text-right italic')}>
                         {sub.label}
                       </td>
-                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-primary text-xs')}>
+                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-xs')}>
                         {maskHours(sub.hours, hideTotals)}h
                       </td>
                       {typeIdx > hrsIdx && (
-                        <td className={cn(cellPx, cellPy, 'text-[10px] text-muted-foreground')}>
-                          {[
-                            sub.cpHours ? `CP: ${sub.cpHours.toFixed(1)}` : '',
-                            sub.wHours ? `W: ${sub.wHours.toFixed(1)}` : '',
-                            sub.iHours ? `I: ${sub.iHours.toFixed(1)}` : '',
-                          ].filter(Boolean).join(' ')}
+                        <td className={cn(cellPx, cellPy)}>
+                          <span className="flex items-center gap-1.5">
+                            {sub.cpHours ? <span style={{ color: 'hsl(var(--status-customer-pay))' }} className="text-[10px] font-semibold tabular-nums">CP {sub.cpHours.toFixed(1)}</span> : null}
+                            {sub.wHours ? <span style={{ color: 'hsl(var(--status-warranty))' }} className="text-[10px] font-semibold tabular-nums">W {sub.wHours.toFixed(1)}</span> : null}
+                            {sub.iHours ? <span style={{ color: 'hsl(var(--status-internal))' }} className="text-[10px] font-semibold tabular-nums">I {sub.iHours.toFixed(1)}</span> : null}
+                          </span>
                         </td>
                       )}
                       {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
@@ -1148,9 +1181,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   const afterCols = colCount - spanCols - 1;
 
                   return (
-                    <tr key={`daysub-${i}`} className="border-t-2 border-border bg-accent/30">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-[11px] uppercase text-right')}>
-                        {sub.label}
+                    <tr key={`daysub-${i}`} className="border-t-2 border-border/60 bg-muted/30">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy)}>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <span className="flex items-center gap-1.5">
+                            {sub.cpHours ? <span style={{ color: 'hsl(var(--status-customer-pay))' }} className="text-[10px] font-semibold tabular-nums">CP {sub.cpHours.toFixed(1)}</span> : null}
+                            {sub.wHours ? <span style={{ color: 'hsl(var(--status-warranty))' }} className="text-[10px] font-semibold tabular-nums">W {sub.wHours.toFixed(1)}</span> : null}
+                            {sub.iHours ? <span style={{ color: 'hsl(var(--status-internal))' }} className="text-[10px] font-semibold tabular-nums">I {sub.iHours.toFixed(1)}</span> : null}
+                          </span>
+                          <span className="font-bold text-foreground text-[11px] uppercase tracking-wide">{sub.label}</span>
+                        </div>
                       </td>
                       <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
                         {maskHours(sub.hours, hideTotals)}h
@@ -1168,9 +1208,16 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   const afterCols = colCount - spanCols - 1;
 
                   return (
-                    <tr key={`advsub-${i}`} className="border-t-2 border-border bg-accent/30">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground text-[11px] uppercase text-right')}>
-                        {sub.label}
+                    <tr key={`advsub-${i}`} className="border-t-2 border-border/60 bg-muted/30">
+                      <td colSpan={spanCols} className={cn(cellPx, cellPy)}>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <span className="flex items-center gap-1.5">
+                            {sub.cpHours ? <span style={{ color: 'hsl(var(--status-customer-pay))' }} className="text-[10px] font-semibold tabular-nums">CP {sub.cpHours.toFixed(1)}</span> : null}
+                            {sub.wHours ? <span style={{ color: 'hsl(var(--status-warranty))' }} className="text-[10px] font-semibold tabular-nums">W {sub.wHours.toFixed(1)}</span> : null}
+                            {sub.iHours ? <span style={{ color: 'hsl(var(--status-internal))' }} className="text-[10px] font-semibold tabular-nums">I {sub.iHours.toFixed(1)}</span> : null}
+                          </span>
+                          <span className="font-bold text-foreground text-[11px] uppercase tracking-wide">{sub.label}</span>
+                        </div>
                       </td>
                       <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground')}>
                         {maskHours(sub.hours, hideTotals)}h
@@ -1188,14 +1235,21 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
                   const afterCols = colCount - spanCols - 1;
 
                   return (
-                    <tr key={`period-${i}`} className="border-t-2 border-border bg-primary/10">
-                      <td colSpan={spanCols} className={cn(cellPx, cellPy, 'font-bold text-foreground uppercase text-[11px] text-right')}>
-                        {sub.label}
+                    <tr key={`period-${i}`} className="border-t-2 border-primary/20 bg-primary/8">
+                      <td colSpan={spanCols} className={cn(cellPx, 'py-2')}>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <span className="flex items-center gap-1.5">
+                            {sub.cpHours ? <span style={{ color: 'hsl(var(--status-customer-pay))' }} className="text-[10px] font-semibold tabular-nums">CP {sub.cpHours.toFixed(1)}</span> : null}
+                            {sub.wHours ? <span style={{ color: 'hsl(var(--status-warranty))' }} className="text-[10px] font-semibold tabular-nums">W {sub.wHours.toFixed(1)}</span> : null}
+                            {sub.iHours ? <span style={{ color: 'hsl(var(--status-internal))' }} className="text-[10px] font-semibold tabular-nums">I {sub.iHours.toFixed(1)}</span> : null}
+                          </span>
+                          <span className="font-bold text-foreground text-xs uppercase tracking-wide">{sub.label}</span>
+                        </div>
                       </td>
-                      <td className={cn(cellPx, cellPy, 'text-right tabular-nums font-bold text-foreground text-base')}>
+                      <td className={cn(cellPx, 'py-2 text-right tabular-nums font-bold text-foreground text-base')}>
                         {maskHours(sub.hours, hideTotals)}h
                       </td>
-                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, cellPy)} />}
+                      {afterCols > 0 && <td colSpan={afterCols} className={cn(cellPx, 'py-2')} />}
                     </tr>
                   );
                 }
@@ -1245,16 +1299,19 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
       )}
 
       {/* ─── Footer ─── */}
-      <div className="flex-shrink-0 border-t-2 border-border bg-gradient-to-r from-card to-accent/35 px-3 py-2 flex items-center justify-between gap-2 text-sm">
-        <div className="flex gap-2 text-muted-foreground text-xs">
-          <span><strong className="text-foreground">{filteredROs.length}</strong> ROs</span>
-          <span><strong className="text-foreground">{totalLines}</strong> lines</span>
+      <div className="flex-shrink-0 border-t border-border/50 bg-card px-3 py-2 flex items-center justify-between gap-2">
+        <div className="flex gap-2.5 text-muted-foreground/60 text-xs">
+          <span><strong className="text-foreground font-bold">{filteredROs.length}</strong> ROs</span>
+          <span className="text-border/80">·</span>
+          <span><strong className="text-foreground font-bold">{totalLines}</strong> lines</span>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-3 tabular-nums rounded-lg border border-border/70 bg-accent/20 px-2.5 py-1">
-          <span className="text-[hsl(var(--status-warranty))] font-medium text-xs">W: {maskHours(warrantyHours, hideTotals)}h</span>
-          <span className="text-[hsl(var(--status-customer-pay))] font-medium text-xs">CP: {maskHours(cpHours, hideTotals)}h</span>
-          <span className="text-[hsl(var(--status-internal))] font-medium text-xs">I: {maskHours(internalHours, hideTotals)}h</span>
-          <span className="font-bold text-foreground text-sm border-l border-border/50 pl-1.5 ml-0.5">{maskHours(totalHours, hideTotals)}h</span>
+        <div className="flex items-center gap-2 tabular-nums rounded-xl border border-border/50 bg-muted/20 px-3 py-1.5" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <span className="font-semibold text-xs" style={{ color: 'hsl(var(--status-warranty))' }}>W {maskHours(warrantyHours, hideTotals)}h</span>
+          <span className="text-border/60 text-xs">·</span>
+          <span className="font-semibold text-xs" style={{ color: 'hsl(var(--status-customer-pay))' }}>CP {maskHours(cpHours, hideTotals)}h</span>
+          <span className="text-border/60 text-xs">·</span>
+          <span className="font-semibold text-xs" style={{ color: 'hsl(var(--status-internal))' }}>I {maskHours(internalHours, hideTotals)}h</span>
+          <span className="font-bold text-foreground text-sm border-l border-border/50 pl-2 ml-0.5">{maskHours(totalHours, hideTotals)}h</span>
         </div>
       </div>
 
