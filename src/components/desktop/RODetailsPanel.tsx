@@ -109,9 +109,19 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
               <StatusPill type={ro.laborType} size="sm" />
             </div>
 
-            <span className="hours-pill text-[13px] px-2.5 py-0.5 flex-shrink-0">
-              {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
-            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="hours-pill text-[13px] px-2.5 py-0.5">
+                {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+              </span>
+              <Button
+                size="sm"
+                className="h-7 px-2.5 text-[11px] gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={onEdit}
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </Button>
+            </div>
           </div>
 
           {/* Compact secondary line */}
@@ -284,25 +294,15 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
       {/* ═══ Sticky action bar ═══ */}
       <div className="panel-action-bar">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={onEdit}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1"
-              onClick={() => setFlagOpen(true)}
-            >
-              <Flag className="h-3 w-3" />
-              Flag
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setFlagOpen(true)}
+          >
+            <Flag className="h-3 w-3" />
+            Flag
+          </Button>
           <Button
             variant="ghost"
             size="sm"
