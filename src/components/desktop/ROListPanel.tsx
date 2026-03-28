@@ -508,7 +508,7 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 cursor-pointer text-xs quiet-transition group",
+                        "grid gap-x-2 items-center px-3 cursor-pointer text-xs quiet-transition group",
                         rowPy,
                         gridCols,
                         selected
@@ -519,25 +519,22 @@ export const ROListPanel = memo(function ROListPanel({
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
-                      {/* Labor type accent strip */}
-                      <div
-                        className="self-stretch rounded-sm"
-                        style={{ background: accentColor, width: '3px', minHeight: '20px' }}
-                        role="cell"
-                        aria-hidden
-                      />
-
-                      {/* Date */}
-                      <div className="text-[11px] tabular-nums text-muted-foreground whitespace-nowrap leading-snug pt-0.5" role="cell">
-                        {formatDateShort(effectiveDate(ro))}
+                      {/* RO # + Date stacked */}
+                      <div className="min-w-0" role="cell">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold tabular-nums text-foreground text-[12px] leading-none">
+                            #{ro.roNumber}
+                          </span>
+                          <span className={laborPillClass(ro.laborType)} style={{ fontSize: '8px', padding: '1px 4px', lineHeight: 1 }}>
+                            {laborAbbr(ro.laborType)}
+                          </span>
+                        </div>
+                        <span className="text-[10px] tabular-nums text-muted-foreground leading-none mt-0.5 block">
+                          {formatDateShort(effectiveDate(ro))}
+                        </span>
                       </div>
 
-                      {/* RO # */}
-                      <div className="font-extrabold tabular-nums text-foreground leading-snug pt-0.5 text-[12px]" role="cell">
-                        #{ro.roNumber}
-                      </div>
-
-                      {/* Info: two-line — customer first when available */}
+                      {/* Info: advisor, vehicle, work summary */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
                           {ro.customerName ? (
@@ -552,16 +549,23 @@ export const ROListPanel = memo(function ROListPanel({
                             <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/75 truncate leading-snug">{workSummary}</p>
+                        <p className="text-[10px] text-muted-foreground/70 truncate leading-snug">
+                          {workSummary}
+                          {ro.lines && ro.lines.length > 0 && (
+                            <span className="text-muted-foreground/50"> · {ro.lines.length}L</span>
+                          )}
+                        </p>
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right font-extrabold tabular-nums text-foreground text-[12px] leading-snug pt-0.5 whitespace-nowrap" role="cell">
-                        {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                      <div className="text-right" role="cell">
+                        <span className="hours-pill text-[10px]">
+                          {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                        </span>
                       </div>
 
                       {/* Status */}
-                      <div className="pt-0.5" role="cell">
+                      <div role="cell">
                         <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
