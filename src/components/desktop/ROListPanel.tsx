@@ -371,7 +371,7 @@ export const ROListPanel = memo(function ROListPanel({
           </div>
 
           {/* Date + advisor + labor type filters */}
-          <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide">
+          <div className="px-3 pb-1.5 flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-hide">
             {/* Date chips */}
             {dateOptions.map(({ value, label }) => (
               <DateChip
