@@ -160,8 +160,8 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Metadata strip — compact horizontal fields ── */}
         {hasMetadata && (
-          <div className="px-4 py-2.5 border-b border-border/40 bg-muted/15">
-            <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <div className="px-4 py-2 border-b border-border/30 bg-muted/10">
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
               <MetaField label="Advisor" value={ro.advisor} />
               <MetaField label="Customer" value={ro.customerName} />
               <MetaField label="Vehicle" value={vehicleLabel(ro) !== "—" ? vehicleLabel(ro) : undefined} />
