@@ -528,7 +528,7 @@ export function SettingsTab() {
                 </div>
 
                 {/* ═══ Two-column grid for settings ═══ */}
-                <div className="grid grid-cols-2 gap-4 items-start">
+                <div className="grid grid-cols-2 gap-3 items-start">
                   {/* Left column: Display + Behavior */}
                   <div className="space-y-4">
                     <SettingsGroup title="Display">
