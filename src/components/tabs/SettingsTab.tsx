@@ -254,7 +254,7 @@ export function SettingsTab() {
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4 pb-3 space-y-3">
+      <div className="panel-header px-4 pt-4 pb-3 space-y-3">
         <h1 className="text-lg font-bold tracking-tight">Settings</h1>
         <SegmentedControl
           options={[
@@ -266,7 +266,7 @@ export function SettingsTab() {
         />
       </div>
 
-      <div className="p-4 space-y-4 max-w-xl mx-auto w-full">
+      <div className="p-4 desktop-sections max-w-xl mx-auto w-full">
         {settingsView === 'settings' ? (
           <>
             {/* Profile Card — compact identity row */}

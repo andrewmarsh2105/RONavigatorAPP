@@ -271,7 +271,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header Strip */}
-      <div className="flex-shrink-0 border-b border-border bg-card px-4 py-2.5 space-y-2">
+      <div className="panel-header px-4 py-2.5 space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -411,7 +411,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
 
       {/* Presets */}
       {settings.presets.length > 0 && (
-        <div className="flex-shrink-0 border-b border-border bg-muted/30 px-4 py-2">
+        <div className="flex-shrink-0 border-b border-border/60 bg-muted/20 px-4 py-2">
           <PresetSearchRail
             presets={settings.presets}
             animatingId={animatingPresetId}
@@ -460,7 +460,7 @@ export function ROEditor({ ro, isNew = false, focusLineId, onSave, onCancel, onS
       </div>
 
       {/* Action Bar */}
-      <div className="flex-shrink-0 border-t border-border bg-card px-4 py-2.5">
+      <div className="panel-action-bar">
         <div className="flex items-center justify-between gap-4">
           <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cancel

@@ -319,7 +319,7 @@ export const ROListPanel = memo(function ROListPanel({
       <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0 border-b border-border/60">
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.6)' }}>
 
           {/* Top: title + stats + Add button */}
           <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
@@ -467,10 +467,10 @@ export const ROListPanel = memo(function ROListPanel({
               {/* Column headers */}
               <div
                 className={cn(
-                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-sm",
+                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 bg-background/95 backdrop-blur-sm",
                   gridCols,
                 )}
-              >
+                style={{ borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                 <SortHeader label="RO" active={sortKey === "ro" || sortKey === "date"} dir={sortDir} onClick={() => toggleSort(sortKey === "ro" ? "date" : "ro")} />
                 <button
                   onClick={() => toggleSort("advisor")}
@@ -600,7 +600,7 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-background">
+        <div className="flex-shrink-0 px-3 py-1.5 border-t bg-background" style={{ borderColor: 'hsl(var(--border) / 0.4)' }}>
           <span className="text-[10px] text-muted-foreground tabular-nums">
             {filteredROs.length > visibleCount
               ? `Showing ${visible.length} of ${filteredROs.length} ROs`

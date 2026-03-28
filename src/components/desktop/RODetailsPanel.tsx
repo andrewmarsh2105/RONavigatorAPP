@@ -90,7 +90,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
       {/* ═══ Header — hero identification band ═══ */}
       <div
-        className="flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border/60"
+        className="panel-header"
         style={{ borderLeft: `3px solid ${accentColor}` }}
       >
         {/* Primary row: RO# + hours hero + actions */}
@@ -160,7 +160,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
       </div>
 
       {/* ═══ Scrollable body ═══ */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="panel-body">
 
         {/* ── Metadata strip — compact horizontal fields ── */}
         {hasMetadata && (
@@ -286,7 +286,7 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
       </div>
 
       {/* ═══ Sticky action bar ═══ */}
-      <div className="flex-shrink-0 border-t border-border/60 bg-card px-4 py-2">
+      <div className="panel-action-bar">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
