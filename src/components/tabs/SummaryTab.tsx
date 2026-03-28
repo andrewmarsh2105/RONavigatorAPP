@@ -477,8 +477,8 @@ export function SummaryTab() {
 
   const MoreDetail = () => (
     <Accordion type="single" collapsible>
-      <AccordionItem value="more" className="border border-border/60 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-        <AccordionTrigger className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:no-underline">
+      <AccordionItem value="more" className="border border-border/40 bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
+        <AccordionTrigger className="px-4 py-2 text-xs font-semibold text-muted-foreground/60 hover:no-underline">
           More Detail
         </AccordionTrigger>
         <AccordionContent className="px-4 pb-4 space-y-4">
