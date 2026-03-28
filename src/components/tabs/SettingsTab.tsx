@@ -581,7 +581,7 @@ export function SettingsTab() {
                         <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Goals & Earnings</h3>
                       </div>
                       <div
-                        className="bg-card border border-border/60 overflow-hidden"
+                        className="bg-card border border-border/40 overflow-hidden"
                         style={{ borderRadius: 'var(--radius)' }}
                       >
                         <div className="px-4 py-3.5 space-y-3">
