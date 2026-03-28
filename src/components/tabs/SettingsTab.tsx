@@ -442,7 +442,7 @@ export function SettingsTab() {
                 >
                   {/* Identity row */}
                   <div className="px-4 pt-3 pb-2.5 flex items-center gap-3.5">
-                    <div className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
+                    <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
                       {avatarInitial}
                     </div>
                     <div className="flex-1 min-w-0">
