@@ -644,22 +644,22 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   const renderCellValue = useCallback((colId: ColumnId, row: SpreadsheetLineRow): ReactNode => {
     switch (colId) {
       case 'roNumber':
-        return <span className="font-bold">#{row.roNumber}</span>;
+        return <span className="font-bold text-foreground">#{row.roNumber}</span>;
       case 'date': {
         const [y, m, d] = row.date.split('-').map(Number);
-        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return <span className="text-muted-foreground">{new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
       }
-      case 'advisor': return row.advisor || '—';
-      case 'customer': return row.customer || '—';
-      case 'vehicle': return row.vehicle || <span className="italic text-muted-foreground">—</span>;
+      case 'advisor': return <span className="text-foreground/80">{row.advisor || '—'}</span>;
+      case 'customer': return <span className="text-foreground/80">{row.customer || '—'}</span>;
+      case 'vehicle': return row.vehicle || <span className="text-muted-foreground/50">—</span>;
       case 'status': {
         const isPaid = !!row.ro?.paidDate;
         return (
           <span className={cn(
-            'text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide',
+            'inline-block text-[9px] font-bold px-1.5 py-px rounded uppercase tracking-wider',
             isPaid
-              ? 'bg-[hsl(var(--status-warranty-bg))] text-[hsl(var(--status-warranty))]'
-              : 'bg-muted text-muted-foreground',
+              ? 'bg-[hsl(var(--status-warranty))]/15 text-[hsl(var(--status-warranty))]'
+              : 'bg-amber-500/12 text-amber-600 dark:text-amber-400',
           )}>
             {isPaid ? 'Paid' : 'Open'}
           </span>
@@ -675,45 +675,52 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
           </span>
         );
       }
-      case 'lineNo': return row.lineNo;
+      case 'lineNo': return <span className="text-muted-foreground tabular-nums">{row.lineNo}</span>;
       case 'description': {
         return (
           <button
-            className="text-left truncate max-w-full hover:text-primary transition-colors"
+            className="text-left truncate max-w-full hover:text-primary transition-colors text-foreground/90"
             onClick={(e) => {
               e.stopPropagation();
               setTextModal({ open: true, lineNo: row.lineNo, description: row.description || '' });
             }}
             title="Click to view full text"
           >
-            {row.description || <span className="text-muted-foreground italic">—</span>}
+            {row.description || <span className="text-muted-foreground/50 italic">—</span>}
           </button>
         );
       }
       case 'hours': {
         return (
-          <span className={cn('tabular-nums font-medium', row.isTbd && 'line-through text-amber-500')}>
+          <span className={cn(
+            'inline-block tabular-nums font-bold',
+            row.isTbd ? 'line-through text-amber-500/70' : 'text-foreground',
+          )}>
             {row.hours.toFixed(1)}
-            {row.isTbd && <span className="ml-1 text-[10px] font-semibold">TBD</span>}
+            {row.isTbd && <span className="ml-1 text-[9px] font-semibold no-underline text-amber-500">TBD</span>}
           </span>
         );
       }
       case 'type': {
-        const tc = row.laborType === 'warranty'
-          ? 'text-[hsl(var(--status-warranty))]'
+        const bgClass = row.laborType === 'warranty'
+          ? 'bg-[hsl(var(--status-warranty))]/15 text-[hsl(var(--status-warranty))]'
           : row.laborType === 'customer-pay'
-            ? 'text-[hsl(var(--status-customer-pay))]'
-            : 'text-[hsl(var(--status-internal))]';
-        return <span className={cn('font-semibold text-xs', tc)}>{row.type}</span>;
+            ? 'bg-[hsl(var(--status-customer-pay))]/15 text-[hsl(var(--status-customer-pay))]'
+            : 'bg-[hsl(var(--status-internal))]/15 text-[hsl(var(--status-internal))]';
+        return (
+          <span className={cn('inline-block text-[9px] font-bold px-1.5 py-px rounded uppercase tracking-wider', bgClass)}>
+            {row.type}
+          </span>
+        );
       }
       case 'tbd':
-        return row.isTbd ? <span className="text-amber-500 text-xs font-semibold">⏳</span> : '';
+        return row.isTbd ? <span className="text-amber-500 text-[10px] font-bold">TBD</span> : '';
       case 'notes':
         return <span className="text-xs text-muted-foreground truncate">{row.notes || ''}</span>;
       case 'mileage':
-        return <span className="text-xs tabular-nums">{row.mileage || ''}</span>;
+        return <span className="text-xs tabular-nums text-muted-foreground">{row.mileage || ''}</span>;
       case 'vin':
-        return <span className="text-[11px] font-mono text-muted-foreground">{row.vin || ''}</span>;
+        return <span className="text-[10px] font-mono text-muted-foreground/70">{row.vin || ''}</span>;
       default: return '';
     }
   }, [roFlagCounts]);
