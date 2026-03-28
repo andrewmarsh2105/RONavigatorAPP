@@ -248,15 +248,14 @@ export function SettingsTab() {
 
   const handleAccountSettingSave = async (key: 'displayName' | 'shopName', value: string) => {
     const result = await updateSetting(key, value);
-    // No toast here — AccountSheet handles its own inline feedback
     return result;
   };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border/60 px-4 pt-4 pb-3 space-y-3">
-        <h1 className="text-xl font-bold">Settings</h1>
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4 pb-3 space-y-3">
+        <h1 className="text-lg font-bold tracking-tight">Settings</h1>
         <SegmentedControl
           options={[
             { value: 'settings', label: 'Settings' },
@@ -267,40 +266,40 @@ export function SettingsTab() {
         />
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-4">
         {settingsView === 'settings' ? (
           <>
-            {/* Profile Card */}
+            {/* Profile Card — compact identity row */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="rounded-xl border border-border/60 bg-card p-3.5 w-full text-left tap-target touch-feedback"
-              style={{ boxShadow: 'var(--shadow-sm)' }}
+              className={cn(
+                'w-full text-left tap-target active:bg-muted/40 transition-colors',
+                'bg-card border border-border/60 px-4 py-3',
+              )}
+              style={{ borderRadius: 'var(--radius)' }}
             >
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-lg font-bold select-none bg-primary">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
                   {avatarInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm leading-tight truncate">
-                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-xs italic">Set your name</span>}
+                  <div className="text-[13px] font-semibold leading-tight truncate">
+                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-[12px] italic">Set your name</span>}
                   </div>
-                  {syncedSettings.shopName && (
-                    <div className="text-[11px] text-muted-foreground truncate">{syncedSettings.shopName}</div>
-                  )}
-                  <div className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</div>
+                  <div className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{user?.email}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={cn(
-                    'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold',
-                    isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    'px-2 py-0.5 rounded-md text-[10px] font-bold',
+                    isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/60'
                   )}>
-                    {isPro ? <><Crown className="h-2.5 w-2.5" /> Pro</> : 'Free'}
+                    {isPro ? 'PRO' : 'FREE'}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </div>
               </div>
               {isNearExpiry && daysUntilEnd !== null && (
-                <div className="mt-2.5 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-lg px-3 py-2">
+                <div className="mt-2 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
                   <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-[11px] text-amber-800 leading-snug">
                     Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
@@ -309,8 +308,8 @@ export function SettingsTab() {
               )}
             </button>
 
-            {/* Appearance */}
-            <SettingsGroup title="Appearance">
+            {/* Display */}
+            <SettingsGroup title="Display">
               <SettingsRow
                 label="Dark Mode"
                 toggle
@@ -319,32 +318,32 @@ export function SettingsTab() {
               />
               <SettingsRow
                 label="Hide Hour Totals"
-                description="Shows — instead of totals in the RO list"
+                description="Shows — instead of totals"
                 toggle
                 toggleValue={userSettings.hideTotals}
                 onToggle={(v) => updateUserSetting('hideTotals', v)}
               />
             </SettingsGroup>
 
-            {/* General */}
-            <SettingsGroup title="General">
+            {/* RO Behavior */}
+            <SettingsGroup title="RO Behavior">
               <SettingsRow
-                label="Show Vehicle on Lines"
-                description="Year/make/model shown on each RO line"
+                label="Vehicle on Lines"
+                description="Year/make/model on each line"
                 toggle
                 toggleValue={userSettings.showVehicleChips}
                 onToggle={(v) => updateUserSetting('showVehicleChips', v)}
               />
               <SettingsRow
-                label="Keyword Auto-Fill Hours"
-                description="Matches job keywords to preset hours"
+                label="Keyword Auto-Fill"
+                description="Match job keywords to preset hours"
                 toggle
                 toggleValue={userSettings.keywordAutofill}
                 onToggle={(v) => updateUserSetting('keywordAutofill', v)}
               />
               <SettingsRow
-                label="Show Scan Confidence"
-                description={isPro ? 'Displays match % on scanned ROs' : 'Pro only'}
+                label="Scan Confidence"
+                description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
                 toggle
                 toggleValue={userSettings.showScanConfidence}
                 onToggle={(v) => updateUserSetting('showScanConfidence', v)}
@@ -352,12 +351,12 @@ export function SettingsTab() {
               />
             </SettingsGroup>
 
-            {/* Goals & Earnings — redesigned with inline save status */}
-            <SettingsGroup title="Goals & Earnings" description="Targets and earnings shown in Summary">
-              <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <GoalInput
-                    label="Daily goal"
+            {/* Goals & Earnings */}
+            <SettingsGroup title="Goals & Earnings">
+              <div className="px-4 py-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <GoalField
+                    label="Daily"
                     value={localDailyGoal}
                     onChange={setLocalDailyGoal}
                     suffix="hr"
@@ -366,8 +365,8 @@ export function SettingsTab() {
                     max={24}
                     step={0.5}
                   />
-                  <GoalInput
-                    label="Weekly goal"
+                  <GoalField
+                    label="Weekly"
                     value={localWeeklyGoal}
                     onChange={setLocalWeeklyGoal}
                     suffix="hr"
@@ -377,9 +376,8 @@ export function SettingsTab() {
                     step={1}
                   />
                 </div>
-                <GoalInput
+                <GoalField
                   label="Flat rate"
-                  hint="Estimates earnings in Summary"
                   value={localHourlyRate}
                   onChange={setLocalHourlyRate}
                   prefix="$"
@@ -388,61 +386,56 @@ export function SettingsTab() {
                   min={0}
                   step={0.5}
                 />
-
-                {/* Save bar: status-aware */}
-                <div className="flex items-center justify-between gap-3 pt-1">
+                {/* Save bar */}
+                <div className="flex items-center justify-between pt-0.5">
                   <GoalSaveStatusDisplay status={goalSaveStatus} />
                   <Button
                     size="sm"
+                    variant={goalsDirty ? 'default' : 'ghost'}
                     onClick={handleSaveGoals}
                     disabled={!goalsDirty || goalSaveStatus === 'saving'}
-                    className={cn(
-                      'transition-all gap-1.5',
-                      goalsDirty && goalSaveStatus !== 'saving'
-                        ? 'bg-primary text-primary-foreground'
-                        : ''
-                    )}
+                    className="h-8 text-[12px] gap-1.5"
                   >
                     {goalSaveStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save goals'}
+                    {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save'}
                   </Button>
                 </div>
               </div>
             </SettingsGroup>
 
-            {/* Pay Period Range */}
+            {/* Pay Period */}
             <PayPeriodRangeSection
               userSettings={userSettings}
               updateUserSetting={updateUserSetting}
             />
 
-            {/* Support */}
-            <SettingsGroup title="Support">
+            {/* Help */}
+            <SettingsGroup title="Help">
               <button
                 onClick={() => {
                   window.open('mailto:support@ronavigator.com', '_blank');
                   navigator.clipboard.writeText('support@ronavigator.com');
                   toast.success('Email copied');
                 }}
-                className="w-full p-3.5 flex items-center gap-3 tap-target touch-feedback"
+                className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
               >
-                <Mail className="h-4.5 w-4.5 text-muted-foreground" />
+                <Mail className="h-4 w-4 text-muted-foreground/60" />
                 <div className="flex-1 min-w-0 text-left">
-                  <span className="font-medium text-sm">Contact Support</span>
-                  <p className="text-[11px] text-muted-foreground">support@ronavigator.com</p>
+                  <span className="text-[13px] font-medium">Contact Support</span>
+                  <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
               </button>
             </SettingsGroup>
           </>
         ) : (
           <>
             {/* Quick Presets */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center justify-between px-0.5">
-                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Quick Presets</h3>
-                <button onClick={() => openPresetEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-4.5 w-4.5" />
+                <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Quick Presets</h3>
+                <button onClick={() => openPresetEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
+                  <Plus className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-1">
@@ -473,11 +466,11 @@ export function SettingsTab() {
             </div>
 
             {/* Advisors */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center justify-between px-0.5">
-                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Advisors</h3>
-                <button onClick={() => openAdvisorEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-4.5 w-4.5" />
+                <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Advisors</h3>
+                <button onClick={() => openAdvisorEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
+                  <Plus className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-1">
@@ -508,8 +501,8 @@ export function SettingsTab() {
             {/* Data */}
             <SettingsGroup title="Data">
               <SettingsRow
-                label="Download Backup (JSON)"
-                description="Exports all ROs + lines as JSON"
+                label="Download Backup"
+                description="Export all ROs as JSON"
                 onClick={() => {
                   if (ros.length === 0) { toast.info('No ROs to export'); return; }
                   const exportData = ros.map(ro => ({
@@ -531,10 +524,10 @@ export function SettingsTab() {
                   toast.success(`Exported ${ros.length} ROs`);
                 }}
               />
-              <div className="w-full p-3.5 flex items-center justify-between tap-target touch-feedback">
+              <div className="w-full px-4 py-3 flex items-center justify-between">
                 <div>
-                  <span className="font-medium text-sm text-destructive">Clear All ROs</span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <span className="text-[13px] font-medium text-destructive">Clear All ROs</span>
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
                     {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
                   </p>
                 </div>
@@ -543,7 +536,7 @@ export function SettingsTab() {
                   size="sm"
                   onClick={handleClearAllClick}
                   disabled={ros.length === 0}
-                  className="tap-target"
+                  className="h-8 text-[12px]"
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Clear
@@ -614,10 +607,9 @@ export function SettingsTab() {
   );
 }
 
-// ── Goal Input ──
-function GoalInput({
+/* ── Goal field ── */
+function GoalField({
   label,
-  hint,
   value,
   onChange,
   prefix,
@@ -628,7 +620,6 @@ function GoalInput({
   step,
 }: {
   label: string;
-  hint?: string;
   value: string;
   onChange: (v: string) => void;
   prefix?: string;
@@ -640,13 +631,10 @@ function GoalInput({
 }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <label className="text-xs font-semibold text-foreground">{label}</label>
-        {hint && <span className="text-[10px] text-muted-foreground/60">{hint}</span>}
-      </div>
+      <label className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">{label}</label>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/60 pointer-events-none">{prefix}</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground/50 pointer-events-none">{prefix}</span>
         )}
         <input
           type="number"
@@ -658,24 +646,25 @@ function GoalInput({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            'w-full h-10 text-sm bg-muted/50 rounded-lg border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 tabular-nums transition-all',
+            'w-full h-9 text-[13px] bg-muted/40 rounded-md border border-transparent tabular-nums transition-all',
+            'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40',
             prefix ? 'pl-7 pr-10' : 'px-3 pr-10',
           )}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground/50 pointer-events-none">{suffix}</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/40 pointer-events-none">{suffix}</span>
         )}
       </div>
     </div>
   );
 }
 
-// ── Goal save status display ──
+/* ── Goal save status ── */
 function GoalSaveStatusDisplay({ status }: { status: GoalSaveStatus }) {
   if (status === 'saved') {
     return (
       <span className="text-[11px] text-green-600 flex items-center gap-1 font-medium">
-        <Check className="h-3 w-3" /> Goals saved
+        <Check className="h-3 w-3" /> Saved
       </span>
     );
   }
