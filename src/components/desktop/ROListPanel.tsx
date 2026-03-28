@@ -307,10 +307,10 @@ export const ROListPanel = memo(function ROListPanel({
     { value: "custom" as const, label: "Custom" },
   ];
 
-  /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
+  /* Grid columns: RO#+Date(stacked) | Info | Hours | Status | Actions */
   const gridCols = (compact || density !== "normal")
-    ? "grid-cols-[3px_58px_72px_1fr_48px_100px_24px]"
-    : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
+    ? "grid-cols-[80px_1fr_52px_auto_24px]"
+    : "grid-cols-[90px_1fr_60px_auto_28px]";
 
   const rowPy = density === "dense" ? "py-1" : density === "compact" ? "py-1.5" : "py-2";
 
