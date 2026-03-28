@@ -434,7 +434,7 @@ export function SettingsTab() {
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 max-w-2xl mx-auto w-full">
             {settingsView === 'settings' ? (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* ═══ Account & Identity — top hero section ═══ */}
                 <div
                   className="bg-card border border-border/60 overflow-hidden"
