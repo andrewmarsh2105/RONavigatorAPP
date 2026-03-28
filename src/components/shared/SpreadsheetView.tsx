@@ -797,13 +797,13 @@ export function SpreadsheetView({ ros, onSelectRO, rangeLabel, isCloseout }: Spr
   }, []);
 
   /* ─── Density classes ─── */
-  const cellPy = density === 'compact' ? 'py-1' : 'py-2';
-  const cellPx = 'px-2.5';
-  const textSize = density === 'compact' ? 'text-xs' : 'text-sm';
+  const cellPy = density === 'compact' ? 'py-[5px]' : 'py-2';
+  const cellPx = 'px-2';
+  const textSize = density === 'compact' ? 'text-xs' : 'text-[13px]';
 
   /* ─── Helpers ─── */
   const getRowBg = (groupIndex: number) =>
-    groupIndex % 2 === 1 ? 'bg-accent/20' : 'bg-card';
+    groupIndex % 2 === 1 ? 'bg-accent/15' : 'bg-card';
 
   const showCheckbox = selectionMode || selectedROIds.size > 0;
 
