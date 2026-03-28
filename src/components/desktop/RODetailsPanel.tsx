@@ -257,9 +257,9 @@ export function RODetailsPanel({ ro, onEdit, onDelete, onSelectRO }: RODetailsPa
 
         {/* ── Flags & Checks ───────────────────────── */}
         {(flags.length > 0 || issues.length > 0) && (
-          <div className="px-4 pb-3">
-            <p className="section-title mb-1.5">Flags & Checks</p>
-            <div className="border border-border/40 rounded-md p-3 space-y-2">
+          <div className="px-4 pb-2.5">
+            <p className="data-header mb-1">Flags & Checks</p>
+            <div className="border border-border/30 rounded p-2.5 space-y-2">
               <FlagBadge flags={flags} onClear={clearFlag} />
               {issues.length > 0 && (
                 <ReviewIndicator
