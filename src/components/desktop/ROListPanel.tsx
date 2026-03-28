@@ -71,6 +71,17 @@ const laborBorderColor = (type: LaborType) =>
       ? "hsl(var(--status-customer-pay))"
       : "hsl(var(--status-internal))";
 
+/* ── Labor type abbreviation ────────────────────── */
+const laborAbbr = (type: LaborType) =>
+  type === "warranty" ? "W" : type === "customer-pay" ? "CP" : "INT";
+
+const laborPillClass = (type: LaborType) =>
+  type === "warranty"
+    ? "status-pill-warranty"
+    : type === "customer-pay"
+      ? "status-pill-customer-pay"
+      : "status-pill-internal";
+
 /* ── Compact status indicators ─────────────────── */
 function RowStatusChips({
   ro, flagsCount, checksCount,
@@ -78,31 +89,31 @@ function RowStatusChips({
   const status = getStatusSummary(ro, flagsCount, checksCount);
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 flex-wrap">
       {status.paid === "Paid" ? (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-warranty))" }}>
-          <CheckCircle2 className="h-3 w-3" />
-          <span>Paid</span>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-warranty))", background: "hsl(var(--status-warranty-bg))" }}>
+          <CheckCircle2 className="h-2.5 w-2.5" />
+          PAID
         </span>
       ) : (
-        <span className="text-[9px] font-bold leading-none bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           OPEN
         </span>
       )}
       {status.tbd > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm bg-muted text-muted-foreground">
           <Clock className="h-2.5 w-2.5" />
-          {status.allTbd ? 'ALL' : status.tbd}
+          {status.allTbd ? 'TBD' : status.tbd}
         </span>
       )}
       {status.flags > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none" style={{ color: "hsl(var(--status-internal))" }}>
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold leading-none px-1 py-0.5 rounded-sm" style={{ color: "hsl(var(--status-internal))", background: "hsl(var(--status-internal-bg))" }}>
           <Flag className="h-2.5 w-2.5" />
           {status.flags}
         </span>
       )}
       {status.checks > 0 && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive leading-none">
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-destructive bg-destructive/10 leading-none px-1 py-0.5 rounded-sm">
           <AlertTriangle className="h-2.5 w-2.5" />
           {status.checks}
         </span>
@@ -296,30 +307,30 @@ export const ROListPanel = memo(function ROListPanel({
     { value: "custom" as const, label: "Custom" },
   ];
 
-  /* Grid columns: Type-dot | Date | RO# | Info | Hrs | Status | Actions */
+  /* Grid columns: RO#+Date(stacked) | Info | Hours | Status | Actions */
   const gridCols = (compact || density !== "normal")
-    ? "grid-cols-[3px_58px_72px_1fr_48px_100px_24px]"
-    : "grid-cols-[4px_66px_84px_1fr_60px_130px_28px]";
+    ? "grid-cols-[80px_1fr_52px_auto_24px]"
+    : "grid-cols-[90px_1fr_60px_auto_28px]";
 
   const rowPy = density === "dense" ? "py-1" : density === "compact" ? "py-1.5" : "py-2";
 
   return (
     <>
-      <div className="flex flex-col h-full bg-card">
+      <div className="flex flex-col h-full bg-background">
 
         {/* ── Panel header ─────────────────────────── */}
-        <div className="flex-shrink-0 border-b border-border/60">
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border) / 0.4)' }}>
 
           {/* Top: title + stats + Add button */}
-          <div className="flex items-center gap-2 px-3 pt-2 pb-1.5">
+          <div className="flex items-center gap-2 px-3 pt-1.5 pb-1">
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5">
-                <h2 className="text-[14px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'Repair Orders'}</h2>
-                <span className="text-[12px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
+                <h2 className="text-[13px] font-bold tracking-tight text-foreground truncate">{userSettings.shopName || 'RO Queue'}</h2>
+                <span className="text-[11px] font-extrabold tabular-nums text-primary leading-none flex-shrink-0">
                   {maskHours(Number(totals.totalHours.toFixed(1)), userSettings.hideTotals ?? false)}h
                 </span>
-                <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
-                  · {totals.totalAll} RO{totals.totalAll !== 1 ? 's' : ''}
+                <span className="text-[9px] text-muted-foreground/60 font-medium flex-shrink-0">
+                  · {totals.totalAll}
                 </span>
               </div>
             </div>
@@ -327,10 +338,10 @@ export const ROListPanel = memo(function ROListPanel({
             <button
               onClick={() => setDensity(d => d === "normal" ? "compact" : d === "compact" ? "dense" : "normal")}
               className={cn(
-                "h-6 w-6 flex items-center justify-center rounded border quiet-transition flex-shrink-0",
+                "h-5 w-5 flex items-center justify-center rounded quiet-transition flex-shrink-0",
                 density !== "normal"
-                  ? "bg-primary/10 text-primary border-primary/25"
-                  : "text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground",
+                  ? "text-primary"
+                  : "text-muted-foreground/40 hover:text-muted-foreground",
               )}
               title={density === "normal" ? "Switch to compact" : density === "compact" ? "Switch to dense" : "Switch to normal"}
             >
@@ -339,30 +350,28 @@ export const ROListPanel = memo(function ROListPanel({
             <Button
               size="sm"
               onClick={onAddNew}
-              className="h-7 text-[10px] gap-1 rounded-lg px-2.5 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
-              style={{ boxShadow: 'var(--shadow-soft)' }}
+              className="h-6 text-[10px] gap-1 rounded px-2 bg-primary text-white hover:bg-primary/90 flex-shrink-0"
             >
               <Plus className="h-3 w-3" />
-              Add RO
+              Add
             </Button>
           </div>
 
           {/* Search bar */}
-          <div className="px-3 pb-1.5">
+          <div className="px-3 pb-1">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, RO#, VIN, lines, notes…"
-                className="w-full h-7 pl-8 pr-3 rounded-lg border border-input bg-background text-[11px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
-                style={{ boxShadow: 'var(--shadow-sm)' }}
+                placeholder="Search RO#, name, VIN, lines…"
+                className="w-full h-6 pl-7 pr-3 rounded border border-border/40 bg-background/60 text-[11px] placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring/50 focus:bg-background"
               />
             </div>
           </div>
 
           {/* Date + advisor + labor type filters */}
-          <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0 overflow-x-auto scrollbar-hide">
+          <div className="px-3 pb-1.5 flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-hide">
             {/* Date chips */}
             {dateOptions.map(({ value, label }) => (
               <DateChip
@@ -456,14 +465,11 @@ export const ROListPanel = memo(function ROListPanel({
               {/* Column headers */}
               <div
                 className={cn(
-                  "grid gap-x-2 items-center px-3 py-2 sticky top-0 z-10 border-b border-border/50 bg-muted/30 backdrop-blur-sm",
+                  "grid gap-x-2 items-center px-3 py-1.5 sticky top-0 z-10 bg-background/95 backdrop-blur-sm",
                   gridCols,
                 )}
-              >
-                {/* Type dot col — no header */}
-                <div />
-                <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
-                <SortHeader label="RO #" active={sortKey === "ro"} dir={sortDir} onClick={() => toggleSort("ro")} />
+                style={{ borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                <SortHeader label="RO" active={sortKey === "ro" || sortKey === "date"} dir={sortDir} onClick={() => toggleSort(sortKey === "ro" ? "date" : "ro")} />
                 <button
                   onClick={() => toggleSort("advisor")}
                   className={cn(
@@ -500,36 +506,33 @@ export const ROListPanel = memo(function ROListPanel({
                     <div
                       key={ro.id}
                       className={cn(
-                        "grid gap-x-2 items-start px-3 cursor-pointer text-xs quiet-transition group",
+                        "grid gap-x-2 items-center px-3 cursor-pointer text-xs quiet-transition group",
                         rowPy,
                         gridCols,
                         selected
-                          ? "bg-primary/[0.09] border-l-[3px] border-l-primary"
-                          : "hover:bg-muted/40",
+                          ? "list-row-selected bg-primary/[0.08]"
+                          : "hover:bg-muted/30",
                       )}
                       style={selected ? {} : { borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => onSelectRO(ro)}
                       role="row"
                     >
-                      {/* Labor type accent strip */}
-                      <div
-                        className="self-stretch rounded-sm"
-                        style={{ background: accentColor, width: '3px', minHeight: '20px' }}
-                        role="cell"
-                        aria-hidden
-                      />
-
-                      {/* Date */}
-                      <div className="text-[11px] tabular-nums text-muted-foreground whitespace-nowrap leading-snug pt-0.5" role="cell">
-                        {formatDateShort(effectiveDate(ro))}
+                      {/* RO # + Date stacked */}
+                      <div className="min-w-0" role="cell">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold tabular-nums text-foreground text-[12px] leading-none">
+                            #{ro.roNumber}
+                          </span>
+                          <span className={laborPillClass(ro.laborType)} style={{ fontSize: '8px', padding: '1px 4px', lineHeight: 1 }}>
+                            {laborAbbr(ro.laborType)}
+                          </span>
+                        </div>
+                        <span className="text-[10px] tabular-nums text-muted-foreground leading-none mt-0.5 block">
+                          {formatDateShort(effectiveDate(ro))}
+                        </span>
                       </div>
 
-                      {/* RO # */}
-                      <div className="font-extrabold tabular-nums text-foreground leading-snug pt-0.5 text-[12px]" role="cell">
-                        #{ro.roNumber}
-                      </div>
-
-                      {/* Info: two-line — customer first when available */}
+                      {/* Info: advisor, vehicle, work summary */}
                       <div className="min-w-0" role="cell">
                         <p className="text-[11px] font-semibold truncate text-foreground leading-snug">
                           {ro.customerName ? (
@@ -544,16 +547,23 @@ export const ROListPanel = memo(function ROListPanel({
                             <span className="font-normal text-muted-foreground"> · {vehicleLabel(ro)}</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/75 truncate leading-snug">{workSummary}</p>
+                        <p className="text-[10px] text-muted-foreground/70 truncate leading-snug">
+                          {workSummary}
+                          {ro.lines && ro.lines.length > 0 && (
+                            <span className="text-muted-foreground/50"> · {ro.lines.length}L</span>
+                          )}
+                        </p>
                       </div>
 
                       {/* Hours */}
-                      <div className="text-right font-extrabold tabular-nums text-foreground text-[12px] leading-snug pt-0.5 whitespace-nowrap" role="cell">
-                        {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                      <div className="text-right" role="cell">
+                        <span className="hours-pill text-[10px]">
+                          {maskHours(Number(hours.toFixed(1)), userSettings.hideTotals ?? false)}h
+                        </span>
                       </div>
 
                       {/* Status */}
-                      <div className="pt-0.5" role="cell">
+                      <div role="cell">
                         <RowStatusChips ro={ro} flagsCount={flagsCount} checksCount={issuesCount} />
                       </div>
 
@@ -588,10 +598,10 @@ export const ROListPanel = memo(function ROListPanel({
         </div>
 
         {/* ── Footer ────────────────────────────────── */}
-        <div className="flex-shrink-0 px-3 py-1.5 border-t border-border/40 bg-muted/10">
-          <span className="text-[10px] text-muted-foreground tabular-nums">
+        <div className="flex-shrink-0 px-3 py-1 border-t bg-background/80" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+          <span className="text-[9px] text-muted-foreground/50 tabular-nums">
             {filteredROs.length > visibleCount
-              ? `Showing ${visible.length} of ${filteredROs.length} ROs`
+              ? `${visible.length} of ${filteredROs.length}`
               : `${filteredROs.length} RO${filteredROs.length !== 1 ? 's' : ''}`}
             {(laborTypeFilter.length > 0 || advisorFilter !== "all") && ' · filtered'}
           </span>

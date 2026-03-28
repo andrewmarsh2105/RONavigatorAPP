@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFlagContext } from '@/contexts/FlagContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail, Check, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Crown, ChevronRight, Star, Mail, Check, Loader2, User, Building2, DollarSign, Target, Shield, LogOut } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { ProUpgradeDialog } from '@/components/ProUpgradeDialog';
 import { useRO } from '@/contexts/ROContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { useNavigate } from 'react-router-dom';
 import { SegmentedControl } from '@/components/mobile/SegmentedControl';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -24,11 +26,14 @@ import { AccountSheet } from '@/components/settings/AccountSheet';
 import type { SaveSettingResult } from '@/hooks/useUserSettings';
 
 type GoalSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type FieldStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function SettingsTab() {
   const { settings, updateSettings, updatePresets, updateAdvisors, clearAllROs, ros } = useRO();
   const { user, signOut } = useAuth();
   const { userSettings, updateUserSetting, userSettingsLoaded } = useFlagContext();
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const syncedSettings = userSettings;
   const updateSetting = updateUserSetting;
   const { isPro, subscriptionEnd, daysUntilEnd, isNearExpiry, hasBillingIssue, openPortal } = useSubscription();
@@ -52,12 +57,22 @@ export function SettingsTab() {
   const [goalSaveStatus, setGoalSaveStatus] = useState<GoalSaveStatus>('idle');
   const goalSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Desktop inline account fields
+  const [localDisplayName, setLocalDisplayName] = useState('');
+  const [localShopName, setLocalShopName] = useState('');
+  const [nameStatus, setNameStatus] = useState<FieldStatus>('idle');
+  const [shopStatus, setShopStatus] = useState<FieldStatus>('idle');
+  const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!userSettingsLoaded) return;
     setLocalDailyGoal(syncedSettings.hoursGoalDaily > 0 ? String(syncedSettings.hoursGoalDaily) : '');
     setLocalWeeklyGoal(syncedSettings.hoursGoalWeekly > 0 ? String(syncedSettings.hoursGoalWeekly) : '');
     setLocalHourlyRate(syncedSettings.hourlyRate > 0 ? String(syncedSettings.hourlyRate) : '');
-  }, [syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate, userSettingsLoaded]);
+    setLocalDisplayName(syncedSettings.displayName || '');
+    setLocalShopName(syncedSettings.shopName || '');
+  }, [syncedSettings.hoursGoalDaily, syncedSettings.hoursGoalWeekly, syncedSettings.hourlyRate, syncedSettings.displayName, syncedSettings.shopName, userSettingsLoaded]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -76,6 +91,8 @@ export function SettingsTab() {
   useEffect(() => {
     return () => {
       if (goalSavedTimerRef.current) clearTimeout(goalSavedTimerRef.current);
+      if (nameTimerRef.current) clearTimeout(nameTimerRef.current);
+      if (shopTimerRef.current) clearTimeout(shopTimerRef.current);
     };
   }, []);
 
@@ -248,15 +265,460 @@ export function SettingsTab() {
 
   const handleAccountSettingSave = async (key: 'displayName' | 'shopName', value: string) => {
     const result = await updateSetting(key, value);
-    // No toast here — AccountSheet handles its own inline feedback
     return result;
   };
 
+  // Desktop inline save for name/shop
+  const handleInlineSave = async (field: 'displayName' | 'shopName', value: string) => {
+    const setStatus = field === 'displayName' ? setNameStatus : setShopStatus;
+    const timerRef = field === 'displayName' ? nameTimerRef : shopTimerRef;
+    setStatus('saving');
+    const result = await updateSetting(field, value);
+    if (result.status === 'failed') {
+      setStatus('error');
+      return;
+    }
+    setStatus('saved');
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setStatus('idle'), 2500);
+  };
+
+  const handleInlineBlur = (field: 'displayName' | 'shopName') => {
+    const value = field === 'displayName' ? localDisplayName.trim() : localShopName.trim();
+    const original = field === 'displayName' ? syncedSettings.displayName : syncedSettings.shopName;
+    if (value !== (original || '')) {
+      handleInlineSave(field, value);
+    }
+  };
+
+  const isDesktop = !isMobile;
+
+  // ── Shared manage content ──
+  const ManageContent = () => (
+    <>
+      {/* Quick Presets */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between px-0.5">
+          <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Quick Presets</h3>
+          <button onClick={() => openPresetEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-1">
+          {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
+            <PresetItem
+              key={preset.id}
+              preset={preset}
+              onEdit={() => openPresetEditor(preset)}
+              onDelete={() => deletePreset(preset.id)}
+              onToggleFavorite={() => {
+                updatePresets(settings.presets.map(p =>
+                  p.id === preset.id ? { ...p, isFavorite: !p.isFavorite } : p
+                ));
+              }}
+            />
+          ))}
+          {settings.presets.length > 6 && (
+            <button
+              onClick={() => setShowAllPresets(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              {showAllPresets
+                ? <><ChevronUp className="h-3 w-3" /> Show Less</>
+                : <><ChevronDown className="h-3 w-3" /> Show More ({settings.presets.length - 6})</>}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Advisors */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between px-0.5">
+          <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Advisors</h3>
+          <button onClick={() => openAdvisorEditor()} className="p-1.5 tap-target text-primary active:opacity-70 transition-opacity">
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-1">
+          {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
+            <AdvisorItem
+              key={advisor.id}
+              advisor={advisor}
+              onEdit={() => openAdvisorEditor(advisor)}
+              onDelete={() => deleteAdvisor(advisor.id)}
+            />
+          ))}
+          {settings.advisors.length > 6 && (
+            <button
+              onClick={() => setShowAllAdvisors(v => !v)}
+              className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              {showAllAdvisors
+                ? <><ChevronUp className="h-3 w-3" /> Show Less</>
+                : <><ChevronDown className="h-3 w-3" /> Show More ({settings.advisors.length - 6})</>}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Scan Templates - Pro only */}
+      {isPro && <TemplatesSection />}
+
+      {/* Data */}
+      <SettingsGroup title="Data">
+        <SettingsRow
+          label="Download Backup"
+          description="Export all ROs as JSON"
+          onClick={() => {
+            if (ros.length === 0) { toast.info('No ROs to export'); return; }
+            const exportData = ros.map(ro => ({
+              roNumber: ro.roNumber, date: ro.date, advisor: ro.advisor,
+              customerName: ro.customerName, vehicle: ro.vehicle, mileage: ro.mileage,
+              notes: ro.notes, paidDate: ro.paidDate,
+              lines: ro.lines.map(l => ({
+                lineNo: l.lineNo, description: l.description,
+                laborType: l.laborType, hoursPaid: l.hoursPaid, isTbd: l.isTbd,
+              })),
+            }));
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Exported ${ros.length} ROs`);
+          }}
+        />
+        <div className="w-full px-4 py-3 flex items-center justify-between">
+          <div>
+            <span className="text-[13px] font-medium text-destructive">Clear All ROs</span>
+            <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+              {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleClearAllClick}
+            disabled={ros.length === 0}
+            className="h-8 text-[12px]"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Clear
+          </Button>
+        </div>
+      </SettingsGroup>
+    </>
+  );
+
+  // ── Desktop layout ──
+  if (isDesktop) {
+    return (
+      <div className="flex flex-col h-full overflow-y-auto">
+        {/* Header */}
+        <div className="panel-header px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-[15px] font-bold tracking-tight">Settings</h1>
+            <SegmentedControl
+              options={[
+                { value: 'settings', label: 'Settings' },
+                { value: 'manage', label: 'Manage' },
+              ]}
+              value={settingsView}
+              onChange={(v) => setSettingsView(v as 'settings' | 'manage')}
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 max-w-2xl mx-auto w-full">
+            {settingsView === 'settings' ? (
+              <div className="space-y-4">
+                {/* ═══ Account & Identity — top hero section ═══ */}
+                <div
+                  className="bg-card border border-border/40 overflow-hidden"
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {/* Identity row */}
+                  <div className="px-4 pt-3 pb-2.5 flex items-center gap-3.5">
+                    <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
+                      {avatarInitial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-semibold leading-tight truncate">
+                        {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-[13px]">Set your name</span>}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{user?.email}</div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={cn(
+                        'px-2.5 py-1 rounded-md text-[10px] font-bold',
+                        isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/60'
+                      )}>
+                        {isPro ? 'PRO' : 'FREE'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          if (isPro) openPortal();
+                          else setShowUpgradeDialog(true);
+                        }}
+                        className="text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        {isPro ? 'Manage' : 'Upgrade'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Warnings */}
+                  {isNearExpiry && daysUntilEnd !== null && (
+                    <div className="mx-5 mb-3 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
+                      <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-snug">
+                        Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Inline profile fields */}
+                  <div className="border-t border-border/30 px-4 py-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <DesktopInlineField
+                        icon={<User className="h-3.5 w-3.5" />}
+                        label="Your name"
+                        value={localDisplayName}
+                        onChange={setLocalDisplayName}
+                        onBlur={() => handleInlineBlur('displayName')}
+                        onSave={() => handleInlineSave('displayName', localDisplayName.trim())}
+                        status={nameStatus}
+                        isDirty={localDisplayName.trim() !== (syncedSettings.displayName || '')}
+                        placeholder="e.g. Mike"
+                      />
+                      <DesktopInlineField
+                        icon={<Building2 className="h-3.5 w-3.5" />}
+                        label="Shop name"
+                        value={localShopName}
+                        onChange={setLocalShopName}
+                        onBlur={() => handleInlineBlur('shopName')}
+                        onSave={() => handleInlineSave('shopName', localShopName.trim())}
+                        status={shopStatus}
+                        isDirty={localShopName.trim() !== (syncedSettings.shopName || '')}
+                        placeholder="e.g. Smith's Auto"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick actions row */}
+                  <div className="border-t border-border/30 px-4 py-2 flex items-center gap-3">
+                    {isAdmin && (
+                      <button
+                        onClick={() => navigate('/admin')}
+                        className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5"
+                      >
+                        <Shield className="h-3 w-3" /> Admin
+                      </button>
+                    )}
+                    <button
+                      onClick={signOut}
+                      className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5 ml-auto"
+                    >
+                      <LogOut className="h-3 w-3" /> Sign Out
+                    </button>
+                  </div>
+                </div>
+
+                {/* ═══ Two-column grid for settings ═══ */}
+                <div className="grid grid-cols-2 gap-3 items-start">
+                  {/* Left column: Display + Behavior */}
+                  <div className="space-y-4">
+                    <SettingsGroup title="Display">
+                      <SettingsRow
+                        label="Dark Mode"
+                        toggle
+                        toggleValue={darkMode}
+                        onToggle={toggleDarkMode}
+                      />
+                      <SettingsRow
+                        label="Hide Hour Totals"
+                        description="Shows — instead of totals"
+                        toggle
+                        toggleValue={userSettings.hideTotals}
+                        onToggle={(v) => updateUserSetting('hideTotals', v)}
+                      />
+                    </SettingsGroup>
+
+                    <SettingsGroup title="RO Behavior">
+                      <SettingsRow
+                        label="Vehicle on Lines"
+                        description="Year/make/model on each line"
+                        toggle
+                        toggleValue={userSettings.showVehicleChips}
+                        onToggle={(v) => updateUserSetting('showVehicleChips', v)}
+                      />
+                      <SettingsRow
+                        label="Keyword Auto-Fill"
+                        description="Match job keywords to preset hours"
+                        toggle
+                        toggleValue={userSettings.keywordAutofill}
+                        onToggle={(v) => updateUserSetting('keywordAutofill', v)}
+                      />
+                      <SettingsRow
+                        label="Scan Confidence"
+                        description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
+                        toggle
+                        toggleValue={userSettings.showScanConfidence}
+                        onToggle={(v) => updateUserSetting('showScanConfidence', v)}
+                        disabled={!isPro}
+                      />
+                    </SettingsGroup>
+                  </div>
+
+                  {/* Right column: Goals + Pay Period + Help */}
+                  <div className="space-y-4">
+                    {/* Goals — refined card */}
+                    <div className="space-y-1">
+                      <div className="px-0.5 flex items-baseline gap-2">
+                        <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide">Goals & Earnings</h3>
+                      </div>
+                      <div
+                        className="bg-card border border-border/40 overflow-hidden"
+                        style={{ borderRadius: 'var(--radius)' }}
+                      >
+                        <div className="px-4 py-3.5 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <GoalField
+                              icon={<Target className="h-3 w-3 text-muted-foreground/50" />}
+                              label="Daily"
+                              value={localDailyGoal}
+                              onChange={setLocalDailyGoal}
+                              suffix="hr"
+                              placeholder="—"
+                              min={0}
+                              max={24}
+                              step={0.5}
+                            />
+                            <GoalField
+                              icon={<Target className="h-3 w-3 text-muted-foreground/50" />}
+                              label="Weekly"
+                              value={localWeeklyGoal}
+                              onChange={setLocalWeeklyGoal}
+                              suffix="hr"
+                              placeholder="—"
+                              min={0}
+                              max={168}
+                              step={1}
+                            />
+                          </div>
+                          <GoalField
+                            icon={<DollarSign className="h-3 w-3 text-muted-foreground/50" />}
+                            label="Flat rate"
+                            value={localHourlyRate}
+                            onChange={setLocalHourlyRate}
+                            prefix="$"
+                            suffix="/ hr"
+                            placeholder="Not set"
+                            min={0}
+                            step={0.5}
+                          />
+                        </div>
+                        {/* Save bar — calmer, integrated */}
+                        <div className="border-t border-border/40 px-4 py-2 flex items-center justify-between">
+                          <GoalSaveStatusDisplay status={goalSaveStatus} />
+                          <Button
+                            size="sm"
+                            variant={goalsDirty ? 'default' : 'ghost'}
+                            onClick={handleSaveGoals}
+                            disabled={!goalsDirty || goalSaveStatus === 'saving'}
+                            className="h-7 text-[11px] gap-1.5 px-3"
+                          >
+                            {goalSaveStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save Goals'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <PayPeriodRangeSection
+                      userSettings={userSettings}
+                      updateUserSetting={updateUserSetting}
+                    />
+
+                    {/* Help */}
+                    <SettingsGroup title="Help">
+                      <button
+                        onClick={() => {
+                          window.open('mailto:support@ronavigator.com', '_blank');
+                          navigator.clipboard.writeText('support@ronavigator.com');
+                          toast.success('Email copied');
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
+                      >
+                        <Mail className="h-4 w-4 text-muted-foreground/60" />
+                        <div className="flex-1 min-w-0 text-left">
+                          <span className="text-[13px] font-medium">Contact Support</span>
+                          <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                      </button>
+                    </SettingsGroup>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <ManageContent />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <PresetEditorSheet
+          isOpen={showPresetEditor}
+          onClose={() => setShowPresetEditor(false)}
+          editingPreset={editingPreset}
+          presetName={presetName}
+          setPresetName={setPresetName}
+          presetLaborType={presetLaborType}
+          setPresetLaborType={setPresetLaborType}
+          presetHours={presetHours}
+          setPresetHours={setPresetHours}
+          presetTemplate={presetTemplate}
+          setPresetTemplate={setPresetTemplate}
+          onSave={savePreset}
+        />
+
+        <AdvisorEditorSheet
+          isOpen={showAdvisorEditor}
+          onClose={() => setShowAdvisorEditor(false)}
+          editingAdvisor={editingAdvisor}
+          advisorName={advisorName}
+          setAdvisorName={setAdvisorName}
+          onSave={saveAdvisor}
+        />
+
+        <ClearAllROsDialog
+          roCount={ros.length}
+          showStep1={showClearAllDialog}
+          onCloseStep1={() => setShowClearAllDialog(false)}
+          confirmText={confirmText}
+          setConfirmText={setConfirmText}
+          onFirstConfirm={handleFirstConfirm}
+          showStep2={showFinalConfirm}
+          onCloseStep2={() => setShowFinalConfirm(false)}
+          onFinalConfirm={handleFinalConfirm}
+        />
+
+        <ProUpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
+      </div>
+    );
+  }
+
+  // ── Mobile layout (preserved) ──
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-background border-b border-border/60 px-4 pt-4 pb-3 space-y-3">
-        <h1 className="text-xl font-bold">Settings</h1>
+      <div className="panel-header px-4 pt-4 pb-3 space-y-3">
+        <h1 className="text-lg font-bold tracking-tight">Settings</h1>
         <SegmentedControl
           options={[
             { value: 'settings', label: 'Settings' },
@@ -267,40 +729,40 @@ export function SettingsTab() {
         />
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className="p-4 desktop-sections max-w-xl mx-auto w-full">
         {settingsView === 'settings' ? (
           <>
-            {/* Profile Card */}
+            {/* Profile Card — compact identity row */}
             <button
               onClick={() => setShowAccountSheet(true)}
-              className="rounded-xl border border-border/60 bg-card p-3.5 w-full text-left tap-target touch-feedback"
-              style={{ boxShadow: 'var(--shadow-sm)' }}
+              className={cn(
+                'w-full text-left tap-target active:bg-muted/40 transition-colors',
+                'bg-card border border-border/60 px-4 py-3',
+              )}
+              style={{ borderRadius: 'var(--radius)' }}
             >
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-lg font-bold select-none bg-primary">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-primary-foreground text-sm font-bold select-none bg-primary">
                   {avatarInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm leading-tight truncate">
-                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-xs italic">Set your name</span>}
+                  <div className="text-[13px] font-semibold leading-tight truncate">
+                    {syncedSettings.displayName || <span className="text-muted-foreground font-normal text-[12px] italic">Set your name</span>}
                   </div>
-                  {syncedSettings.shopName && (
-                    <div className="text-[11px] text-muted-foreground truncate">{syncedSettings.shopName}</div>
-                  )}
-                  <div className="text-xs text-muted-foreground truncate mt-0.5">{user?.email}</div>
+                  <div className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{user?.email}</div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={cn(
-                    'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold',
-                    isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                    'px-2 py-0.5 rounded-md text-[10px] font-bold',
+                    isPro ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/60'
                   )}>
-                    {isPro ? <><Crown className="h-2.5 w-2.5" /> Pro</> : 'Free'}
+                    {isPro ? 'PRO' : 'FREE'}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </div>
               </div>
               {isNearExpiry && daysUntilEnd !== null && (
-                <div className="mt-2.5 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-lg px-3 py-2">
+                <div className="mt-2 flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-md px-3 py-2">
                   <Star className="h-3 w-3 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-[11px] text-amber-800 leading-snug">
                     Trial ends in <strong>{daysUntilEnd} {daysUntilEnd === 1 ? 'day' : 'days'}</strong>
@@ -309,8 +771,8 @@ export function SettingsTab() {
               )}
             </button>
 
-            {/* Appearance */}
-            <SettingsGroup title="Appearance">
+            {/* Display */}
+            <SettingsGroup title="Display">
               <SettingsRow
                 label="Dark Mode"
                 toggle
@@ -319,32 +781,32 @@ export function SettingsTab() {
               />
               <SettingsRow
                 label="Hide Hour Totals"
-                description="Shows — instead of totals in the RO list"
+                description="Shows — instead of totals"
                 toggle
                 toggleValue={userSettings.hideTotals}
                 onToggle={(v) => updateUserSetting('hideTotals', v)}
               />
             </SettingsGroup>
 
-            {/* General */}
-            <SettingsGroup title="General">
+            {/* RO Behavior */}
+            <SettingsGroup title="RO Behavior">
               <SettingsRow
-                label="Show Vehicle on Lines"
-                description="Year/make/model shown on each RO line"
+                label="Vehicle on Lines"
+                description="Year/make/model on each line"
                 toggle
                 toggleValue={userSettings.showVehicleChips}
                 onToggle={(v) => updateUserSetting('showVehicleChips', v)}
               />
               <SettingsRow
-                label="Keyword Auto-Fill Hours"
-                description="Matches job keywords to preset hours"
+                label="Keyword Auto-Fill"
+                description="Match job keywords to preset hours"
                 toggle
                 toggleValue={userSettings.keywordAutofill}
                 onToggle={(v) => updateUserSetting('keywordAutofill', v)}
               />
               <SettingsRow
-                label="Show Scan Confidence"
-                description={isPro ? 'Displays match % on scanned ROs' : 'Pro only'}
+                label="Scan Confidence"
+                description={isPro ? 'Show match % on scanned ROs' : 'Pro only'}
                 toggle
                 toggleValue={userSettings.showScanConfidence}
                 onToggle={(v) => updateUserSetting('showScanConfidence', v)}
@@ -352,12 +814,12 @@ export function SettingsTab() {
               />
             </SettingsGroup>
 
-            {/* Goals & Earnings — redesigned with inline save status */}
-            <SettingsGroup title="Goals & Earnings" description="Targets and earnings shown in Summary">
-              <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <GoalInput
-                    label="Daily goal"
+            {/* Goals & Earnings */}
+            <SettingsGroup title="Goals & Earnings">
+              <div className="px-4 py-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <GoalField
+                    label="Daily"
                     value={localDailyGoal}
                     onChange={setLocalDailyGoal}
                     suffix="hr"
@@ -366,8 +828,8 @@ export function SettingsTab() {
                     max={24}
                     step={0.5}
                   />
-                  <GoalInput
-                    label="Weekly goal"
+                  <GoalField
+                    label="Weekly"
                     value={localWeeklyGoal}
                     onChange={setLocalWeeklyGoal}
                     suffix="hr"
@@ -377,9 +839,8 @@ export function SettingsTab() {
                     step={1}
                   />
                 </div>
-                <GoalInput
+                <GoalField
                   label="Flat rate"
-                  hint="Estimates earnings in Summary"
                   value={localHourlyRate}
                   onChange={setLocalHourlyRate}
                   prefix="$"
@@ -388,169 +849,50 @@ export function SettingsTab() {
                   min={0}
                   step={0.5}
                 />
-
-                {/* Save bar: status-aware */}
-                <div className="flex items-center justify-between gap-3 pt-1">
+                {/* Save bar */}
+                <div className="flex items-center justify-between pt-0.5">
                   <GoalSaveStatusDisplay status={goalSaveStatus} />
                   <Button
                     size="sm"
+                    variant={goalsDirty ? 'default' : 'ghost'}
                     onClick={handleSaveGoals}
                     disabled={!goalsDirty || goalSaveStatus === 'saving'}
-                    className={cn(
-                      'transition-all gap-1.5',
-                      goalsDirty && goalSaveStatus !== 'saving'
-                        ? 'bg-primary text-primary-foreground'
-                        : ''
-                    )}
+                    className="h-8 text-[12px] gap-1.5"
                   >
                     {goalSaveStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save goals'}
+                    {goalSaveStatus === 'saving' ? 'Saving…' : goalSaveStatus === 'saved' ? 'Saved' : 'Save'}
                   </Button>
                 </div>
               </div>
             </SettingsGroup>
 
-            {/* Pay Period Range */}
+            {/* Pay Period */}
             <PayPeriodRangeSection
               userSettings={userSettings}
               updateUserSetting={updateUserSetting}
             />
 
-            {/* Support */}
-            <SettingsGroup title="Support">
+            {/* Help */}
+            <SettingsGroup title="Help">
               <button
                 onClick={() => {
                   window.open('mailto:support@ronavigator.com', '_blank');
                   navigator.clipboard.writeText('support@ronavigator.com');
                   toast.success('Email copied');
                 }}
-                className="w-full p-3.5 flex items-center gap-3 tap-target touch-feedback"
+                className="w-full px-4 py-3 flex items-center gap-3 tap-target active:bg-muted/40 transition-colors"
               >
-                <Mail className="h-4.5 w-4.5 text-muted-foreground" />
+                <Mail className="h-4 w-4 text-muted-foreground/60" />
                 <div className="flex-1 min-w-0 text-left">
-                  <span className="font-medium text-sm">Contact Support</span>
-                  <p className="text-[11px] text-muted-foreground">support@ronavigator.com</p>
+                  <span className="text-[13px] font-medium">Contact Support</span>
+                  <p className="text-[11px] text-muted-foreground/50">support@ronavigator.com</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
               </button>
             </SettingsGroup>
           </>
         ) : (
-          <>
-            {/* Quick Presets */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-0.5">
-                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Quick Presets</h3>
-                <button onClick={() => openPresetEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-4.5 w-4.5" />
-                </button>
-              </div>
-              <div className="space-y-1">
-                {(showAllPresets ? settings.presets : settings.presets.slice(0, 6)).map((preset) => (
-                  <PresetItem
-                    key={preset.id}
-                    preset={preset}
-                    onEdit={() => openPresetEditor(preset)}
-                    onDelete={() => deletePreset(preset.id)}
-                    onToggleFavorite={() => {
-                      updatePresets(settings.presets.map(p =>
-                        p.id === preset.id ? { ...p, isFavorite: !p.isFavorite } : p
-                      ));
-                    }}
-                  />
-                ))}
-                {settings.presets.length > 6 && (
-                  <button
-                    onClick={() => setShowAllPresets(v => !v)}
-                    className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    {showAllPresets
-                      ? <><ChevronUp className="h-3 w-3" /> Show Less</>
-                      : <><ChevronDown className="h-3 w-3" /> Show More ({settings.presets.length - 6})</>}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Advisors */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-0.5">
-                <h3 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.14em]">Advisors</h3>
-                <button onClick={() => openAdvisorEditor()} className="p-2 tap-target touch-feedback text-primary">
-                  <Plus className="h-4.5 w-4.5" />
-                </button>
-              </div>
-              <div className="space-y-1">
-                {(showAllAdvisors ? settings.advisors : settings.advisors.slice(0, 6)).map((advisor) => (
-                  <AdvisorItem
-                    key={advisor.id}
-                    advisor={advisor}
-                    onEdit={() => openAdvisorEditor(advisor)}
-                    onDelete={() => deleteAdvisor(advisor.id)}
-                  />
-                ))}
-                {settings.advisors.length > 6 && (
-                  <button
-                    onClick={() => setShowAllAdvisors(v => !v)}
-                    className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    {showAllAdvisors
-                      ? <><ChevronUp className="h-3 w-3" /> Show Less</>
-                      : <><ChevronDown className="h-3 w-3" /> Show More ({settings.advisors.length - 6})</>}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Scan Templates - Pro only */}
-            {isPro && <TemplatesSection />}
-
-            {/* Data */}
-            <SettingsGroup title="Data">
-              <SettingsRow
-                label="Download Backup (JSON)"
-                description="Exports all ROs + lines as JSON"
-                onClick={() => {
-                  if (ros.length === 0) { toast.info('No ROs to export'); return; }
-                  const exportData = ros.map(ro => ({
-                    roNumber: ro.roNumber, date: ro.date, advisor: ro.advisor,
-                    customerName: ro.customerName, vehicle: ro.vehicle, mileage: ro.mileage,
-                    notes: ro.notes, paidDate: ro.paidDate,
-                    lines: ro.lines.map(l => ({
-                      lineNo: l.lineNo, description: l.description,
-                      laborType: l.laborType, hoursPaid: l.hoursPaid, isTbd: l.isTbd,
-                    })),
-                  }));
-                  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `ro-navigator-export-${new Date().toISOString().split('T')[0]}.json`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                  toast.success(`Exported ${ros.length} ROs`);
-                }}
-              />
-              <div className="w-full p-3.5 flex items-center justify-between tap-target touch-feedback">
-                <div>
-                  <span className="font-medium text-sm text-destructive">Clear All ROs</span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {ros.length} RO{ros.length !== 1 ? 's' : ''} will be deleted
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleClearAllClick}
-                  disabled={ros.length === 0}
-                  className="tap-target"
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Clear
-                </Button>
-              </div>
-            </SettingsGroup>
-          </>
+          <ManageContent />
         )}
       </div>
 
@@ -614,10 +956,75 @@ export function SettingsTab() {
   );
 }
 
-// ── Goal Input ──
-function GoalInput({
+/* ── Desktop inline field with auto-save ── */
+function DesktopInlineField({
+  icon,
   label,
-  hint,
+  value,
+  onChange,
+  onBlur,
+  onSave,
+  status,
+  isDirty,
+  placeholder,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+  onSave: () => void;
+  status: FieldStatus;
+  isDirty: boolean;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground/50">{icon}</span>
+          <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{label}</label>
+        </div>
+        <DesktopFieldFeedback status={status} isDirty={isDirty} onSave={onSave} />
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSave(); (e.target as HTMLInputElement).blur(); } }}
+        placeholder={placeholder}
+        className={cn(
+          'w-full h-8 px-3 text-[13px] bg-muted/30 rounded-md border transition-all',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40',
+          isDirty ? 'border-primary/30' : 'border-transparent',
+          status === 'error' && 'border-destructive/40 ring-1 ring-destructive/20',
+        )}
+      />
+    </div>
+  );
+}
+
+function DesktopFieldFeedback({ status, isDirty, onSave }: { status: FieldStatus; isDirty: boolean; onSave: () => void }) {
+  if (status === 'saving') {
+    return <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Loader2 className="h-2.5 w-2.5 animate-spin" /> Saving</span>;
+  }
+  if (status === 'saved') {
+    return <span className="text-[10px] text-green-600/80 flex items-center gap-1 font-medium"><Check className="h-2.5 w-2.5" /> Saved</span>;
+  }
+  if (status === 'error') {
+    return <button onClick={onSave} className="text-[10px] text-destructive font-semibold">Retry</button>;
+  }
+  if (isDirty) {
+    return <span className="text-[10px] text-primary/40">Unsaved</span>;
+  }
+  return null;
+}
+
+/* ── Goal field ── */
+function GoalField({
+  icon,
+  label,
   value,
   onChange,
   prefix,
@@ -627,8 +1034,8 @@ function GoalInput({
   max,
   step,
 }: {
+  icon?: React.ReactNode;
   label: string;
-  hint?: string;
   value: string;
   onChange: (v: string) => void;
   prefix?: string;
@@ -640,13 +1047,13 @@ function GoalInput({
 }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <label className="text-xs font-semibold text-foreground">{label}</label>
-        {hint && <span className="text-[10px] text-muted-foreground/60">{hint}</span>}
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <label className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{label}</label>
       </div>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/60 pointer-events-none">{prefix}</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted-foreground/50 pointer-events-none">{prefix}</span>
         )}
         <input
           type="number"
@@ -658,24 +1065,25 @@ function GoalInput({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            'w-full h-10 text-sm bg-muted/50 rounded-lg border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 tabular-nums transition-all',
+            'w-full h-8 text-[13px] bg-muted/30 rounded-md border border-transparent tabular-nums transition-all',
+            'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40',
             prefix ? 'pl-7 pr-10' : 'px-3 pr-10',
           )}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground/50 pointer-events-none">{suffix}</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/40 pointer-events-none">{suffix}</span>
         )}
       </div>
     </div>
   );
 }
 
-// ── Goal save status display ──
+/* ── Goal save status ── */
 function GoalSaveStatusDisplay({ status }: { status: GoalSaveStatus }) {
   if (status === 'saved') {
     return (
-      <span className="text-[11px] text-green-600 flex items-center gap-1 font-medium">
-        <Check className="h-3 w-3" /> Goals saved
+      <span className="text-[11px] text-green-600/80 flex items-center gap-1 font-medium">
+        <Check className="h-3 w-3" /> Saved
       </span>
     );
   }

@@ -93,11 +93,12 @@ function SplitHandle({
   return (
     <div
       className={cn(
-        "w-1.5 flex-shrink-0 cursor-col-resize flex items-center justify-center group rounded-sm quiet-transition",
+        "w-[5px] flex-shrink-0 cursor-col-resize flex items-center justify-center group quiet-transition relative",
         isDragging
-          ? "bg-primary/30"
-          : "bg-border/30 hover:bg-primary/20",
+          ? "bg-primary/20"
+          : "hover:bg-primary/10",
       )}
+      style={{ background: isDragging ? undefined : 'hsl(var(--border) / 0.4)' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -105,17 +106,10 @@ function SplitHandle({
       role="separator"
       aria-orientation="vertical"
     >
-      <div className="flex flex-col gap-[3px] opacity-50 group-hover:opacity-100 quiet-transition">
-        {[0, 1, 2, 3].map(i => (
-          <div
-            key={i}
-            className={cn(
-              "w-[3px] h-[3px] rounded-full bg-muted-foreground quiet-transition",
-              isDragging && "bg-primary",
-            )}
-          />
-        ))}
-      </div>
+      <div className={cn(
+        "w-[3px] h-8 rounded-full quiet-transition",
+        isDragging ? "bg-primary/60" : "bg-muted-foreground/20 group-hover:bg-primary/40",
+      )} />
     </div>
   );
 }
@@ -239,11 +233,11 @@ export function DesktopWorkspace() {
       <OfflineStatusBar />
 
       {/* ── App Bar ──────────────────────────────────── */}
-      <div className="flex-shrink-0 h-11 flex items-center justify-between px-3 border-b border-border/60 bg-card">
-        <Logo variant="full" scheme="auto" size="sm" className="text-foreground" />
+      <div className="app-bar">
+        <Logo variant="full" scheme="auto" size="xs" className="text-foreground" />
 
         {/* Right-side toolbar */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-px">
           <FlagInbox onNavigateToRO={handleSelectROWithFocus} />
 
           {isPro && (
@@ -261,8 +255,7 @@ export function DesktopWorkspace() {
             </ToolbarBtn>
           )}
 
-          {/* Thin separator */}
-          <div className="w-px h-5 bg-border/60 mx-1" />
+          <div className="w-px h-4 bg-border/40 mx-0.5" />
 
           <ToolbarBtn
             title="Summary & Reports"
@@ -283,10 +276,10 @@ export function DesktopWorkspace() {
           {!isPro && (
             <button
               onClick={() => setShowUpgradeDialog(true)}
-              className="ml-1.5 h-7 px-2.5 rounded-lg border border-primary/30 bg-primary/[0.08] text-[11px] font-bold text-primary hover:bg-primary/15 quiet-transition flex items-center gap-1.5"
+              className="ml-1 h-6 px-2 rounded border border-primary/25 bg-primary/[0.06] text-[10px] font-bold text-primary hover:bg-primary/12 quiet-transition flex items-center gap-1"
               title="Upgrade to Pro"
             >
-              <Crown className="h-3 w-3" />
+              <Crown className="h-2.5 w-2.5" />
               Pro
             </button>
           )}
@@ -308,16 +301,15 @@ export function DesktopWorkspace() {
       ) : (
         <div
           className={cn(
-            "flex-1 flex min-h-0 p-2.5 gap-2 bg-muted/20",
+            "flex-1 flex min-h-0",
             isDragging && "select-none",
           )}
         >
-          {/* Left Panel */}
+          {/* Left Panel — Queue */}
           <div
-            className="min-w-0 flex-shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card"
+            className="min-w-0 flex-shrink-0 overflow-hidden workspace-queue border-r border-border/50"
             style={{
               ...(isWideList ? { flex: "1 1 0%" } : { width: splitter.width }),
-              boxShadow: "var(--shadow-raised)",
             }}
           >
             <ROListPanel
@@ -329,7 +321,7 @@ export function DesktopWorkspace() {
             />
           </div>
 
-          {/* Splitter + Right Panel */}
+          {/* Splitter + Right Panel — Workspace */}
           {!isWideList && (
             <>
               <SplitHandle
@@ -340,8 +332,7 @@ export function DesktopWorkspace() {
               />
 
               <div
-                className="flex-1 min-w-0 relative rounded-xl border border-border/60 bg-card overflow-hidden"
-                style={{ boxShadow: "var(--shadow-raised)" }}
+                className="flex-1 min-w-0 relative bg-card overflow-hidden"
               >
                 <AnimatePresence mode="wait">
                   {rightPanel === "settings" ? (
