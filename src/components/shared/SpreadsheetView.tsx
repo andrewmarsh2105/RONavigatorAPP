@@ -345,56 +345,36 @@ interface BatchBarProps {
 
 function BatchActionBar({ selectedCount, onMarkPaid, onExportSelected, onClearFlags, onDeselectAll, hasFlagsInSelection, isPro }: BatchBarProps) {
   return (
-    <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-primary/10 border-b border-primary/20 animate-in slide-in-from-top-1 duration-200">
+    <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-primary/8 border-b border-primary/15 animate-in slide-in-from-top-1 duration-200">
       <div className="flex items-center gap-1.5">
-        <CheckSquare className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold text-foreground">{selectedCount} selected</span>
+        <CheckSquare className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-bold text-foreground tabular-nums">{selectedCount} selected</span>
       </div>
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-1.5">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-[11px] gap-1"
-          onClick={onMarkPaid}
-        >
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={onMarkPaid}>
           <CircleDot className="h-3 w-3" />
           Mark Paid
         </Button>
 
         {hasFlagsInSelection && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px] gap-1"
-            onClick={onClearFlags}
-          >
+          <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={onClearFlags}>
             <Flag className="h-3 w-3" />
             Clear Flags
           </Button>
         )}
 
         {isPro && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px] gap-1"
-            onClick={onExportSelected}
-          >
+          <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={onExportSelected}>
             <Download className="h-3 w-3" />
             Export
           </Button>
         )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0 text-muted-foreground"
-          onClick={onDeselectAll}
-        >
-          <X className="h-3.5 w-3.5" />
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground" onClick={onDeselectAll}>
+          <X className="h-3 w-3" />
         </Button>
       </div>
     </div>
