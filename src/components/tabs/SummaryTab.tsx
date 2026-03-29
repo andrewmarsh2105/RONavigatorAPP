@@ -702,7 +702,7 @@ export function SummaryTab() {
         )}
 
         {activeTab === 'compare' && isPro && (
-          <div className="p-4">
+          <div className={isDesktop ? 'desktop-sections p-4' : 'p-4'}>
             <HideTotalsContext.Provider value={hideTotals}>
               <MultiPeriodComparison
                 weekStartDay={weekStartDay}
